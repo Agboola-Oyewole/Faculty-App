@@ -1,6 +1,5 @@
-import 'package:faculty_app/filter_modal.dart';
+import 'package:faculty_app/post_card.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,84 +18,150 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Resources',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-          ),
-          SizedBox(
-            height: 15,
-          ),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                flex: 7,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white60,
-                    // Dark background color for the search bar
-                    border: Border.all(color: Colors.black, width: 0.5),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 15.0, vertical: 0),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search,
-                        color: Colors.grey[600],
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Scaffold.of(context).openDrawer(); // Opens sidebar
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: Colors.white60,
+                          borderRadius:
+                          const BorderRadius.all(Radius.circular(10.0)),
+                          border: Border.all(color: Colors.black, width: 1)),
+                      padding: const EdgeInsets.all(10.0),
+                      child: const Icon(
+                        Icons.menu,
+                        color: Colors.black,
+                        size: 18,
                       ),
-                      SizedBox(width: 15),
-                      Expanded(
-                        child: TextField(
-                          // controller: _searchController,
-                          // focusNode: _focusNode,
-                          style: TextStyle(color: Colors.black, fontSize: 16),
-                          decoration: InputDecoration(
-                            hintText: 'Search resources...',
-                            hintStyle: TextStyle(color: Colors.grey),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 10,
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    showFilterModal(context);
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(10.0)),
-                        border: Border.all(color: Colors.black, width: 1)),
-                    padding: const EdgeInsets.all(10.0),
-                    child: const Icon(
-                      FontAwesomeIcons.filterCircleXmark,
-                      color: Colors.black,
-                      size: 18,
                     ),
                   ),
-                ),
+                  SizedBox(
+                    width: 15,
+                  ),
+                  Text(
+                    'EcoCampus',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                  ),
+                ],
               ),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Row(
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(
+                            Icons.notifications_none_rounded,
+                            color: Colors.black,
+                            size: 30,
+                          ),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 10,
+                                minHeight: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              )
             ],
           ),
           SizedBox(
-            height: 20,
+            height: 15,
           ),
           Container(
             color: Colors.grey.withOpacity(0.5),
             height: 1.0,
           ),
-          SizedBox(height: 15),
-          Text(
-            'Recent files',
+          SizedBox(
+            height: 5,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey,
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.add_box_outlined,
+                      color: Colors.white,
+                    ),
+                    SizedBox(
+                      width: 4,
+                    ),
+                    Text(
+                      "New post",
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w900),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(
+            height: 5,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: Column(
+                children: [
+                  Posts(
+                      userName: 'Thomas',
+                      profilePic: 'assets/images/agboola.jpg',
+                      caption:
+                      'GOAT...You all know...cant deny this man, was and alwasy will be',
+                      commentCount: '37k',
+                      image: 'assets/images/post_image.jpg',
+                      likeCount: '43m',
+                      postTime: '12 hours ago',
+                      bookmarkCount: '2',
+                      isVerified: true,
+                      shareCount: '73'),
+                  Posts(
+                      userName: 'Thomas',
+                      profilePic: 'assets/images/agboola.jpg',
+                      caption:
+                      'GOAT...You all know...cant deny this man, was and alwasy will be',
+                      commentCount: '37k',
+                      image: 'assets/images/agboola.jpg',
+                      likeCount: '43m',
+                      postTime: '8 hours ago',
+                      isVerified: true,
+                      bookmarkCount: '44',
+                      shareCount: '73'),
+                ],
+              ),
+            ),
           ),
         ],
       ),

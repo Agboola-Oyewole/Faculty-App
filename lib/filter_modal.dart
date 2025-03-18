@@ -252,7 +252,7 @@ class _FilterModalState extends State<FilterModal> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(
-                  color: Color(0xffC7FFD8),
+                  color: Color(0xff347928),
                   width: 1.5,
                 ),
               ),

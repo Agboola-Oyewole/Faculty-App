@@ -1,3 +1,6 @@
+import 'package:faculty_app/event_screen.dart';
+import 'package:faculty_app/profile_screen.dart';
+import 'package:faculty_app/rescources_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -25,9 +28,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
   // List of screens
   final List<Widget> _screens = [
     const HomeScreen(),
-    const HomeScreen(),
-    const HomeScreen(),
-    const HomeScreen(),
+    const EventScreen(),
+    RescourcesScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -69,6 +72,70 @@ class _BottomNavBarState extends State<BottomNavBar> {
           ),
           child: Scaffold(
             backgroundColor: Colors.transparent,
+            drawer: Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  DrawerHeader(
+                    decoration: BoxDecoration(color: Color(0xffC7FFD8)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundImage:
+                              AssetImage('assets/images/agboola.jpg'),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          "Oyewole Agboola",
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          "delmeroyewole21@gmail.com",
+                          style: TextStyle(color: Colors.black, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.people),
+                    title: Text('Meet the Excos'),
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.book),
+                    title: Text('Current Lecture Timetable'),
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.event),
+                    title: Text('Current Exam Schedule'),
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.settings),
+                    title: Text('Settings'),
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => BottomNavBar(
+                                    initialIndex: 3,
+                                  )));
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.logout),
+                    title: Text('Logout'),
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ),
             body: _screens[_currentIndex], // Show selected screen
             bottomNavigationBar: Padding(
               padding: const EdgeInsets.only(
@@ -106,7 +173,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                       selectedItemColor: Color(0xff347928),
                       unselectedItemColor: Colors.black,
                       type: BottomNavigationBarType.fixed,
-                      // Keep all icons visible
+                      // Keep all images visible
                       items: const [
                         BottomNavigationBarItem(
                           icon: Icon(Icons.home),
