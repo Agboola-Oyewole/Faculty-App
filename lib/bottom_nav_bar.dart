@@ -1,0 +1,138 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'home_screen.dart';
+
+class BottomNavBar extends StatefulWidget {
+  final int initialIndex;
+
+  const BottomNavBar({super.key, this.initialIndex = 0});
+
+  @override
+  State<BottomNavBar> createState() => _BottomNavBarState();
+}
+
+class _BottomNavBarState extends State<BottomNavBar> {
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex =
+        widget.initialIndex; // Set the initial index to the optional parameter
+  }
+
+  // List of screens
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const HomeScreen(),
+    const HomeScreen(),
+    const HomeScreen(),
+  ];
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false, // Prevent default back button behavior
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          // Exit the app
+          SystemNavigator.pop();
+        }
+      },
+      child: SafeArea(
+        child: Container(
+          height: double.infinity, // Full screen height
+          width: double.infinity, // Full screen width
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                // Strong green at the top
+                Color(0xffC7FFD8), // Soft green transition
+                Colors.white,
+                Colors.white, // Full white at the bottom
+              ],
+              stops: [
+                0.0,
+                0.7,
+                1.0
+              ], // Smooth transition: 20% green, then fade to white
+            ),
+          ),
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: _screens[_currentIndex], // Show selected screen
+            bottomNavigationBar: Padding(
+              padding: const EdgeInsets.only(
+                  left: 15.0, right: 15, bottom: 20, top: 10),
+              child: Material(
+                elevation: 5,
+                borderRadius: const BorderRadius.all(Radius.circular(35)),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.black, width: 1.5),
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(35),
+                    ),
+                  ),
+                  padding: const EdgeInsets.only(
+                      top: 6, bottom: 6, left: 5, right: 5),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(35),
+                    ),
+                    child: BottomNavigationBar(
+                      elevation: 5,
+                      backgroundColor: Colors.white,
+                      currentIndex: _currentIndex,
+                      onTap: (index) {
+                        setState(() {
+                          _currentIndex = index; // Update selected index
+                        });
+                      },
+                      selectedLabelStyle:
+                          TextStyle(fontWeight: FontWeight.w900),
+                      unselectedLabelStyle:
+                          TextStyle(fontWeight: FontWeight.bold),
+                      selectedItemColor: Color(0xff347928),
+                      unselectedItemColor: Colors.black,
+                      type: BottomNavigationBarType.fixed,
+                      // Keep all icons visible
+                      items: const [
+                        BottomNavigationBarItem(
+                          icon: Icon(Icons.home),
+                          label: 'Home',
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Icon(Icons.event_available),
+                          label: 'Events',
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Icon(Icons.menu_book),
+                          label: 'Resources',
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Icon(Icons.person),
+                          label: 'Profile',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
