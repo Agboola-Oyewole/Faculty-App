@@ -39,7 +39,7 @@ class _RescourcesScreenState extends State<RescourcesScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 15.0, vertical: 0),
+                      const EdgeInsets.symmetric(horizontal: 15.0, vertical: 0),
                   child: Row(
                     children: [
                       Icon(
@@ -76,7 +76,7 @@ class _RescourcesScreenState extends State<RescourcesScreen> {
                     decoration: BoxDecoration(
                         color: Colors.white60,
                         borderRadius:
-                        const BorderRadius.all(Radius.circular(10.0)),
+                            const BorderRadius.all(Radius.circular(10.0)),
                         border: Border.all(color: Colors.black, width: 1)),
                     padding: const EdgeInsets.all(10.0),
                     child: const Icon(

@@ -248,9 +248,9 @@ class _FilterModalState extends State<FilterModal> {
             value: selectedItem,
             decoration: InputDecoration(
               border:
-              OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+              OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(15),
                 borderSide: BorderSide(
                   color: Color(0xff347928),
                   width: 1.5,
