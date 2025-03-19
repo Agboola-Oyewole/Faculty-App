@@ -1,6 +1,8 @@
 import 'package:faculty_app/post_card.dart';
 import 'package:flutter/material.dart';
 
+import 'content_create_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -31,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                           color: Colors.white60,
                           borderRadius:
-                          const BorderRadius.all(Radius.circular(10.0)),
+                              const BorderRadius.all(Radius.circular(10.0)),
                           border: Border.all(color: Colors.black, width: 1)),
                       padding: const EdgeInsets.all(10.0),
                       child: const Icon(
@@ -100,7 +102,12 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => CreateContentScreen()));
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xff347928),
                   elevation: 3,
@@ -139,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       userName: 'Thomas',
                       profilePic: 'assets/images/agboola.jpg',
                       caption:
-                      'GOAT...You all know...cant deny this man, was and alwasy will be',
+                          'GOAT...You all know...cant deny this man, was and alwasy will be',
                       commentCount: '37k',
                       image: 'assets/images/post_image.jpg',
                       likeCount: '43m',
@@ -151,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       userName: 'Thomas',
                       profilePic: 'assets/images/agboola.jpg',
                       caption:
-                      'GOAT...You all know...cant deny this man, was and alwasy will be',
+                          'GOAT...You all know...cant deny this man, was and alwasy will be',
                       commentCount: '37k',
                       image: 'assets/images/agboola.jpg',
                       likeCount: '43m',
