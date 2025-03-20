@@ -1,4 +1,6 @@
 import 'package:faculty_app/event_screen.dart';
+import 'package:faculty_app/exam_and_lecture_card.dart';
+import 'package:faculty_app/excos_page.dart';
 import 'package:faculty_app/profile_screen.dart';
 import 'package:faculty_app/rescources_screen.dart';
 import 'package:flutter/material.dart';
@@ -104,17 +106,68 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   ListTile(
                     leading: Icon(Icons.people),
                     title: Text('Meet the Excos'),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => ExcosPage()));
+                    },
                   ),
                   ListTile(
                     leading: Icon(Icons.book),
                     title: Text('Current Lecture Timetable'),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ExamAndLectureCard(
+                                  title: 'Lecture Timetable')));
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.calendar_month_outlined),
+                    title: Text('Current Academic Calender'),
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ExamAndLectureCard(
+                                  title: 'Academic Calendar')));
+                    },
                   ),
                   ListTile(
                     leading: Icon(Icons.event),
                     title: Text('Current Exam Schedule'),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  ExamAndLectureCard(title: 'Exam Schedule')));
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.local_activity),
+                    title: Row(
+                      children: [
+                        Text('Attendance Taking'),
+                        SizedBox(
+                          width: 5,
+                        ),
+                        Text(
+                          'Beta',
+                          style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ExamAndLectureCard(
+                                  title: 'Lecture Timetable')));
+                    },
                   ),
                   ListTile(
                     leading: Icon(Icons.settings),
