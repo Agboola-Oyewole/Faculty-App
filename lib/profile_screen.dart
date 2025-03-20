@@ -1,4 +1,8 @@
+import 'package:faculty_app/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
+
+import 'excos_page.dart';
+import 'notification_screen.dart';
 
 // Profile Screen
 class ProfileScreen extends StatelessWidget {
@@ -6,91 +10,110 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(
-          top: 30.0, left: 15.0, right: 15.0, bottom: 0.0),
-      child: Column(
-        children: [
-          _buildHeader(),
-          SizedBox(
-            height: 30,
-          ),
-          Expanded(
-            child: ListView(
-              children: [
-                _buildSectionTitle("Account Settings"),
-                _buildMenuItem(
-                  context,
-                  title: "Personal Information",
-                  icon: Icons.person,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => PersonalInfoScreen()),
-                  ),
-                ),
-                // _buildMenuItem(
-                //   context,
-                //   title: "Password & Security",
-                //   icon: Icons.lock,
-                //   onTap: () => Navigator.push(
-                //     context,
-                //     MaterialPageRoute(builder: (_) => SecurityScreen()),
-                //   ),
-                // ),
-                _buildMenuItem(
-                  context,
-                  title: "Notifications Preferences",
-                  icon: Icons.notifications,
-                  onTap: () {},
-                ),
-                SizedBox(
-                  height: 10,
-                ),
-                _buildSectionTitle("Community Settings"),
-                _buildMenuItem(
-                  context,
-                  title: "Meet the Excos",
-                  icon: Icons.people,
-                  onTap: () {},
-                ),
-                // _buildMenuItem(
-                //   context,
-                //   title: "Friends & Social",
-                //   icon: Icons.people,
-                //   onTap: () {},
-                // ),
-                // _buildMenuItem(
-                //   context,
-                //   title: "Following List",
-                //   icon: Icons.list,
-                //   onTap: () {},
-                // ),
-                SizedBox(
-                  height: 10,
-                ),
-                _buildSectionTitle("Other"),
-                _buildMenuItem(
-                  context,
-                  title: "FAQ",
-                  icon: Icons.help,
-                  onTap: () {},
-                ),
-                _buildMenuItem(
-                  context,
-                  title: "Help Center",
-                  icon: Icons.support_agent,
-                  onTap: () {},
-                ),
-                _buildMenuItem(
-                  context,
-                  title: "Logout",
-                  icon: Icons.logout,
-                  onTap: () {},
-                ),
-              ],
+    return PopScope(
+      canPop: false, // Prevent default back button behavior
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          // Exit the app
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => BottomNavBar()));
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(
+            top: 30.0, left: 15.0, right: 15.0, bottom: 0.0),
+        child: Column(
+          children: [
+            _buildHeader(),
+            SizedBox(
+              height: 30,
             ),
-          ),
-        ],
+            Expanded(
+              child: ListView(
+                children: [
+                  _buildSectionTitle("Account Settings"),
+                  _buildMenuItem(
+                    context,
+                    title: "Personal Information",
+                    icon: Icons.person,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => PersonalInfoScreen()),
+                    ),
+                  ),
+                  // _buildMenuItem(
+                  //   context,
+                  //   title: "Password & Security",
+                  //   icon: Icons.lock,
+                  //   onTap: () => Navigator.push(
+                  //     context,
+                  //     MaterialPageRoute(builder: (_) => SecurityScreen()),
+                  //   ),
+                  // ),
+                  _buildMenuItem(
+                    context,
+                    title: "Notifications Preferences",
+                    icon: Icons.notifications,
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  NotificationSettingsScreen()));
+                    },
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  _buildSectionTitle("Community Settings"),
+                  _buildMenuItem(
+                    context,
+                    title: "Meet the Excos",
+                    icon: Icons.people,
+                    onTap: () {
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => ExcosPage()));
+                    },
+                  ),
+                  // _buildMenuItem(
+                  //   context,
+                  //   title: "Friends & Social",
+                  //   icon: Icons.people,
+                  //   onTap: () {},
+                  // ),
+                  // _buildMenuItem(
+                  //   context,
+                  //   title: "Following List",
+                  //   icon: Icons.list,
+                  //   onTap: () {},
+                  // ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  _buildSectionTitle("Other"),
+                  _buildMenuItem(
+                    context,
+                    title: "FAQ",
+                    icon: Icons.help,
+                    onTap: () {},
+                  ),
+                  _buildMenuItem(
+                    context,
+                    title: "Help Center",
+                    icon: Icons.support_agent,
+                    onTap: () {},
+                  ),
+                  _buildMenuItem(
+                    context,
+                    title: "Logout",
+                    icon: Icons.logout,
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

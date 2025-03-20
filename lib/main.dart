@@ -1,11 +1,11 @@
-import 'package:faculty_app/bottom_nav_bar.dart';
+import 'package:faculty_app/splash_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {
   runApp(
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const BottomNavBar(),
+      home: const OnboardingPage1(),
       theme: ThemeData(
         fontFamily: 'Railway', // Set your custom font family here
       ),
