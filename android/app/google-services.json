@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "807516873313",
+    "project_id": "fes-connect-x",
+    "storage_bucket": "fes-connect-x.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:807516873313:android:c0c0547b4f270ebf58c020",
+        "android_client_info": {
+          "package_name": "com.campus.faculty_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "807516873313-1sg2u71q26oug0hfj79em8ktl5snfvcp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.campus.faculty_app",
+            "certificate_hash": "137040b79fe280eae01e32b62d865a7c85d59d88"
+          }
+        },
+        {
+          "client_id": "807516873313-0va5l713nljcus4lt9c21j2sokodbmu9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8riXJWzntBGxJY4Xrii5Wo5dIdA7OPEo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "807516873313-0va5l713nljcus4lt9c21j2sokodbmu9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
