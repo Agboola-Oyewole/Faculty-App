@@ -1,10 +1,19 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/personal_details.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:sign_in_button/sign_in_button.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
-class OnboardingPage1 extends StatelessWidget {
+import 'bottom_nav_bar.dart';
+
+class OnboardingPage1 extends StatefulWidget {
   const OnboardingPage1({super.key});
 
+  @override
+  State<OnboardingPage1> createState() => _OnboardingPage1State();
+}
+
+class _OnboardingPage1State extends State<OnboardingPage1> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,7 +36,7 @@ class OnboardingPage1 extends StatelessWidget {
           title: 'Never Miss a Class',
           description: 'Access lecture timetables and exam schedules easily.',
           imageUrl: 'assets/images/Learning-cuate.png',
-          bgColor: Color(0xffC7FFD8), // Navy Blue
+          bgColor: Color(0xffB3D8A8), // Navy Blue
         ),
       ]),
     );
@@ -49,9 +58,100 @@ class OnboardingPagePresenter extends StatefulWidget {
 class _OnboardingPageState extends State<OnboardingPagePresenter> {
   // Store the currently visible page
   int _currentPage = 0;
+  bool isLoading = false; // Track loading state
 
   // Define a controller for the pageview
   final PageController _pageController = PageController(initialPage: 0);
+
+  Future<void> signInWithGoogle() async {
+    setState(() {
+      isLoading = true; // Start loading
+    });
+    try {
+      // Trigger the Google Sign-In flow
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        print("Google sign-in was canceled.");
+        return; // User canceled the sign-in process
+      }
+
+      // Get authentication details
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Create a credential for Firebase
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+
+      // Get user info
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        print("✅ User Signed In: ${user.displayName}");
+        print("📧 Email: ${user.email}");
+        print("📷 Profile Pic: ${user.photoURL}");
+
+        bool isNewUser = await checkAndCreateUser(user);
+
+        if (!mounted) return;
+
+        // Redirect based on user status
+        if (isNewUser) {
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (context) => PersonalInfoScreen()));
+        } else {
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (context) => BottomNavBar()));
+        }
+      }
+    } catch (e) {
+      print("❌ Error during Google Sign-In: $e");
+    } finally {
+      // Stop loading after the process completes
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+// Function to check if the user exists in Firestore
+  Future<bool> checkAndCreateUser(User user) async {
+    final userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final docSnapshot = await userRef.get();
+
+    if (!docSnapshot.exists) {
+      // User does not exist, create a new record
+      await userRef.set({
+        'first_name': user.displayName?.split(" ").first ?? "",
+        'last_name': user.displayName?.split(" ").last ?? "",
+        'profile_pic': user.photoURL ?? "",
+        'email': user.email,
+        'date_of_birth': "", // Ask user to provide this
+        'department': "", // Ask user to provide this
+        'level': "", // Ask user to provide this
+        'faculty': "", // Ask user to provide this
+        'gender': "", // Ask user to provide this
+        'role': "student", // Default role
+        'created_at': FieldValue.serverTimestamp(),
+      });
+
+      print("✅ New user created in Firestore.");
+      return true; // New user
+    } else {
+      print("ℹ️ User already exists in Firestore.");
+      return false; // Existing user
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,18 +324,42 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         // Adjust the radius as needed
-                        child: SignInButton(
-                          padding: const EdgeInsets.only(
-                              left: 20, top: 10, bottom: 10),
-                          Buttons.google,
-                          text: "Sign in with Google",
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        PersonalInfoScreen()));
-                          },
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 20),
+                          ),
+                          onPressed: isLoading ? null : signInWithGoogle,
+                          // Disable button when loading
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                "assets/images/search.png", // Use a Google logo asset
+                                height: 24,
+                              ),
+                              isLoading
+                                  ? const SizedBox(
+                                      width: 50,
+                                    )
+                                  : const SizedBox(width: 15),
+                              isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Color(
+                                            0xff347928), // Customize color
+                                        strokeWidth: 4,
+                                      ),
+                                    )
+                                  : const Text(
+                                      "Sign in with Google",
+                                      style: TextStyle(color: Colors.black),
+                                    ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

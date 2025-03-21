@@ -1,7 +1,10 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 class CreateContentScreen extends StatefulWidget {
@@ -41,6 +44,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   String? selectedSemester;
 
   final List<String> departments = [
+    'All',
     "Architecture",
     "Building",
     "Urban & Regional Planning",
@@ -207,67 +211,101 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     }
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     int activeTab = _tabController.index;
     String currentTabName = activeTabNames[activeTab];
+
     if (_formKeys[activeTab].currentState!.validate()) {
       String title = _titleControllers[activeTab].text;
       Map<String, dynamic> formData = {};
-      if (currentTabName == 'Posts') {
-        formData = {
-          "title": title,
-          "currentPostTab": currentTabName,
-          "image": _imagePost?.path,
-          "date": _selectedDate?.toIso8601String(),
-        };
-      } else if (currentTabName == 'Events') {
-        formData = {
-          "title": title,
-          "currentPostTab": currentTabName,
-          "image": _imageEvent?.path,
-          "date": _selectedDate?.toIso8601String(),
-          "dateEnd": _selectedDateEnd?.toIso8601String(),
-          "eventLocation": locationController.text,
-          "eventTicketPrice": ticketController.text,
-          "eventTag": selectedTags
-        };
-      } else if (currentTabName == 'Resources') {
-        formData = {
-          "title": title,
-          "currentPostTab": currentTabName,
-          "document": _document?.path,
-          "department": selectedDepartment,
-          "level": selectedLevel,
-          "semester": selectedSemester,
-          "courseCode": courseCodeController.text,
-        };
-      } else if (currentTabName == 'Exam') {
-        formData = {
-          "title": title,
-          "currentPostTab": currentTabName,
-          "image": _imageExam?.path,
-          "date": _selectedDate?.toIso8601String(),
-          "dateEnd": _selectedDateEnd?.toIso8601String(),
-          "department": selectedDepartment,
-          "level": selectedLevel,
-          "semester": selectedSemester,
-        };
-      } else if (currentTabName == 'Lecture') {
-        formData = {
-          "title": title,
-          "currentPostTab": currentTabName,
-          "image": _imageLecture?.path,
-          "department": selectedDepartment,
-          "level": selectedLevel,
-          "semester": selectedSemester,
-        };
+      String userId = FirebaseAuth.instance.currentUser!.uid;
+
+      // Upload function (returns the URL)
+      Future<String?> uploadFile(File? file, String folder) async {
+        if (file == null) return null;
+        try {
+          String fileName =
+              "${userId}_${DateTime.now().millisecondsSinceEpoch}";
+          Reference ref = FirebaseStorage.instance.ref("$folder/$fileName");
+          UploadTask uploadTask = ref.putFile(file);
+          TaskSnapshot snapshot = await uploadTask;
+          return await snapshot.ref.getDownloadURL();
+        } catch (e) {
+          print("❌ Error uploading file: $e");
+          return null;
+        }
       }
 
-      print("Submitted Data for Tab $activeTab: $activeTabNames");
+      // Handle uploads based on tab
+      if (currentTabName == 'Posts') {
+        String? imageUrl = await uploadFile(_imagePost, "posts");
+        formData = {
+          "userId": userId,
+          "title": title,
+          "image": imageUrl ?? "",
+          "date": _selectedDate?.toIso8601String(),
+          "like_count": 0,
+          "comment": [],
+          "bookmark_count": 0,
+          "share_count": 0,
+        };
+        await FirebaseFirestore.instance.collection('posts').add(formData);
+      } else if (currentTabName == 'Events') {
+        String? imageUrl = await uploadFile(_imageEvent, "events");
+        formData = {
+          "userId": userId,
+          "title": title,
+          "image": imageUrl ?? "",
+          "date_start": _selectedDate?.toIso8601String(),
+          "date_end": _selectedDateEnd?.toIso8601String(),
+          "location": locationController.text,
+          "ticket_price": ticketController.text,
+          "tag": selectedTags,
+        };
+        await FirebaseFirestore.instance.collection('events').add(formData);
+      } else if (currentTabName == 'Resources') {
+        String? documentUrl = await uploadFile(_document, "resources");
+        formData = {
+          "userId": userId,
+          "title": title,
+          "document": documentUrl ?? "",
+          "department": selectedDepartment,
+          "level": selectedLevel,
+          "semester": selectedSemester,
+          "course_code": courseCodeController.text,
+        };
+        await FirebaseFirestore.instance.collection('resources').add(formData);
+      } else if (currentTabName == 'Exam') {
+        String? imageUrl = await uploadFile(_imageExam, "exams");
+        formData = {
+          "userId": userId,
+          "title": title,
+          "image": imageUrl ?? "",
+          "date_start": _selectedDate?.toIso8601String(),
+          "date_end": _selectedDateEnd?.toIso8601String(),
+          "department": selectedDepartment,
+          "level": selectedLevel,
+          "semester": selectedSemester,
+        };
+        await FirebaseFirestore.instance.collection('exams').add(formData);
+      } else if (currentTabName == 'Lecture') {
+        String? imageUrl = await uploadFile(_imageLecture, "lectures");
+        formData = {
+          "userId": userId,
+          "title": title,
+          "image": imageUrl ?? "",
+          "department": selectedDepartment,
+          "level": selectedLevel,
+          "semester": selectedSemester,
+        };
+        await FirebaseFirestore.instance.collection('lectures').add(formData);
+      }
+
+      print("✅ Data Uploaded for Tab: $currentTabName");
       print(formData);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Post submitted successfully!')),
+        SnackBar(content: Text('$currentTabName submitted successfully!')),
       );
     }
   }
@@ -352,17 +390,17 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             SizedBox(height: 5),
             if (allowTags)
               buildDropdown("Tags", eventTags, selectedTags, (val) {
-                setState(() => selectedType = val);
+                setState(() => selectedTags = val);
               }),
             if (allowDepartment)
               buildDropdown("Department", departments, selectedDepartment,
                   (val) {
-                setState(() => selectedType = val);
+                setState(() => selectedDepartment = val);
               }),
             if (allowDepartment) SizedBox(height: 5),
             if (allowLevel)
               buildDropdown("Level", levels, selectedLevel, (val) {
-                setState(() => selectedType = val);
+                setState(() => selectedLevel = val);
               }),
             if (allowLevel) SizedBox(height: 5),
             if (allowCourseCode)
@@ -381,7 +419,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             if (allowDocument) SizedBox(height: 5),
             if (allowSemester)
               buildDropdown("Semester", semester, selectedSemester, (val) {
-                setState(() => selectedType = val);
+                setState(() => selectedSemester = val);
               }),
             if (allowSemester) SizedBox(height: 5),
             if (allowTicket)
@@ -448,7 +486,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter a title';
+          return 'This field is required';
         }
         return null;
       },
@@ -482,6 +520,12 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               ),
             ),
             isExpanded: false,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return "This field is required"; // Show validation message
+              }
+              return null;
+            },
             items: items
                 .map((e) => DropdownMenuItem(
                     value: e,
@@ -529,7 +573,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         Text("Upload Image"),
         SizedBox(height: 8),
         GestureDetector(
-          onTap: _pickImagePost,
+          onTap: _pickImageLecture,
           child: Container(
             height: 150,
             width: double.infinity,
@@ -555,7 +599,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         Text("Upload Image"),
         SizedBox(height: 8),
         GestureDetector(
-          onTap: _pickImagePost,
+          onTap: _pickImageExam,
           child: Container(
             height: 150,
             width: double.infinity,

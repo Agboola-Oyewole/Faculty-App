@@ -3,8 +3,10 @@ import 'package:faculty_app/exam_and_lecture_card.dart';
 import 'package:faculty_app/excos_page.dart';
 import 'package:faculty_app/profile_screen.dart';
 import 'package:faculty_app/rescources_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'home_screen.dart';
 
@@ -19,6 +21,11 @@ class BottomNavBar extends StatefulWidget {
 
 class _BottomNavBarState extends State<BottomNavBar> {
   late int _currentIndex;
+
+  Future<void> signOut() async {
+    await FirebaseAuth.instance.signOut();
+    await GoogleSignIn().signOut();
+  }
 
   @override
   void initState() {
@@ -184,7 +191,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   ListTile(
                     leading: Icon(Icons.logout),
                     title: Text('Logout'),
-                    onTap: () {},
+                    onTap: () {
+                      signOut();
+                    },
                   ),
                 ],
               ),

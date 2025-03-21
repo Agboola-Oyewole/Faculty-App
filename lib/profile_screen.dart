@@ -1,5 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/bottom_nav_bar.dart';
+import 'package:faculty_app/splash_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'excos_page.dart';
 import 'notification_screen.dart';
@@ -10,6 +14,11 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Future<void> signOut() async {
+      await FirebaseAuth.instance.signOut();
+      await GoogleSignIn().signOut();
+    }
+
     return PopScope(
       canPop: false, // Prevent default back button behavior
       onPopInvokedWithResult: (didPop, result) async {
@@ -107,7 +116,13 @@ class ProfileScreen extends StatelessWidget {
                     context,
                     title: "Logout",
                     icon: Icons.logout,
-                    onTap: () {},
+                    onTap: () {
+                      signOut();
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => OnboardingPage1()));
+                    },
                   ),
                 ],
               ),
@@ -119,6 +134,8 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildHeader() {
+    String? userDisplayName = FirebaseAuth.instance.currentUser?.displayName;
+    String? userEmail = FirebaseAuth.instance.currentUser?.email;
     return Column(
       children: [
         CircleAvatar(
@@ -127,12 +144,12 @@ class ProfileScreen extends StatelessWidget {
         ),
         SizedBox(height: 10),
         Text(
-          "Jaydon Mango",
+          userDisplayName!,
           style: TextStyle(
               color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         Text(
-          "Jaydonmango@gmail.com",
+          userEmail!,
           style: TextStyle(color: Colors.black45),
         ),
       ],
@@ -163,8 +180,43 @@ class ProfileScreen extends StatelessWidget {
 }
 
 // Personal Information Screen
-class PersonalInfoScreen extends StatelessWidget {
+class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
+
+  @override
+  State<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
+}
+
+class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
+  Future<Map<String, dynamic>?> fetchCurrentUserDetails() async {
+    try {
+      // Get the currently signed-in user
+      User? user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        print("❌ No user is currently signed in.");
+        return null;
+      }
+
+      // Reference to Firestore document
+      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
+          .instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!doc.exists) {
+        print("❌ User document not found in Firestore.");
+        return null;
+      }
+
+      // Return user details as a Map
+      return doc.data();
+    } catch (e) {
+      print("❌ Error fetching user details: $e");
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,77 +248,108 @@ class PersonalInfoScreen extends StatelessWidget {
         ),
         body: Padding(
           padding: EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // Profile Picture & Edit Button
-              Center(
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundImage: AssetImage('assets/images/agboola.jpg'),
-                    ),
-                    SizedBox(
-                      height: 15,
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                          color: Colors.white60,
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(10.0)),
-                          border: Border.all(color: Colors.black, width: 1)),
-                      padding: const EdgeInsets.all(7.0),
-                      child: GestureDetector(
-                        onTap: () {},
-                        child: Text(
-                          "Edit Profile",
-                          style: TextStyle(
-                              color: Colors.black, fontWeight: FontWeight.w900),
+          child: StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(FirebaseAuth.instance.currentUser?.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return Center(child: Text("User data not found."));
+              }
+
+              var userData = snapshot.data!.data() as Map<String, dynamic>;
+
+              return Column(
+                children: [
+                  // Profile Picture & Edit Button
+                  Center(
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: Colors.white,
+                          radius: 50,
+                          backgroundImage: userData['profile_pic'] != null &&
+                                  userData['profile_pic'].isNotEmpty
+                              ? NetworkImage(userData['profile_pic'])
+                              : AssetImage('assets/images/user.png')
+                                  as ImageProvider,
                         ),
+                        SizedBox(height: 15),
+                        // Container(
+                        //   decoration: BoxDecoration(
+                        //     color: Colors.white60,
+                        //     borderRadius:
+                        //         BorderRadius.all(Radius.circular(10.0)),
+                        //     border: Border.all(color: Colors.black, width: 1),
+                        //   ),
+                        //   padding: EdgeInsets.all(7.0),
+                        //   child: GestureDetector(
+                        //     onTap: () {},
+                        //     child: Text(
+                        //       "Edit Profile",
+                        //       style: TextStyle(
+                        //           color: Colors.black,
+                        //           fontWeight: FontWeight.w900),
+                        //     ),
+                        //   ),
+                        // ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+
+                  // Scrollable Fields
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          _buildTextField("First Name",
+                              userData['first_name'] ?? "Not provided"),
+                          _buildTextField("Last Name",
+                              userData['last_name'] ?? "Not provided"),
+                          _buildTextField("Date of Birth",
+                              userData['date_of_birth'] ?? "Not provided"),
+                          _buildTextField("Department",
+                              userData['department'] ?? "Not provided"),
+                          _buildTextField(
+                              "Faculty", userData['faculty'] ?? "Not provided"),
+                          _buildDropdownField(
+                              "Gender", userData['gender'] ?? "Not specified"),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20),
-
-              // Scrollable Fields
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _buildTextField("First Name", "Jayden"),
-                      _buildTextField("Last Name", "Mango"),
-                      _buildTextField("Date of Birth", "23/05/1990"),
-                      _buildTextField("Matric Number", "250803089"),
-                      _buildTextField("Department", "Architecture"),
-                      _buildTextField("Faculty", "Environmental Sciences"),
-                      _buildDropdownField("Gender", "Male"),
-                    ],
                   ),
-                ),
-              ),
 
-              // Save Button (Fixed at Bottom)
-              SizedBox(height: 10),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xffC7FFD8),
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  minimumSize: Size(double.infinity, 50), // Full-width button
-                ),
-                onPressed: () {},
-                child: Text(
-                  "Save",
-                  style: TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.w900),
-                ),
-              ),
-              SizedBox(height: 15),
-            ],
+                  // Save Button (Fixed at Bottom)
+                  SizedBox(height: 10),
+                  // ElevatedButton(
+                  //   style: ElevatedButton.styleFrom(
+                  //     backgroundColor: Color(0xffC7FFD8),
+                  //     elevation: 3,
+                  //     shape: RoundedRectangleBorder(
+                  //       borderRadius: BorderRadius.circular(10),
+                  //     ),
+                  //     minimumSize:
+                  //         Size(double.infinity, 50), // Full-width button
+                  //   ),
+                  //   onPressed: () {
+                  //     // Implement save function
+                  //   },
+                  //   child: Text(
+                  //     "Save",
+                  //     style: TextStyle(
+                  //         color: Colors.black, fontWeight: FontWeight.w900),
+                  //   ),
+                  // ),
+                  // SizedBox(height: 15),
+                ],
+              );
+            },
           ),
         ),
       ),
