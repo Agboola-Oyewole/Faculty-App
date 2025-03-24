@@ -1,8 +1,8 @@
-import 'package:faculty_app/notification_screen.dart';
-import 'package:faculty_app/post_card.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:faculty_app/components/post_card.dart';
+import 'package:faculty_app/screens/notification_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
-import 'content_create_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,6 +12,89 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  List<Map<String, dynamic>> _posts = [];
+  Map<String, Map<String, dynamic>> _userCache = {};
+  bool _isLoading = true;
+  String? currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPosts(); // Load posts when the screen initializes
+    currentUser = FirebaseAuth.instance.currentUser?.uid;
+  }
+
+  Future<void> _fetchPosts() async {
+    setState(() => _isLoading = true);
+
+    try {
+      QuerySnapshot postSnapshot = await FirebaseFirestore.instance
+          .collection('posts')
+          .orderBy('date', descending: true)
+          .get();
+
+      List<Map<String, dynamic>> posts = postSnapshot.docs.map((doc) {
+        return {
+          ...doc.data() as Map<String, dynamic>,
+          'postId': doc.id,
+        };
+      }).toList();
+
+      setState(() {
+        _posts = posts;
+        _isLoading = false;
+      });
+
+      _fetchUserData(posts);
+    } catch (e) {
+      setState(() => _isLoading = false);
+      print("Error fetching posts: $e");
+    }
+  }
+
+  Future<void> _fetchUserData(List<Map<String, dynamic>> posts) async {
+    for (var post in posts) {
+      String userId = post['userId'];
+
+      if (!_userCache.containsKey(userId)) {
+        DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .get();
+
+        if (userSnapshot.exists) {
+          setState(() {
+            _userCache[userId] = userSnapshot.data() as Map<String, dynamic>;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _refreshPosts() async {
+    await _fetchPosts();
+  }
+
+  String timeAgo(DateTime postTime) {
+    Duration difference = DateTime.now().difference(postTime);
+
+    if (difference.inSeconds < 60) {
+      return '${difference.inSeconds} seconds ago';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} minutes ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hours ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inDays < 30) {
+      return '${(difference.inDays / 7).floor()} weeks ago';
+    } else if (difference.inDays < 365) {
+      return '${(difference.inDays / 30).floor()} months ago';
+    } else {
+      return '${(difference.inDays / 365).floor()} years ago';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -28,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Scaffold.of(context).openDrawer(); // Opens sidebar
+                      Scaffold.of(context).openDrawer();
                     },
                     child: Container(
                       decoration: BoxDecoration(
@@ -44,141 +127,108 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(
-                    width: 15,
-                  ),
+                  SizedBox(width: 15),
                   Text(
-                    'EcoCampus',
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                    'FES Connect Hub',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
                   ),
                 ],
               ),
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => NotificationsScreen()));
-                    },
-                    child: Row(
-                      children: [
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            const Icon(
-                              Icons.notifications_none_rounded,
-                              color: Colors.black,
-                              size: 30,
-                            ),
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 10,
-                                  minHeight: 10,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              )
-            ],
-          ),
-          SizedBox(
-            height: 15,
-          ),
-          Container(
-            color: Colors.grey.withOpacity(0.5),
-            height: 1.0,
-          ),
-          SizedBox(
-            height: 5,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ElevatedButton(
-                onPressed: () {
+              GestureDetector(
+                onTap: () {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => CreateContentScreen()));
+                          builder: (context) => NotificationsScreen()));
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xff347928),
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10.0)),
+                      border: Border.all(color: Colors.black, width: 1)),
+                  padding: const EdgeInsets.all(8.0),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(
+                        Icons.notifications_none_rounded,
+                        color: Colors.black,
+                        size: 25,
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 10,
+                            minHeight: 10,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.add_box_outlined,
-                      color: Colors.white,
-                    ),
-                    SizedBox(
-                      width: 4,
-                    ),
-                    Text(
-                      "New post",
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w900),
-                    ),
-                  ],
-                ),
-              ),
+              )
             ],
           ),
-          SizedBox(
-            height: 5,
-          ),
+          SizedBox(height: 15),
+          Container(color: Colors.grey.withOpacity(0.5), height: 1.0),
+          SizedBox(height: 10),
           Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: Column(
-                children: [
-                  Posts(
-                      userName: 'Thomas',
-                      profilePic: 'assets/images/agboola.jpg',
-                      caption:
-                          'GOAT...You all know...cant deny this man, was and alwasy will be',
-                      commentCount: '37k',
-                      image: 'assets/images/post_image.jpg',
-                      likeCount: '43m',
-                      postTime: '12 hours ago',
-                      bookmarkCount: '2',
-                      isVerified: true,
-                      shareCount: '73'),
-                  Posts(
-                      userName: 'Thomas',
-                      profilePic: 'assets/images/agboola.jpg',
-                      caption:
-                          'GOAT...You all know...cant deny this man, was and alwasy will be',
-                      commentCount: '37k',
-                      image: 'assets/images/agboola.jpg',
-                      likeCount: '43m',
-                      postTime: '8 hours ago',
-                      isVerified: true,
-                      bookmarkCount: '44',
-                      shareCount: '73'),
-                ],
-              ),
+            child: RefreshIndicator(
+              onRefresh: _refreshPosts,
+              child: _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : _posts.isEmpty
+                      ? Center(child: Text('No posts available'))
+                      : ListView.builder(
+                          itemCount: _posts.length,
+                          itemBuilder: (context, index) {
+                            var postData = _posts[index];
+                            String userId = postData['userId'];
+                            var userData = _userCache[userId] ?? {};
+
+                            return FutureBuilder<QuerySnapshot>(
+                              future: FirebaseFirestore.instance
+                                  .collection('posts')
+                                  .doc(postData['postId'])
+                                  .collection('comments')
+                                  .get(),
+                              builder: (context, snapshot) {
+                                int commentCount = snapshot.hasData
+                                    ? snapshot.data!.docs.length
+                                    : 0;
+
+                                return Posts(
+                                  userName: userData['first_name'] ?? 'Unknown',
+                                  profilePic: userData['profile_pic'] ??
+                                      'assets/images/user.png',
+                                  caption: postData['title'] ?? '',
+                                  commentCount: commentCount.toString(),
+                                  image: postData['image'] ??
+                                      'assets/images/503 Error Service.png',
+                                  initialLikes: postData['likes'] ?? [],
+                                  initialBookmarks: postData['bookmarks'] ?? [],
+                                  postTime: timeAgo(
+                                      (postData['date'] as Timestamp).toDate()),
+                                  isVerified:
+                                      (userData['role'] ?? false) != 'student',
+                                  postId: postData['postId'],
+                                  posterId: postData['userId'],
+                                  currentUserId: currentUser!,
+                                );
+                              },
+                            );
+                          },
+                        ),
             ),
-          ),
+          )
         ],
       ),
     );

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:intl/intl.dart';
 
-import 'bottom_nav_bar.dart';
+import '../bottom_nav_bar.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
@@ -80,7 +80,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     "Quantity Surveying",
   ];
 
-  final List<String> levels = ["100", "200", "300", "400", "500"];
+  final List<String> levels = [
+    "100 Level",
+    "200 Level",
+    "300 Level",
+    "400 Level",
+    "500 Level"
+  ];
 
   final List<String> genders = ["Male", "Female"];
 

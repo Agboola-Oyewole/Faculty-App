@@ -35,7 +35,7 @@ class EventCard extends StatelessWidget {
                     topLeft: Radius.circular(12),
                     topRight: Radius.circular(12),
                   ),
-                  child: Image.asset(
+                  child: Image.network(
                     imageUrl,
                     width: double.infinity,
                     height: 130,
@@ -88,7 +88,7 @@ class EventCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 6),
                   Text(
                     priceRange,
                     style: TextStyle(
@@ -97,14 +97,15 @@ class EventCard extends StatelessWidget {
                       color: Color(0xff347928),
                     ),
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.location_on, size: 14, color: Colors.grey),
+                      Icon(Icons.location_on,
+                          size: 14, color: Colors.grey[600]),
                       SizedBox(width: 4),
                       Text(
                         location,
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),

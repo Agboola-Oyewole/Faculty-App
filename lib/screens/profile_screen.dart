@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/bottom_nav_bar.dart';
-import 'package:faculty_app/splash_screen.dart';
+import 'package:faculty_app/screens/splash_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -135,18 +135,22 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildHeader() {
     String? userDisplayName = FirebaseAuth.instance.currentUser?.displayName;
+    String? userDisplayPic = FirebaseAuth.instance.currentUser?.photoURL;
     String? userEmail = FirebaseAuth.instance.currentUser?.email;
     return Column(
       children: [
         CircleAvatar(
           radius: 50,
-          backgroundImage: AssetImage('assets/images/agboola.jpg'),
+          backgroundImage: NetworkImage(userDisplayPic!),
         ),
         SizedBox(height: 10),
         Text(
           userDisplayName!,
           style: TextStyle(
               color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(
+          height: 5,
         ),
         Text(
           userEmail!,
@@ -188,6 +192,35 @@ class PersonalInfoScreen extends StatefulWidget {
 }
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
+  String? _selectedLevel;
+
+  final List<String> levels = [
+    "100 Level",
+    "200 Level",
+    "300 Level",
+    "400 Level",
+    "500 Level"
+  ];
+  bool isLoading = false; // Track loading state
+
+  Map<String, dynamic>? userData;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getUserDetails();
+  }
+
+  Future<void> getUserDetails() async {
+    Map<String, dynamic>? fetchedData = await fetchCurrentUserDetails();
+    if (fetchedData != null) {
+      setState(() {
+        userData = fetchedData;
+      });
+    }
+  }
+
   Future<Map<String, dynamic>?> fetchCurrentUserDetails() async {
     try {
       // Get the currently signed-in user
@@ -215,6 +248,45 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     } catch (e) {
       print("❌ Error fetching user details: $e");
       return null;
+    }
+  }
+
+  Future<void> updateUserDetails({
+    required String level,
+  }) async {
+    // Get the current logged-in user
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      // Reference to Firestore user document
+      final userRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      setState(() {
+        isLoading = true; // Start loading
+      });
+
+      try {
+        await userRef.update({
+          'level': level,
+          'updated_at': FieldValue.serverTimestamp(), // Track last update
+        });
+
+        print("✅ User details updated successfully!");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Details updated successfully!')),
+        );
+      } catch (e) {
+        print("❌ Error updating user details: $e");
+      } finally {
+        // Stop loading after the process completes
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      }
+    } else {
+      print("⚠️ No user is signed in.");
     }
   }
 
@@ -247,111 +319,78 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           title: Text("Personal Information"),
         ),
         body: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('users')
-                .doc(FirebaseAuth.instance.currentUser?.uid)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
-
-              if (!snapshot.hasData || !snapshot.data!.exists) {
-                return Center(child: Text("User data not found."));
-              }
-
-              var userData = snapshot.data!.data() as Map<String, dynamic>;
-
-              return Column(
-                children: [
-                  // Profile Picture & Edit Button
-                  Center(
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: Colors.white,
-                          radius: 50,
-                          backgroundImage: userData['profile_pic'] != null &&
-                                  userData['profile_pic'].isNotEmpty
-                              ? NetworkImage(userData['profile_pic'])
-                              : AssetImage('assets/images/user.png')
-                                  as ImageProvider,
+            padding: EdgeInsets.all(16.0),
+            child: userData == null
+                ? Center(
+                    child:
+                        CircularProgressIndicator()) // Show loading until data loads
+                : Column(
+                    children: [
+                      Center(
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: Colors.white,
+                              radius: 50,
+                              backgroundImage:
+                                  userData!['profile_pic'] != null &&
+                                          userData!['profile_pic'].isNotEmpty
+                                      ? NetworkImage(userData!['profile_pic'])
+                                      : AssetImage('assets/images/user.png')
+                                          as ImageProvider,
+                            ),
+                            SizedBox(height: 15),
+                          ],
                         ),
-                        SizedBox(height: 15),
-                        // Container(
-                        //   decoration: BoxDecoration(
-                        //     color: Colors.white60,
-                        //     borderRadius:
-                        //         BorderRadius.all(Radius.circular(10.0)),
-                        //     border: Border.all(color: Colors.black, width: 1),
-                        //   ),
-                        //   padding: EdgeInsets.all(7.0),
-                        //   child: GestureDetector(
-                        //     onTap: () {},
-                        //     child: Text(
-                        //       "Edit Profile",
-                        //       style: TextStyle(
-                        //           color: Colors.black,
-                        //           fontWeight: FontWeight.w900),
-                        //     ),
-                        //   ),
-                        // ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 20),
-
-                  // Scrollable Fields
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          _buildTextField("First Name",
-                              userData['first_name'] ?? "Not provided"),
-                          _buildTextField("Last Name",
-                              userData['last_name'] ?? "Not provided"),
-                          _buildTextField("Date of Birth",
-                              userData['date_of_birth'] ?? "Not provided"),
-                          _buildTextField("Department",
-                              userData['department'] ?? "Not provided"),
-                          _buildTextField(
-                              "Faculty", userData['faculty'] ?? "Not provided"),
-                          _buildDropdownField(
-                              "Gender", userData['gender'] ?? "Not specified"),
-                        ],
                       ),
-                    ),
-                  ),
-
-                  // Save Button (Fixed at Bottom)
-                  SizedBox(height: 10),
-                  // ElevatedButton(
-                  //   style: ElevatedButton.styleFrom(
-                  //     backgroundColor: Color(0xffC7FFD8),
-                  //     elevation: 3,
-                  //     shape: RoundedRectangleBorder(
-                  //       borderRadius: BorderRadius.circular(10),
-                  //     ),
-                  //     minimumSize:
-                  //         Size(double.infinity, 50), // Full-width button
-                  //   ),
-                  //   onPressed: () {
-                  //     // Implement save function
-                  //   },
-                  //   child: Text(
-                  //     "Save",
-                  //     style: TextStyle(
-                  //         color: Colors.black, fontWeight: FontWeight.w900),
-                  //   ),
-                  // ),
-                  // SizedBox(height: 15),
-                ],
-              );
-            },
-          ),
-        ),
+                      SizedBox(height: 20),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              _buildTextField("First Name",
+                                  userData?['first_name'] ?? "Not provided"),
+                              _buildTextField("Last Name",
+                                  userData?['last_name'] ?? "Not provided"),
+                              _buildTextField("Date of Birth",
+                                  userData?['date_of_birth'] ?? "Not provided"),
+                              _buildTextField("Department",
+                                  userData?['department'] ?? "Not provided"),
+                              _buildTextField("Faculty",
+                                  userData?['faculty'] ?? "Not provided"),
+                              _buildDropdown(userData?['level'], 'Level',
+                                  levels, _selectedLevel, (newValue) {
+                                setState(() => _selectedLevel = newValue);
+                              }),
+                              _buildTextField("Gender",
+                                  userData?['gender'] ?? "Not provided"),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xffC7FFD8),
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          minimumSize: Size(double.infinity, 50),
+                        ),
+                        onPressed: () {
+                          updateUserDetails(level: _selectedLevel!);
+                        },
+                        child: isLoading
+                            ? CircularProgressIndicator(color: Colors.white)
+                            : Text("Save",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w900)),
+                      ),
+                      SizedBox(height: 15),
+                    ],
+                  )),
       ),
     );
   }
@@ -374,73 +413,32 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
-  Widget _buildDropdownField(String label, String value) {
+  Widget _buildDropdown(String hint, String label, List<String> items,
+      String? selectedValue, Function(String?) onChanged) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: 10.0),
       child: DropdownButtonFormField<String>(
-        borderRadius: BorderRadius.all(Radius.circular(15.0)),
-        value: value,
+        value: selectedValue,
+        items: items
+            .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+            .toList(),
+        onChanged: onChanged,
         decoration: InputDecoration(
           labelText: label,
           labelStyle:
               TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-          border: OutlineInputBorder(),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(
-              color: Color(0xff347928),
-              width: 1.5,
-            ),
-          ),
+          hintText: hint,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
-        isExpanded: false,
-        items: ["Male", "Female"].map((gender) {
-          return DropdownMenuItem(value: gender, child: Text(gender));
-        }).toList(),
-        onChanged: (value) {},
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return "$hint is required"; // Show validation message
+          }
+          return null;
+        },
       ),
     );
   }
 }
-
-// // Password & Security Screen
-// class SecurityScreen extends StatelessWidget {
-//   const SecurityScreen({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text("Password & Security"),
-//         backgroundColor: Colors.indigo.shade900,
-//       ),
-//       body: ListView(
-//         padding: EdgeInsets.all(16.0),
-//         children: [
-//           _buildSecurityItem("Change Password", Icons.lock, "PIN"),
-//           _buildSecurityItem("Face ID", Icons.face, "Not Registered"),
-//           _buildSecurityItem(
-//               "Verified Phone Number", Icons.phone, "Not Registered"),
-//           _buildSecurityItem(
-//               "Verified Email Address", Icons.email, "Registered",
-//               isRegistered: true),
-//         ],
-//       ),
-//     );
-//   }
-//
-//   Widget _buildSecurityItem(String title, IconData icon, String status,
-//       {bool isRegistered = false}) {
-//     return ListTile(
-//       leading: Icon(icon, color: Colors.black54),
-//       title: Text(title),
-//       trailing: Text(
-//         status,
-//         style: TextStyle(
-//           color: isRegistered ? Colors.green : Colors.red,
-//           fontWeight: FontWeight.bold,
-//         ),
-//       ),
-//       onTap: () {},
-//     );
-//   }
-// }

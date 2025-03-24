@@ -8,7 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 class CreateContentScreen extends StatefulWidget {
-  const CreateContentScreen({super.key});
+  const CreateContentScreen({super.key, required this.tabIndex});
+
+  final int tabIndex;
 
   @override
   State<CreateContentScreen> createState() => _CreateContentScreenState();
@@ -27,8 +29,12 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       List.generate(5, (index) => TextEditingController());
 
   final TextEditingController ticketController = TextEditingController();
+  final TextEditingController presaleTicketController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
   final TextEditingController courseCodeController = TextEditingController();
+  bool isLoading = false; // Track loading state
+  List<String> selectedTags = [];
 
   File? _imagePost;
   File? _imageEvent;
@@ -40,7 +46,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   String? selectedType;
   String? selectedDepartment;
   String? selectedLevel;
-  String? selectedTags;
   String? selectedSemester;
 
   final List<String> departments = [
@@ -127,10 +132,64 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     "Lecture"
   ];
 
+  void _showMultiSelectDialog(List<String> items, List<String> selectedItems,
+      Function(List<String>) onChanged) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text("Select Tags (Max 3)"),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: items.map((tag) {
+                    bool isSelected = selectedItems.contains(tag);
+                    return CheckboxListTile(
+                      title: Text(tag),
+                      value: isSelected,
+                      onChanged: (bool? value) {
+                        if (value == true) {
+                          if (selectedItems.length < 3) {
+                            setState(() => selectedItems.add(tag));
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content:
+                                    Text("You can only select up to 3 tags!"),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        } else {
+                          setState(() => selectedItems.remove(tag));
+                        }
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    onChanged(List.from(selectedItems));
+                    Navigator.pop(context);
+                  },
+                  child: Text("Done"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _tabController.index = widget.tabIndex;
   }
 
   void _clearForm() {
@@ -139,6 +198,8 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     }
 
     ticketController.clear();
+    presaleTicketController.clear();
+    descriptionController.clear();
     locationController.clear();
     courseCodeController.clear();
 
@@ -153,7 +214,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       selectedType = null;
       selectedDepartment = null;
       selectedLevel = null;
-      selectedTags = null;
+      selectedTags = [];
       selectedSemester = null;
     });
 
@@ -247,13 +308,40 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   void _submitForm() async {
     int activeTab = _tabController.index;
     String currentTabName = activeTabNames[activeTab];
+    setState(() {
+      isLoading = true; // Start loading
+    });
 
     if (_formKeys[activeTab].currentState!.validate()) {
       String title = _titleControllers[activeTab].text;
       Map<String, dynamic> formData = {};
       String userId = FirebaseAuth.instance.currentUser!.uid;
 
-      // Upload function (returns the URL)
+      // 🔹 Fetch the user's role from Firestore
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      String userRole = userSnapshot['role'] ?? ''; // Default to empty if null
+
+      // 🔹 Check if user is a "student" and restrict certain tabs
+      if (userRole == 'student' && (currentTabName != 'Posts')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Only class representatives or elected student posts can post in the $currentTabName tab!",
+            ),
+          ),
+        );
+        _clearForm();
+        setState(() {
+          isLoading = false;
+        });
+        return; // Stop execution
+      }
+
+      // 🔹 File Upload Function
       Future<String?> uploadFile(File? file, String folder) async {
         if (file == null) return null;
         try {
@@ -269,33 +357,46 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         }
       }
 
-      // Handle uploads based on tab
+      // 🔹 Handle uploads based on tab
       if (currentTabName == 'Posts') {
         String? imageUrl = await uploadFile(_imagePost, "posts");
+        CollectionReference postsRef =
+            FirebaseFirestore.instance.collection('posts');
+
+        // Step 1: Generate a unique postId before writing to Firestore
+        String postId = postsRef.doc().id;
         formData = {
           "userId": userId,
           "title": title,
           "image": imageUrl ?? "",
-          "date": _selectedDate?.toIso8601String(),
-          "like_count": 0,
-          "comment": [],
-          "bookmark_count": 0,
+          "date": FieldValue.serverTimestamp(),
+          "postId": postId,
+          "likes": [],
+          "bookmarks": [],
           "share_count": 0,
         };
-        await FirebaseFirestore.instance.collection('posts').add(formData);
+        await postsRef.doc(postId).set(formData);
       } else if (currentTabName == 'Events') {
         String? imageUrl = await uploadFile(_imageEvent, "events");
+        CollectionReference eventsRef =
+            FirebaseFirestore.instance.collection('events');
+
+        // Step 1: Generate a unique postId before writing to Firestore
+        String eventId = eventsRef.doc().id;
         formData = {
           "userId": userId,
           "title": title,
           "image": imageUrl ?? "",
+          "eventId": eventId,
           "date_start": _selectedDate?.toIso8601String(),
           "date_end": _selectedDateEnd?.toIso8601String(),
           "location": locationController.text,
           "ticket_price": ticketController.text,
+          "presale_ticket_price": presaleTicketController.text,
+          'description': descriptionController.text,
           "tag": selectedTags,
         };
-        await FirebaseFirestore.instance.collection('events').add(formData);
+        await eventsRef.doc(eventId).set(formData);
       } else if (currentTabName == 'Resources') {
         String? documentUrl = await uploadFile(_document, "resources");
         formData = {
@@ -306,6 +407,8 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           "level": selectedLevel,
           "semester": selectedSemester,
           "course_code": courseCodeController.text,
+          "document_type": selectedType,
+          "date": FieldValue.serverTimestamp()
         };
         await FirebaseFirestore.instance.collection('resources').add(formData);
       } else if (currentTabName == 'Exam') {
@@ -341,6 +444,9 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         SnackBar(content: Text('$currentTabName submitted successfully!')),
       );
       _clearForm();
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -378,7 +484,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               false, true, false, true, false),
           _buildForm(2, "Resource Title", false, true, true, false, false, true,
               true, false, true, false, true),
-          _buildForm(3, "Exam Schedule Title", true, false, false, true, false,
+          _buildForm(3, "Exam Schedule Title", true, false, false, false, false,
               true, true, false, true, false, false),
           _buildForm(4, "Lecture Schedule Title", true, false, false, false,
               false, true, true, false, true, false, false),
@@ -424,8 +530,11 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             if (allowDate) _buildDatePickerEnd(),
             SizedBox(height: 5),
             if (allowTags)
-              buildDropdown("Tags", eventTags, selectedTags, (val) {
-                setState(() => selectedTags = val);
+              buildMultiSelectDropdown("Tags", eventTags, selectedTags,
+                  (newTags) {
+                setState(() {
+                  selectedTags = newTags;
+                });
               }),
             if (allowDepartment)
               buildDropdown("Department", departments, selectedDepartment,
@@ -459,6 +568,18 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             if (allowSemester) SizedBox(height: 5),
             if (allowTicket)
               Text(
+                'Event Description',
+                style:
+                    TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+              ),
+            if (allowTicket)
+              SizedBox(
+                height: 5,
+              ),
+            if (allowTicket) buildTextFormField(descriptionController, ''),
+            SizedBox(height: 10),
+            if (allowTicket)
+              Text(
                 'Event Ticket Price',
                 style:
                     TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
@@ -468,6 +589,19 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                 height: 5,
               ),
             if (allowTicket) buildTextFormField(ticketController, '30,000'),
+            if (allowTicket) SizedBox(height: 5),
+            if (allowTicket)
+              Text(
+                'Presale Ticket Price',
+                style:
+                    TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+              ),
+            if (allowTicket)
+              SizedBox(
+                height: 5,
+              ),
+            if (allowTicket)
+              buildTextFormField(presaleTicketController, '25,000'),
             SizedBox(height: 10),
             if (allowLocation)
               Text(
@@ -496,9 +630,18 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                 backgroundColor: Color(0xff347928),
                 minimumSize: Size(double.infinity, 50),
               ),
-              child: Text("Submit",
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white, // Customize color
+                        strokeWidth: 4,
+                      ),
+                    )
+                  : Text("Submit",
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -530,6 +673,40 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     );
   }
 
+  Widget buildMultiSelectDropdown(String label, List<String> items,
+      List<String> selectedItems, Function(List<String>) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: .0, top: 5),
+            child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          SizedBox(height: 5),
+          GestureDetector(
+            onTap: () =>
+                _showMultiSelectDialog(items, selectedItems, onChanged),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                selectedItems.isEmpty
+                    ? "Select Tags"
+                    : selectedItems.join(", "),
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildDropdown(String label, List<String> items, String? selectedItem,
       ValueChanged<String?> onChanged) {
     return Padding(
@@ -557,12 +734,12 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               ),
             ),
             isExpanded: false,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return "This field is required"; // Show validation message
-              }
-              return null;
-            },
+            // validator: (value) {
+            //   if (value == null || value.isEmpty) {
+            //     return "This field is required"; // Show validation message
+            //   }
+            //   return null;
+            // },
             items: items
                 .map((e) => DropdownMenuItem(
                     value: e,

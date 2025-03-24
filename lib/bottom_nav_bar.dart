@@ -1,14 +1,15 @@
-import 'package:faculty_app/event_screen.dart';
-import 'package:faculty_app/exam_and_lecture_card.dart';
-import 'package:faculty_app/excos_page.dart';
-import 'package:faculty_app/profile_screen.dart';
-import 'package:faculty_app/rescources_screen.dart';
+import 'package:faculty_app/components/exam_and_lecture_card.dart';
+import 'package:faculty_app/screens/content_create_screen.dart';
+import 'package:faculty_app/screens/event_screen.dart';
+import 'package:faculty_app/screens/excos_page.dart';
+import 'package:faculty_app/screens/profile_screen.dart';
+import 'package:faculty_app/screens/resources_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import 'home_screen.dart';
+import 'screens/home_screen.dart';
 
 class BottomNavBar extends StatefulWidget {
   final int initialIndex;
@@ -21,6 +22,9 @@ class BottomNavBar extends StatefulWidget {
 
 class _BottomNavBarState extends State<BottomNavBar> {
   late int _currentIndex;
+  String? userDisplayName = FirebaseAuth.instance.currentUser?.displayName;
+  String? userDisplayPic = FirebaseAuth.instance.currentUser?.photoURL;
+  String? userEmail = FirebaseAuth.instance.currentUser?.email;
 
   Future<void> signOut() async {
     await FirebaseAuth.instance.signOut();
@@ -38,7 +42,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const EventScreen(),
-    RescourcesScreen(),
+    ResourcesScreen(),
     const ProfileScreen(),
   ];
 
@@ -87,27 +91,29 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 children: [
                   DrawerHeader(
                     decoration: BoxDecoration(color: Color(0xffC7FFD8)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundImage:
-                              AssetImage('assets/images/agboola.jpg'),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          "Oyewole Agboola",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          "delmeroyewole21@gmail.com",
-                          style: TextStyle(color: Colors.black, fontSize: 14),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            radius: 30,
+                            backgroundImage: NetworkImage(userDisplayPic!),
+                          ),
+                          SizedBox(height: 10),
+                          Text(
+                            userDisplayName!,
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            userEmail!,
+                            style: TextStyle(color: Colors.black, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   ListTile(
@@ -126,7 +132,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           context,
                           MaterialPageRoute(
                               builder: (context) => ExamAndLectureCard(
-                                  title: 'Lecture Timetable')));
+                                    title: 'Current Lecture Timetable',
+                                    firebaseCollection: 'lectures',
+                                  )));
                     },
                   ),
                   ListTile(
@@ -137,7 +145,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           context,
                           MaterialPageRoute(
                               builder: (context) => ExamAndLectureCard(
-                                  title: 'Academic Calendar')));
+                                    title: 'Current Academic Calendar',
+                                    firebaseCollection: 'exams',
+                                  )));
                     },
                   ),
                   ListTile(
@@ -147,8 +157,10 @@ class _BottomNavBarState extends State<BottomNavBar> {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) =>
-                                  ExamAndLectureCard(title: 'Exam Schedule')));
+                              builder: (context) => ExamAndLectureCard(
+                                    title: 'Current Exam Schedule',
+                                    firebaseCollection: 'exams',
+                                  )));
                     },
                   ),
                   ListTile(
@@ -173,7 +185,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           context,
                           MaterialPageRoute(
                               builder: (context) => ExamAndLectureCard(
-                                  title: 'Lecture Timetable')));
+                                    title: 'Lecture Timetable',
+                                    firebaseCollection: 'exams',
+                                  )));
                     },
                   ),
                   ListTile(
@@ -198,7 +212,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 ],
               ),
             ),
-            body: _screens[_currentIndex], // Show selected screen
+            body: _screens[_currentIndex],
+            // Show selected screen
             bottomNavigationBar: Padding(
               padding: const EdgeInsets.only(
                   left: 15.0, right: 15, bottom: 20, top: 10),
@@ -259,6 +274,37 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 ),
               ),
             ),
+            floatingActionButton: _currentIndex != 3
+                ? Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: FloatingActionButton(
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => CreateContentScreen(
+                                      tabIndex: _currentIndex == 0
+                                          ? 0
+                                          : _currentIndex == 1
+                                              ? 1
+                                              : _currentIndex == 2
+                                                  ? 2
+                                                  : 0,
+                                    )));
+                      },
+                      backgroundColor: const Color(0xff347928),
+                      elevation: 5.0,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: const Icon(
+                          Icons.add_a_photo,
+                          color: Colors.white,
+                          size: 25.0,
+                        ),
+                      ),
+                    ),
+                  )
+                : Container(),
           ),
         ),
       ),

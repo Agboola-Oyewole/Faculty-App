@@ -1,22 +1,60 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class EventDetailsScreen extends StatelessWidget {
+class EventDetailsScreen extends StatefulWidget {
   final String imageUrl;
   final String title;
   final String date;
   final String location;
   final String description;
+  final String currentUserId;
+  final String eventId;
   final List<TicketOption> tickets;
+  final List<dynamic> tags;
 
   const EventDetailsScreen({
     super.key,
     required this.imageUrl,
     required this.title,
     required this.date,
+    required this.tags,
     required this.location,
     required this.description,
+    required this.eventId,
+    required this.currentUserId,
     required this.tickets,
   });
+
+  @override
+  State<EventDetailsScreen> createState() => _EventDetailsScreenState();
+}
+
+class _EventDetailsScreenState extends State<EventDetailsScreen> {
+  bool isLoading = true;
+
+  Future<void> addEventAttendees() async {
+    setState(() {
+      isLoading = true; // Start loading
+    });
+    try {
+      DocumentReference eventsRef =
+          FirebaseFirestore.instance.collection('events').doc(widget.eventId);
+
+      await eventsRef.collection('attendees').add({
+        "userId": widget.currentUserId,
+        "timestamp": FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print("❌ Error during adding attendee: $e");
+    } finally {
+      // Stop loading after the process completes
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,8 +68,8 @@ class EventDetailsScreen extends StatelessWidget {
                   ClipRRect(
                     borderRadius:
                         BorderRadius.vertical(bottom: Radius.circular(20)),
-                    child: Image.asset(
-                      imageUrl,
+                    child: Image.network(
+                      widget.imageUrl,
                       width: double.infinity,
                       height: 250,
                       fit: BoxFit.cover,
@@ -50,17 +88,19 @@ class EventDetailsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Positioned(
-                    top: 30,
-                    right: 15,
-                    child: CircleAvatar(
-                      backgroundColor: Colors.black.withOpacity(0.5),
-                      child: IconButton(
-                        icon: Icon(Icons.more_vert, color: Colors.white),
-                        onPressed: () {},
-                      ),
-                    ),
-                  ),
+                  widget.currentUserId == widget.eventId
+                      ? Positioned(
+                          top: 30,
+                          right: 15,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.black.withOpacity(0.5),
+                            child: IconButton(
+                              icon: Icon(Icons.more_vert, color: Colors.white),
+                              onPressed: () {},
+                            ),
+                          ),
+                        )
+                      : Container(),
                 ],
               ),
               Padding(
@@ -68,22 +108,19 @@ class EventDetailsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Chip(
-                          label: Text("Educative"),
+                    Wrap(
+                      spacing: 8.0, // Space between chips
+                      runSpacing: 4.0, // Space between rows if wrapped
+                      children: widget.tags.map((tag) {
+                        return Chip(
+                          label: Text(tag),
                           backgroundColor: Color(0xffC7FFD8),
-                        ),
-                        SizedBox(width: 8),
-                        Chip(
-                          label: Text("Entrepreneurship"),
-                          backgroundColor: Color(0xffC7FFD8),
-                        ),
-                      ],
+                        );
+                      }).toList(),
                     ),
                     SizedBox(height: 8),
                     Text(
-                      title,
+                      widget.title,
                       style:
                           TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     ),
@@ -93,11 +130,12 @@ class EventDetailsScreen extends StatelessWidget {
                         Icon(Icons.calendar_today,
                             size: 16, color: Colors.grey),
                         SizedBox(width: 5),
-                        Text(date, style: TextStyle(color: Colors.grey)),
+                        Text(widget.date, style: TextStyle(color: Colors.grey)),
                         SizedBox(width: 10),
                         Icon(Icons.location_on, size: 16, color: Colors.grey),
                         SizedBox(width: 5),
-                        Text(location, style: TextStyle(color: Colors.grey)),
+                        Text(widget.location,
+                            style: TextStyle(color: Colors.grey)),
                       ],
                     ),
                     SizedBox(height: 20),
@@ -107,7 +145,8 @@ class EventDetailsScreen extends StatelessWidget {
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(height: 5),
-                    Text(description, style: TextStyle(color: Colors.black54)),
+                    Text(widget.description,
+                        style: TextStyle(color: Colors.black54)),
                     SizedBox(height: 20),
                     Text(
                       "Available Tickets",
@@ -116,7 +155,7 @@ class EventDetailsScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 10),
                     Column(
-                      children: tickets.map((ticket) {
+                      children: widget.tickets.map((ticket) {
                         return TicketItem(ticket: ticket);
                       }).toList(),
                     ),
@@ -137,8 +176,17 @@ class EventDetailsScreen extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 15),
               ),
               onPressed: () {},
-              child: Text("Buy Tickets",
-                  style: TextStyle(fontSize: 18, color: Colors.white)),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Color(0xff347928), // Customize color
+                        strokeWidth: 4,
+                      ),
+                    )
+                  : Text("Buy Tickets",
+                      style: TextStyle(fontSize: 18, color: Colors.white)),
             ),
           ),
         ],

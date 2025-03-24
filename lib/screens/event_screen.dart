@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'bottom_nav_bar.dart';
-import 'event_card.dart';
+import '../bottom_nav_bar.dart';
+import '../components/event_card.dart';
 import 'event_detail_screen.dart';
 
 class EventScreen extends StatefulWidget {
@@ -12,6 +14,31 @@ class EventScreen extends StatefulWidget {
 }
 
 class _EventScreenState extends State<EventScreen> {
+  String _formatDate(String? isoDate) {
+    if (isoDate == null) return "No Date";
+    DateTime date = DateTime.parse(isoDate);
+    return "${date.day} ${_getMonthName(date.month)}";
+  }
+
+  String _getMonthName(int month) {
+    List<String> months = [
+      "",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ];
+    return months[month];
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -35,70 +62,92 @@ class _EventScreenState extends State<EventScreen> {
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
             ),
             SizedBox(
-              height: 15,
+              height: 20,
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EventDetailsScreen(
-                      imageUrl: 'assets/images/post_image.jpg',
-                      title: 'Bernadya Solo Concert',
-                      date: '24 August 2024',
-                      location: 'Lagoon Front, Unilag',
-                      description:
-                          'Bernadya Solo Concert is an electrifying local pop-punk festival...',
-                      tickets: [
-                        TicketOption(
-                            type: 'First Pre-Sale',
-                            price: '₦10,000',
-                            isSoldOut: true),
-                        TicketOption(type: 'Second Pre-Sale', price: '₦20,000'),
-                      ],
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream:
+                    FirebaseFirestore.instance.collection('events').snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                        child: CircularProgressIndicator()); // Show loading
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                        child: Text(
+                            "No events available")); // Show message if empty
+                  }
+
+                  var events = snapshot.data!.docs;
+
+                  return Expanded(
+                    child: ListView.builder(
+                      itemCount: events.length,
+                      itemBuilder: (context, index) {
+                        var eventData =
+                            events[index].data() as Map<String, dynamic>;
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EventDetailsScreen(
+                                  eventId: eventData['eventId'],
+                                  currentUserId:
+                                      FirebaseAuth.instance.currentUser!.uid,
+                                  imageUrl: eventData['image'] ??
+                                      'assets/images/default_event.jpg',
+                                  title: eventData['title'] ?? 'No Title',
+                                  date: eventData['date_start'] != null
+                                      ? _formatDate(eventData[
+                                          'date_start']) // Convert timestamp to readable format
+                                      : 'Unknown Date',
+                                  location: eventData['location'] ??
+                                      'Unknown Location',
+                                  description: eventData['description'] ??
+                                      'No Description Available',
+                                  tags: eventData['tag'],
+                                  tickets: [
+                                    TicketOption(
+                                      type: 'First Pre-Sale',
+                                      price:
+                                          eventData['presale_ticket_price'] ??
+                                              '₦0',
+                                      isSoldOut:
+                                          false, // You can implement this dynamically later
+                                    ),
+                                    TicketOption(
+                                      type: 'Regular Ticket',
+                                      price: eventData['ticket_price'] ?? '₦0',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          child: EventCard(
+                            imageUrl: eventData['image'] ??
+                                'assets/images/default_event.jpg',
+                            title: eventData['title'] ?? 'No Title',
+                            priceRange: eventData['ticket_price'] == '0' ||
+                                    eventData['ticket_price'] == ''
+                                ? 'Free'
+                                : '₦${eventData['ticket_price']}',
+                            location:
+                                eventData['location'] ?? 'Unknown Location',
+                            date: eventData['date_start'] != null
+                                ? _formatDate(eventData['date_start'])
+                                : 'Unknown Date',
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                );
-              },
-              child: EventCard(
-                imageUrl: 'assets/images/post_image.jpg',
-                title: 'Bernadya Solo Concert',
-                priceRange: 'Free',
-                location: 'Lagoon Front, Unilag',
-                date: 'Aug 24',
+                  );
+                },
               ),
-            ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EventDetailsScreen(
-                      imageUrl: 'assets/images/post_image.jpg',
-                      title: 'Mosho Festival 2025',
-                      date: '6 September 2025',
-                      location: 'Lagoon Front, Unilag',
-                      description:
-                          'Mosho Festival 2025 is an electrifying local pop-punk festival...',
-                      tickets: [
-                        TicketOption(
-                            type: 'First Pre-Sale',
-                            price: '₦45,000',
-                            isSoldOut: false),
-                        TicketOption(type: 'Second Pre-Sale', price: '₦50,000'),
-                      ],
-                    ),
-                  ),
-                );
-              },
-              child: EventCard(
-                imageUrl: 'assets/images/sumup-ru18KXzFA4E-unsplash.jpg',
-                title: 'Mosho Festival 2025',
-                priceRange: '₦50,000',
-                location: 'Afe-Babalola Hall, Unilag',
-                date: 'Sep 6',
-              ),
-            ),
+            )
           ],
         ),
       ),

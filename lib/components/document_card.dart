@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 
 class DocumentCard extends StatelessWidget {
-  const DocumentCard({super.key, required this.imageText});
+  const DocumentCard(
+      {super.key,
+      required this.imageText,
+      required this.documentName,
+      required this.documentSize,
+      required this.date});
 
   final String imageText;
+  final String documentName;
+  final String documentSize;
+  final String date;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +51,7 @@ class DocumentCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'BLD211 Theory Questions.pdf',
+                        documentName,
                         style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.bold,
@@ -53,7 +61,7 @@ class DocumentCard extends StatelessWidget {
                         height: 5,
                       ),
                       Text(
-                        '2.53MB | 4 days ago',
+                        '$documentSize  |  $date',
                         style: TextStyle(
                             color: Colors.grey, fontWeight: FontWeight.bold),
                       ),
