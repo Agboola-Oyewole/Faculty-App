@@ -51,6 +51,12 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     "Estate Management",
     "Quantity Surveying"
   ];
+
+  final List<String> documentTypes = [
+    'Lecture Notes',
+    "Past Questions",
+  ];
+
   List<String> eventTags = [
     "Event",
     "HappeningSoon",
@@ -125,6 +131,33 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+  }
+
+  void _clearForm() {
+    for (var controller in _titleControllers) {
+      controller.clear();
+    }
+
+    ticketController.clear();
+    locationController.clear();
+    courseCodeController.clear();
+
+    setState(() {
+      _imagePost = null;
+      _imageEvent = null;
+      _imageLecture = null;
+      _imageExam = null;
+      _document = null;
+      _selectedDate = null;
+      _selectedDateEnd = null;
+      selectedType = null;
+      selectedDepartment = null;
+      selectedLevel = null;
+      selectedTags = null;
+      selectedSemester = null;
+    });
+
+    print("✅ Form cleared successfully!");
   }
 
   Future<void> _pickImagePost() async {
@@ -307,6 +340,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$currentTabName submitted successfully!')),
       );
+      _clearForm();
     }
   }
 
@@ -339,15 +373,15 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         controller: _tabController,
         children: [
           _buildForm(0, "Post Title", true, false, false, false, false, false,
-              false, false, false, false),
-          _buildForm(1, "Event Title", true, false, true, true, false, false,
-              true, false, true, false),
-          _buildForm(2, "Resource Title", false, true, false, false, true, true,
-              false, true, false, true),
-          _buildForm(3, "Exam Schedule Title", true, false, true, false, true,
-              true, false, true, false, false),
-          _buildForm(4, "Lecture Schedule Title", true, false, false, false,
+              false, false, false, false, false),
+          _buildForm(1, "Event Title", true, false, false, true, true, false,
+              false, true, false, true, false),
+          _buildForm(2, "Resource Title", false, true, true, false, false, true,
+              true, false, true, false, true),
+          _buildForm(3, "Exam Schedule Title", true, false, false, true, false,
               true, true, false, true, false, false),
+          _buildForm(4, "Lecture Schedule Title", true, false, false, false,
+              false, true, true, false, true, false, false),
         ],
       ),
     );
@@ -358,6 +392,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     String titleHint,
     bool allowImage,
     bool allowDocument,
+    bool allowDocumentType,
     bool allowDate,
     bool allowTicket,
     bool allowDepartment,
@@ -447,9 +482,11 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             if (allowLocation)
               buildTextFormField(locationController, 'Lagoon Front, Unilag'),
             if (allowLocation) SizedBox(height: 10),
-            // buildDropdown("Document Type", documentTypes, selectedType, (val) {
-            //   setState(() => selectedType = val);
-            // }),
+            if (allowDocumentType)
+              buildDropdown("Document Type", documentTypes, selectedType,
+                  (val) {
+                setState(() => selectedType = val);
+              }),
             SizedBox(
               height: 10,
             ),

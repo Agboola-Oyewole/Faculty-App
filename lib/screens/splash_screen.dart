@@ -307,10 +307,7 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                                     _currentPage == widget.pages.length - 1
                                         ? Icons.done
                                         : Icons.arrow_forward,
-                                    color:
-                                        _currentPage == widget.pages.length - 1
-                                            ? Colors.black
-                                            : Colors.white,
+                                    color: Colors.white,
                                   ),
                                 ],
                               ),
@@ -319,49 +316,62 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                         ),
                       ),
                     )
-                  : Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        // Adjust the radius as needed
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 12, horizontal: 20),
-                          ),
-                          onPressed: isLoading ? null : signInWithGoogle,
-                          // Disable button when loading
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Image.asset(
-                                "assets/images/search.png", // Use a Google logo asset
-                                height: 24,
+                  : Column(
+                      children: [
+                        Text(
+                          'Welcome to FES Connect',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900, color: Colors.white),
+                        ),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            // Adjust the radius as needed
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 12, horizontal: 20),
                               ),
-                              isLoading
-                                  ? const SizedBox(
-                                      width: 50,
-                                    )
-                                  : const SizedBox(width: 15),
-                              isLoading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Color(
-                                            0xff347928), // Customize color
-                                        strokeWidth: 4,
-                                      ),
-                                    )
-                                  : const Text(
-                                      "Sign in with Google",
-                                      style: TextStyle(color: Colors.black),
-                                    ),
-                            ],
+                              onPressed: isLoading ? null : signInWithGoogle,
+                              // Disable button when loading
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Image.asset(
+                                    "assets/images/search.png",
+                                    // Use a Google logo asset
+                                    height: 24,
+                                  ),
+                                  isLoading
+                                      ? const SizedBox(
+                                          width: 50,
+                                        )
+                                      : const SizedBox(width: 15),
+                                  isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            color: Color(
+                                                0xff347928), // Customize color
+                                            strokeWidth: 4,
+                                          ),
+                                        )
+                                      : const Text(
+                                          "Sign in with Google",
+                                          style: TextStyle(color: Colors.black),
+                                        ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
             ],
           ),
