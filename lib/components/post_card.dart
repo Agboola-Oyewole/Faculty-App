@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/screens/commenting.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
+import '../bottom_nav_bar.dart';
 
 class Posts extends StatefulWidget {
   final String postId;
@@ -43,6 +46,7 @@ class _PostsState extends State<Posts> {
   late ValueNotifier<int> likeCount;
   late ValueNotifier<int> bookmarkCount;
   bool _isExpanded = false;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -68,19 +72,6 @@ class _PostsState extends State<Posts> {
     });
   }
 
-  void addComment(String commentText) async {
-    if (commentText.isEmpty) return;
-
-    DocumentReference postRef =
-        FirebaseFirestore.instance.collection('posts').doc(widget.postId);
-
-    await postRef.collection('comments').add({
-      "userId": widget.currentUserId,
-      "comment": commentText,
-      "timestamp": FieldValue.serverTimestamp(),
-    });
-  }
-
   void showCommentsBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -96,6 +87,123 @@ class _PostsState extends State<Posts> {
             userName: widget.userName);
       },
     );
+  }
+
+  void confirmDelete() {
+    showDialog(
+      context: context,
+      builder: (context) =>
+          AlertDialog(
+            title: Text("Delete Post?"),
+            content: Text("Are you sure you want to delete this post?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () {
+                  deletePost(widget.postId);
+                  Navigator.pop(context);
+                },
+                child: isLoading
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text("Delete", style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void showDeleteBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Allows keyboard to push content up
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(15.0),
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xff347928),
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              minimumSize: Size(double.infinity, 50),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              confirmDelete();
+            },
+            child: Text("Delete Post",
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w900)),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> deletePost(String postId) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // Reference to the post document
+      DocumentReference postRef =
+      FirebaseFirestore.instance.collection('posts').doc(postId);
+
+      // Fetch the post data to get the image URL
+      DocumentSnapshot postSnapshot = await postRef.get();
+      if (!postSnapshot.exists) {
+        print("Post not found.");
+        return;
+      }
+
+      Map<String, dynamic>? postData =
+      postSnapshot.data() as Map<String, dynamic>?;
+      String? imageUrl = postData?['image'];
+
+      // Delete the image from Firebase Storage if it exists
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        try {
+          // Extract the file path from the URL
+          String filePath = imageUrl
+              .split('o/')[1] // Get the storage path
+              .split('?')[0] // Remove query parameters
+              .replaceAll('%2F', '/'); // Decode path
+
+          await FirebaseStorage.instance.ref(filePath).delete();
+          print("Image deleted successfully.");
+        } catch (imageError) {
+          print("Error deleting image: $imageError");
+        }
+      }
+
+      // Delete all comments associated with the post first
+      var commentsSnapshot = await postRef.collection('comments').get();
+      for (var doc in commentsSnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      // Delete the post itself
+      await postRef.delete();
+      print("Post deleted successfully.");
+    } catch (e) {
+      print("Error deleting post: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => BottomNavBar()));
+      }
+    }
   }
 
   Future<void> toggleBookmark() async {
@@ -136,17 +244,17 @@ class _PostsState extends State<Posts> {
                     child: ClipOval(
                         child: widget.profilePic.contains('.png')
                             ? Image.asset(
-                                widget.profilePic,
-                                fit: BoxFit.cover,
-                                width: 40,
-                                height: 40,
-                              )
+                          widget.profilePic,
+                          fit: BoxFit.cover,
+                          width: 40,
+                          height: 40,
+                        )
                             : Image.network(
-                                widget.profilePic,
-                                fit: BoxFit.cover,
-                                width: 40,
-                                height: 40,
-                              )),
+                          widget.profilePic,
+                          fit: BoxFit.cover,
+                          width: 40,
+                          height: 40,
+                        )),
                   ),
                   SizedBox(width: 9),
                   Expanded(
@@ -174,7 +282,8 @@ class _PostsState extends State<Posts> {
                         ),
                         widget.currentUserId == widget.posterId
                             ? GestureDetector(
-                                onTap: () {}, child: Icon(Icons.more_vert))
+                            onTap: () => showDeleteBottomSheet(context),
+                            child: Icon(Icons.more_vert))
                             : Container()
                       ],
                     ),
@@ -182,12 +291,36 @@ class _PostsState extends State<Posts> {
                 ],
               ),
               SizedBox(height: 8),
-              Image.network(
+
+              GestureDetector(
+                onTap: () => setState(() => _isExpanded = !_isExpanded),
+                child: Text(
+                  _isExpanded
+                      ? widget.caption
+                      : widget.caption.length > 70
+                      ? '${widget.caption.substring(0, 70)}... more'
+                      : widget.caption,
+                  style: TextStyle(color: Colors.black),
+                ),
+              ),
+              SizedBox(height: 10),
+              widget.image != null && widget.image.isNotEmpty
+                  ? Image.network(
                 widget.image,
                 width: double.infinity,
-                height: MediaQuery.of(context).size.width * 0.50,
+                height: MediaQuery
+                    .of(context)
+                    .size
+                    .width * 0.50,
                 fit: BoxFit.contain,
-              ),
+                errorBuilder: (context, error, stackTrace) =>
+                const Icon(
+                    Icons.broken_image,
+                    size: 50,
+                    color: Colors.grey),
+              )
+                  : Container(),
+
               SizedBox(height: 8),
 
               // Like, Comment, Bookmark
@@ -254,19 +387,6 @@ class _PostsState extends State<Posts> {
                     ],
                   ),
                 ],
-              ),
-
-              SizedBox(height: 8),
-              GestureDetector(
-                onTap: () => setState(() => _isExpanded = !_isExpanded),
-                child: Text(
-                  _isExpanded
-                      ? widget.caption
-                      : widget.caption.length > 70
-                          ? '${widget.caption.substring(0, 70)}... more'
-                          : widget.caption,
-                  style: TextStyle(color: Colors.black),
-                ),
               ),
               SizedBox(height: 5),
               Text(widget.postTime, style: TextStyle(color: Colors.grey[500])),

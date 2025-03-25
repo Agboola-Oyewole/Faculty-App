@@ -22,14 +22,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
   // Separate GlobalKey for each tab to prevent duplicate errors
   final List<GlobalKey<FormState>> _formKeys =
-      List.generate(5, (index) => GlobalKey<FormState>());
+      List.generate(6, (index) => GlobalKey<FormState>());
 
   // Controllers for text inputs
   final List<TextEditingController> _titleControllers =
-      List.generate(5, (index) => TextEditingController());
+      List.generate(6, (index) => TextEditingController());
 
   final TextEditingController ticketController = TextEditingController();
-  final TextEditingController presaleTicketController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
   final TextEditingController courseCodeController = TextEditingController();
@@ -41,12 +40,27 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   File? _imageLecture;
   File? _imageExam;
   File? _document;
+  File? _documentAcademic;
   DateTime? _selectedDate;
   DateTime? _selectedDateEnd;
   String? selectedType;
+  String? selectedSession;
   String? selectedDepartment;
   String? selectedLevel;
   String? selectedSemester;
+
+  List<String> academicSessions = [
+    "2024/2025",
+    "2025/2026",
+    "2026/2027",
+    "2027/2028",
+    "2028/2029",
+    "2029/2030",
+    "2030/2031",
+    "2031/2032",
+    "2032/2033",
+    "2033/2034",
+  ];
 
   final List<String> departments = [
     'All',
@@ -129,7 +143,8 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     "Events",
     "Resources",
     "Exam",
-    "Lecture"
+    "Lecture",
+    "Academic"
   ];
 
   void _showMultiSelectDialog(List<String> items, List<String> selectedItems,
@@ -188,7 +203,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.index = widget.tabIndex;
   }
 
@@ -198,7 +213,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     }
 
     ticketController.clear();
-    presaleTicketController.clear();
     descriptionController.clear();
     locationController.clear();
     courseCodeController.clear();
@@ -209,6 +223,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       _imageLecture = null;
       _imageExam = null;
       _document = null;
+      _documentAcademic = null;
       _selectedDate = null;
       _selectedDateEnd = null;
       selectedType = null;
@@ -275,6 +290,20 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     }
   }
 
+  Future<void> _pickAcademicDocument() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'txt'],
+    );
+
+    if (result != null) {
+      File selectedFile = File(result.files.single.path!);
+      setState(() {
+        _documentAcademic = selectedFile;
+      });
+    }
+  }
+
   Future<void> _pickDate() async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -307,6 +336,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
   void _submitForm() async {
     int activeTab = _tabController.index;
+    print(activeTab);
     String currentTabName = activeTabNames[activeTab];
     setState(() {
       isLoading = true; // Start loading
@@ -339,6 +369,23 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           isLoading = false;
         });
         return; // Stop execution
+      }
+
+      // 🔹 Validation Function
+      bool validateFields(BuildContext context, Map<String, dynamic> fields) {
+        for (var entry in fields.entries) {
+          if (entry.value == null || entry.value.toString().trim().isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text("Please fill in the '${entry.key}' field.")),
+            );
+            setState(() {
+              isLoading = false;
+            });
+            return false; // Stop execution if any field is missing
+          }
+        }
+        return true; // All fields are valid
       }
 
       // 🔹 File Upload Function
@@ -378,6 +425,18 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         await postsRef.doc(postId).set(formData);
       } else if (currentTabName == 'Events') {
         String? imageUrl = await uploadFile(_imageEvent, "events");
+        if (!validateFields(context, {
+          "Title": title,
+          "Image": imageUrl,
+          "Start Date": _selectedDate?.toIso8601String(),
+          "End Date": _selectedDateEnd?.toIso8601String(),
+          "Location": locationController.text,
+          "Ticket Price": ticketController.text,
+          "Description": descriptionController.text,
+          "Tags": selectedTags.isEmpty ? null : selectedTags,
+        })) {
+          return;
+        }
         CollectionReference eventsRef =
             FirebaseFirestore.instance.collection('events');
 
@@ -392,49 +451,123 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           "date_end": _selectedDateEnd?.toIso8601String(),
           "location": locationController.text,
           "ticket_price": ticketController.text,
-          "presale_ticket_price": presaleTicketController.text,
           'description': descriptionController.text,
           "tag": selectedTags,
         };
         await eventsRef.doc(eventId).set(formData);
       } else if (currentTabName == 'Resources') {
         String? documentUrl = await uploadFile(_document, "resources");
+        if (!validateFields(context, {
+          "Title": title,
+          "Document": documentUrl,
+          "Department": selectedDepartment,
+          "Level": selectedLevel,
+          "Semester": selectedSemester,
+          "Course Code": courseCodeController.text,
+          "Document Type": selectedType,
+        })) {
+          return;
+        }
+        CollectionReference resourcesRef =
+            FirebaseFirestore.instance.collection('resources');
+
+        // Step 1: Generate a unique postId before writing to Firestore
+        String resourcesId = resourcesRef.doc().id;
         formData = {
           "userId": userId,
           "title": title,
           "document": documentUrl ?? "",
           "department": selectedDepartment,
+          'resource_id': resourcesId,
           "level": selectedLevel,
           "semester": selectedSemester,
           "course_code": courseCodeController.text,
           "document_type": selectedType,
           "date": FieldValue.serverTimestamp()
         };
-        await FirebaseFirestore.instance.collection('resources').add(formData);
+        await resourcesRef.doc(resourcesId).set(formData);
       } else if (currentTabName == 'Exam') {
         String? imageUrl = await uploadFile(_imageExam, "exams");
+
+        if (!validateFields(context, {
+          "Title": title,
+          "Image": imageUrl,
+          "Department": selectedDepartment,
+          "Level": selectedLevel,
+          "Semester": selectedSemester,
+          "Date Start": _selectedDate?.toIso8601String(),
+          "Date End": _selectedDateEnd?.toIso8601String(),
+        })) {
+          return;
+        }
+
+        CollectionReference examsRef =
+            FirebaseFirestore.instance.collection('exams');
+
+        // Step 1: Generate a unique postId before writing to Firestore
+        String examsId = examsRef.doc().id;
         formData = {
           "userId": userId,
           "title": title,
           "image": imageUrl ?? "",
+          "examId": examsId,
           "date_start": _selectedDate?.toIso8601String(),
           "date_end": _selectedDateEnd?.toIso8601String(),
           "department": selectedDepartment,
           "level": selectedLevel,
           "semester": selectedSemester,
         };
-        await FirebaseFirestore.instance.collection('exams').add(formData);
+        await examsRef.doc(examsId).set(formData);
       } else if (currentTabName == 'Lecture') {
         String? imageUrl = await uploadFile(_imageLecture, "lectures");
+
+        if (!validateFields(context, {
+          "Title": title,
+          "Image": imageUrl,
+          "Department": selectedDepartment,
+          "Level": selectedLevel,
+          "Semester": selectedSemester,
+        })) {
+          return;
+        }
+
+        CollectionReference lecturesRef =
+            FirebaseFirestore.instance.collection('lectures');
+
+        // Step 1: Generate a unique postId before writing to Firestore
+        String lecturesId = lecturesRef.doc().id;
         formData = {
           "userId": userId,
           "title": title,
+          "lecturesId": lecturesId,
           "image": imageUrl ?? "",
           "department": selectedDepartment,
           "level": selectedLevel,
           "semester": selectedSemester,
         };
-        await FirebaseFirestore.instance.collection('lectures').add(formData);
+        await lecturesRef.doc(lecturesId).set(formData);
+      } else if (currentTabName == 'Academic') {
+        String? documentUrl = await uploadFile(_documentAcademic, "academic");
+        if (!validateFields(context, {
+          "Title": title,
+          "Document": documentUrl,
+          "Session": selectedSession,
+        })) {
+          return;
+        }
+        CollectionReference academicRef =
+            FirebaseFirestore.instance.collection('academic');
+
+        // Step 1: Generate a unique postId before writing to Firestore
+        String academicId = academicRef.doc().id;
+        formData = {
+          "userId": userId,
+          "title": title,
+          "lecturesId": academicId,
+          "document": documentUrl ?? "",
+          "session": selectedSession,
+        };
+        await academicRef.doc(academicId).set(formData);
       }
 
       print("✅ Data Uploaded for Tab: $currentTabName");
@@ -444,6 +577,10 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         SnackBar(content: Text('$currentTabName submitted successfully!')),
       );
       _clearForm();
+      setState(() {
+        isLoading = false;
+      });
+    } else {
       setState(() {
         isLoading = false;
       });
@@ -471,6 +608,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             Tab(icon: Icon(Icons.book), text: "Resources"),
             Tab(icon: Icon(Icons.schedule), text: "Exam"),
             Tab(icon: Icon(Icons.schedule), text: "Lecture"),
+            Tab(icon: Icon(Icons.schedule), text: "Academic"),
           ],
           labelStyle: TextStyle(color: Color(0xff347928)),
         ),
@@ -479,42 +617,44 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         controller: _tabController,
         children: [
           _buildForm(0, "Post Title", true, false, false, false, false, false,
-              false, false, false, false, false),
+              false, false, false, false, false, false),
           _buildForm(1, "Event Title", true, false, false, true, true, false,
-              false, true, false, true, false),
+              false, true, false, true, false, false),
           _buildForm(2, "Resource Title", false, true, true, false, false, true,
-              true, false, true, false, true),
+              true, false, true, false, true, false),
           _buildForm(3, "Exam Schedule Title", true, false, false, false, false,
-              true, true, false, true, false, false),
+              true, true, false, true, false, false, false),
           _buildForm(4, "Lecture Schedule Title", true, false, false, false,
-              false, true, true, false, true, false, false),
+              false, true, true, false, true, false, false, false),
+          _buildForm(5, "Academic Calender Title", false, true, false, false,
+              false, false, false, false, false, false, false, true),
         ],
       ),
     );
   }
 
   Widget _buildForm(
-    int index,
-    String titleHint,
-    bool allowImage,
-    bool allowDocument,
-    bool allowDocumentType,
-    bool allowDate,
-    bool allowTicket,
-    bool allowDepartment,
-    bool allowLevel,
-    bool allowTags,
-    bool allowSemester,
-    bool allowLocation,
-    bool allowCourseCode,
-  ) {
+      int index,
+      String titleHint,
+      bool allowImage,
+      bool allowDocument,
+      bool allowDocumentType,
+      bool allowDate,
+      bool allowTicket,
+      bool allowDepartment,
+      bool allowLevel,
+      bool allowTags,
+      bool allowSemester,
+      bool allowLocation,
+      bool allowCourseCode,
+      bool allowSession) {
     return Padding(
       padding: EdgeInsets.all(16.0),
       child: Form(
         key: _formKeys[index], // Unique key for each tab
         child: ListView(
           children: [
-            buildTextFormField(_titleControllers[index],
+            buildTextFormField(_titleControllers[index], true,
                 titleHint == 'Post Title' ? 'Caption' : titleHint),
             SizedBox(height: 10),
             if (allowImage && titleHint == 'Event Title')
@@ -525,10 +665,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               _buildImageExamUpload(),
             if (allowImage && titleHint == 'Lecture Schedule Title')
               _buildImageLectureUpload(),
-            if (allowDocument) _buildDocumentUpload(),
+            if (allowDocument && titleHint == 'Resource Title')
+              _buildDocumentUpload(),
+            if (allowDocument && titleHint == 'Academic Calender Title')
+              _buildAcademicDocumentUpload(),
             if (allowDate) _buildDatePicker(),
             if (allowDate) _buildDatePickerEnd(),
-            SizedBox(height: 5),
+            if (allowTags) SizedBox(height: 5),
             if (allowTags)
               buildMultiSelectDropdown("Tags", eventTags, selectedTags,
                   (newTags) {
@@ -558,14 +701,22 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                 height: 5,
               ),
             if (allowCourseCode)
-              buildTextFormField(courseCodeController, 'e.g BLD 234'),
-            SizedBox(height: 10),
+              buildTextFormField(
+                courseCodeController,
+                true,
+                'e.g BLD 234',
+              ),
             if (allowDocument) SizedBox(height: 5),
             if (allowSemester)
               buildDropdown("Semester", semester, selectedSemester, (val) {
                 setState(() => selectedSemester = val);
               }),
-            if (allowSemester) SizedBox(height: 5),
+            if (allowSession)
+              buildDropdown("Session", academicSessions, selectedSession,
+                  (val) {
+                setState(() => selectedSession = val);
+              }),
+            if (allowSession) SizedBox(height: 5),
             if (allowTicket)
               Text(
                 'Event Description',
@@ -576,8 +727,9 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               SizedBox(
                 height: 5,
               ),
-            if (allowTicket) buildTextFormField(descriptionController, ''),
-            SizedBox(height: 10),
+            if (allowTicket)
+              buildTextFormField(descriptionController, true, ''),
+            if (allowTicket) SizedBox(height: 10),
             if (allowTicket)
               Text(
                 'Event Ticket Price',
@@ -588,20 +740,9 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               SizedBox(
                 height: 5,
               ),
-            if (allowTicket) buildTextFormField(ticketController, '30,000'),
+            if (allowTicket)
+              buildTextFormField(ticketController, true, '30,000'),
             if (allowTicket) SizedBox(height: 5),
-            if (allowTicket)
-              Text(
-                'Presale Ticket Price',
-                style:
-                    TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-              ),
-            if (allowTicket)
-              SizedBox(
-                height: 5,
-              ),
-            if (allowTicket)
-              buildTextFormField(presaleTicketController, '25,000'),
             SizedBox(height: 10),
             if (allowLocation)
               Text(
@@ -614,7 +755,8 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                 height: 5,
               ),
             if (allowLocation)
-              buildTextFormField(locationController, 'Lagoon Front, Unilag'),
+              buildTextFormField(
+                  locationController, true, 'Lagoon Front, Unilag'),
             if (allowLocation) SizedBox(height: 10),
             if (allowDocumentType)
               buildDropdown("Document Type", documentTypes, selectedType,
@@ -649,7 +791,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     );
   }
 
-  Widget buildTextFormField(controller, titleHint) {
+  Widget buildTextFormField(controller, isNotPresale, titleHint) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
@@ -664,12 +806,14 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         labelStyle: TextStyle(color: Colors.black),
         border: OutlineInputBorder(),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'This field is required';
-        }
-        return null;
-      },
+      validator: isNotPresale
+          ? (value) {
+              if (value == null || value.isEmpty) {
+                return 'This field is required';
+              }
+              return null;
+            }
+          : null,
     );
   }
 
@@ -876,6 +1020,30 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           ),
         ),
         if (_document != null) Text("File selected: ${_document!.path}"),
+        SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildAcademicDocumentUpload() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Upload Document"),
+        SizedBox(height: 8),
+        ElevatedButton.icon(
+          onPressed: _pickAcademicDocument,
+          icon: Icon(
+            Icons.upload_file,
+            color: Colors.black,
+          ),
+          label: Text(
+            "Choose File",
+            style: TextStyle(color: Colors.black),
+          ),
+        ),
+        if (_documentAcademic != null)
+          Text("File selected: ${_documentAcademic!.path}"),
         SizedBox(height: 16),
       ],
     );

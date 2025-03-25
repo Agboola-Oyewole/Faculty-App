@@ -74,6 +74,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 // Strong green at the top
                 Color(0xffC7FFD8), // Soft green transition
                 Colors.white,
+
                 Colors.white, // Full white at the bottom
               ],
               stops: [
@@ -146,7 +147,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           MaterialPageRoute(
                               builder: (context) => ExamAndLectureCard(
                                     title: 'Current Academic Calendar',
-                                    firebaseCollection: 'exams',
+                                    firebaseCollection: 'academic',
                                   )));
                     },
                   ),

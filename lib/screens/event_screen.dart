@@ -81,69 +81,60 @@ class _EventScreenState extends State<EventScreen> {
 
                   var events = snapshot.data!.docs;
 
-                  return Expanded(
-                    child: ListView.builder(
-                      itemCount: events.length,
-                      itemBuilder: (context, index) {
-                        var eventData =
-                            events[index].data() as Map<String, dynamic>;
+                  return ListView.builder(
+                    itemCount: events.length,
+                    itemBuilder: (context, index) {
+                      var eventData =
+                          events[index].data() as Map<String, dynamic>;
 
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EventDetailsScreen(
-                                  eventId: eventData['eventId'],
-                                  currentUserId:
-                                      FirebaseAuth.instance.currentUser!.uid,
-                                  imageUrl: eventData['image'] ??
-                                      'assets/images/default_event.jpg',
-                                  title: eventData['title'] ?? 'No Title',
-                                  date: eventData['date_start'] != null
-                                      ? _formatDate(eventData[
-                                          'date_start']) // Convert timestamp to readable format
-                                      : 'Unknown Date',
-                                  location: eventData['location'] ??
-                                      'Unknown Location',
-                                  description: eventData['description'] ??
-                                      'No Description Available',
-                                  tags: eventData['tag'],
-                                  tickets: [
-                                    TicketOption(
-                                      type: 'First Pre-Sale',
-                                      price:
-                                          eventData['presale_ticket_price'] ??
-                                              '₦0',
-                                      isSoldOut:
-                                          false, // You can implement this dynamically later
-                                    ),
-                                    TicketOption(
-                                      type: 'Regular Ticket',
-                                      price: eventData['ticket_price'] ?? '₦0',
-                                    ),
-                                  ],
-                                ),
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EventDetailsScreen(
+                                eventId: eventData['eventId'],
+                                currentUserId:
+                                    FirebaseAuth.instance.currentUser!.uid,
+                                eventPosterId: eventData['userId'],
+                                imageUrl: eventData['image'] ??
+                                    'assets/images/default_event.jpg',
+                                title: eventData['title'] ?? 'No Title',
+                                date: eventData['date_start'] != null
+                                    ? _formatDate(eventData[
+                                        'date_start']) // Convert timestamp to readable format
+                                    : 'Unknown Date',
+                                location:
+                                    eventData['location'] ?? 'Unknown Location',
+                                description: eventData['description'] ??
+                                    'No Description Available',
+                                tags: eventData['tag'],
+                                tickets: [
+                                  TicketOption(
+                                    type: 'Regular Ticket',
+                                    price: eventData['ticket_price'] ?? '0',
+                                    quantity: 0,
+                                  ),
+                                ],
                               ),
-                            );
-                          },
-                          child: EventCard(
-                            imageUrl: eventData['image'] ??
-                                'assets/images/default_event.jpg',
-                            title: eventData['title'] ?? 'No Title',
-                            priceRange: eventData['ticket_price'] == '0' ||
-                                    eventData['ticket_price'] == ''
-                                ? 'Free'
-                                : '₦${eventData['ticket_price']}',
-                            location:
-                                eventData['location'] ?? 'Unknown Location',
-                            date: eventData['date_start'] != null
-                                ? _formatDate(eventData['date_start'])
-                                : 'Unknown Date',
-                          ),
-                        );
-                      },
-                    ),
+                            ),
+                          );
+                        },
+                        child: EventCard(
+                          imageUrl: eventData['image'] ??
+                              'assets/images/default_event.jpg',
+                          title: eventData['title'] ?? 'No Title',
+                          priceRange: eventData['ticket_price'] == '0' ||
+                                  eventData['ticket_price'] == ''
+                              ? 'Free'
+                              : '₦${eventData['ticket_price']}',
+                          location: eventData['location'] ?? 'Unknown Location',
+                          date: eventData['date_start'] != null
+                              ? _formatDate(eventData['date_start'])
+                              : 'Unknown Date',
+                        ),
+                      );
+                    },
                   );
                 },
               ),

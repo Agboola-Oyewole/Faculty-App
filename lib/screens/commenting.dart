@@ -22,6 +22,7 @@ class CommentSection extends StatefulWidget {
 class _CommentSectionState extends State<CommentSection> {
   TextEditingController _commentController = TextEditingController();
   bool isLoading = true;
+  bool isLoadingComment = false;
   List<Map<String, dynamic>> comments = [];
 
   @override
@@ -47,6 +48,9 @@ class _CommentSectionState extends State<CommentSection> {
   }
 
   Future<void> addComment() async {
+    setState(() {
+      isLoadingComment = true;
+    });
     String commentText = _commentController.text.trim();
     if (commentText.isEmpty) return;
 
@@ -61,6 +65,9 @@ class _CommentSectionState extends State<CommentSection> {
 
     _commentController.clear();
     fetchComments(); // Refresh comments after adding
+    setState(() {
+      isLoadingComment = false;
+    });
   }
 
   @override
@@ -106,22 +113,17 @@ class _CommentSectionState extends State<CommentSection> {
 
                                 var userData = snapshot.data!.data()
                                     as Map<String, dynamic>;
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundImage:
-                                          userData['profile_pic'] != null
-                                              ? NetworkImage(
-                                                  userData['profile_pic'])
-                                              : AssetImage(
-                                                      'assets/images/user.png')
-                                                  as ImageProvider,
-                                    ),
-                                    title: Text(
-                                        userData['first_name'] ?? "Unknown"),
-                                    subtitle: Text(comment['comment']),
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundImage: userData['profile_pic'] !=
+                                            null
+                                        ? NetworkImage(userData['profile_pic'])
+                                        : AssetImage('assets/images/user.png')
+                                            as ImageProvider,
                                   ),
+                                  title:
+                                      Text(userData['first_name'] ?? "Unknown"),
+                                  subtitle: Text(comment['comment']),
                                 );
                               },
                             );
@@ -144,10 +146,12 @@ class _CommentSectionState extends State<CommentSection> {
                     ),
                   ),
                   SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: addComment,
-                    child: Icon(Icons.send, color: Color(0xff347928)),
-                  ),
+                  isLoadingComment
+                      ? CircularProgressIndicator(color: Color(0xff347928))
+                      : GestureDetector(
+                          onTap: addComment,
+                          child: Icon(Icons.send, color: Color(0xff347928)),
+                        ),
                 ],
               ),
             ),

@@ -1,15 +1,64 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../screens/content_create_screen.dart';
 
-class ExamAndLectureCard extends StatelessWidget {
+class ExamAndLectureCard extends StatefulWidget {
   final String title;
   final String firebaseCollection;
 
   const ExamAndLectureCard(
       {super.key, required this.title, required this.firebaseCollection});
+
+  @override
+  State<ExamAndLectureCard> createState() => _ExamAndLectureCardState();
+}
+
+class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
+  Future<void> downloadFile(String url, String fileName) async {
+    try {
+      if (Platform.isAndroid) {
+        if (await Permission.manageExternalStorage.isDenied) {
+          var status = await Permission.manageExternalStorage.request();
+          if (!status.isGranted) {
+            print("❌ Storage permission denied.");
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Permissions Denied!")),
+            );
+            return;
+          }
+        }
+      }
+
+      // Get file extension
+      String fileExtension = url.split('.').last.split('?').first;
+      String fullFileName = "$fileName.$fileExtension";
+
+      // Get the app-specific directory
+      Directory? dir = await getExternalStorageDirectory();
+      String savePath = "${dir!.path}/$fullFileName";
+
+      // Download the file
+      Dio dio = Dio();
+      await dio.download(url, savePath);
+
+      print("✅ File downloaded: $savePath");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Downloaded: $fullFileName")),
+      );
+    } catch (e) {
+      print("❌ Download error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Download failed")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +86,7 @@ class ExamAndLectureCard extends StatelessWidget {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          title: Text(title),
+          title: Text(widget.title),
         ),
         body: StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
@@ -61,25 +110,29 @@ class ExamAndLectureCard extends StatelessWidget {
             print('HOEUO');
 
             return StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection(firebaseCollection) // Your schedules collection
-                  .where('department', isEqualTo: department)
-                  .where('level', isEqualTo: level)
-                  .snapshots(),
+              stream: widget.firebaseCollection == "academic"
+                  ? FirebaseFirestore.instance
+                      .collection(widget.firebaseCollection)
+                      .snapshots()
+                  : FirebaseFirestore.instance
+                      .collection(widget.firebaseCollection)
+                      .where('department', isEqualTo: department)
+                      .where('level', isEqualTo: level)
+                      .snapshots(),
               builder: (context, scheduleSnapshot) {
                 if (scheduleSnapshot.connectionState ==
                     ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
                 if (!scheduleSnapshot.hasData ||
                     scheduleSnapshot.data!.docs.isEmpty) {
-                  return Center(child: Text("No schedules available."));
+                  return const Center(child: Text("No schedules available."));
                 }
 
                 var schedules = scheduleSnapshot.data!.docs;
 
                 return ListView.builder(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
                   itemCount: schedules.length,
                   itemBuilder: (context, index) {
                     var schedule = schedules[index];
@@ -98,11 +151,14 @@ class ExamAndLectureCard extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                       builder: (context) => CreateContentScreen(
-                            tabIndex: title == 'Current Exam Schedule'
+                            tabIndex: widget.title == 'Current Exam Schedule'
                                 ? 3
-                                : title == 'Lecture Timetable'
+                                : widget.title == 'Lecture Timetable'
                                     ? 4
-                                    : 0,
+                                    : widget.title ==
+                                            'Current Academic Calendar'
+                                        ? 5
+                                        : 0,
                           )));
             },
             backgroundColor: const Color(0xff347928),
@@ -141,12 +197,26 @@ class ExamAndLectureCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              schedule['image'], // Firestore image URL
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
+            child: widget.firebaseCollection != 'academic'
+                ? schedule['image']
+                    ? Image.network(
+                        schedule['image'], // Firestore image URL
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.asset(
+                        'assets/images/post_image.jpg', // Firestore image URL
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                : Image.asset(
+                    'assets/images/post_image.jpg', // Firestore image URL
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
           ),
           SizedBox(height: 10),
           Text(
@@ -154,27 +224,82 @@ class ExamAndLectureCard extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.class_, color: Colors.grey, size: 16),
-              SizedBox(width: 4),
-              Text(
-                "${schedule['department']}  |  ${schedule['semester']}",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-          ),
+          widget.firebaseCollection == 'academic'
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_month_outlined,
+                            color: Colors.grey, size: 16),
+                        SizedBox(width: 4),
+                        Text(
+                          "${schedule['session']}",
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                        onTap: () async {
+                          String? fileUrl =
+                              widget.firebaseCollection == 'academic'
+                                  ? schedule['document']
+                                  : schedule['image'];
+                          if (fileUrl != null && fileUrl.isNotEmpty) {
+                            await downloadFile(fileUrl, schedule['title']);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text("No file available to download")),
+                            );
+                          }
+                        },
+                        child:
+                            Icon(Icons.download, color: Colors.black, size: 22))
+                  ],
+                )
+              : Row(
+                  children: [
+                    Icon(Icons.class_, color: Colors.grey, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      "${schedule['department']}  |  ${schedule['semester']}",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ),
           SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "${schedule['level']}",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              Icon(Icons.download, color: Colors.black, size: 22),
-            ],
-          ),
+          widget.firebaseCollection == 'academic'
+              ? Container()
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "${schedule['level']}",
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    GestureDetector(
+                        onTap: () async {
+                          String? fileUrl =
+                              widget.firebaseCollection == 'academic'
+                                  ? schedule['document']
+                                  : schedule['image'];
+                          if (fileUrl != null && fileUrl.isNotEmpty) {
+                            await downloadFile(fileUrl, schedule['title']);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text("No file available to download")),
+                            );
+                          }
+                        },
+                        child: Icon(Icons.download,
+                            color: Colors.black, size: 22)),
+                  ],
+                ),
         ],
       ),
     );

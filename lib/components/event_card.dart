@@ -35,12 +35,19 @@ class EventCard extends StatelessWidget {
                     topLeft: Radius.circular(12),
                     topRight: Radius.circular(12),
                   ),
-                  child: Image.network(
-                    imageUrl,
-                    width: double.infinity,
-                    height: 130,
-                    fit: BoxFit.cover,
-                  ),
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          width: double.infinity,
+                          height: 130,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.asset(
+                          'assets/images/sumup-ru18KXzFA4E-unsplash.jpg',
+                          width: double.infinity,
+                          height: 130,
+                          fit: BoxFit.cover,
+                        ),
                 ),
                 Positioned(
                   top: 8,

@@ -207,7 +207,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                       child: const Icon(
                         Icons.filter_alt_outlined,
                         color: Colors.black,
-                        size: 25,
+                        size: 22,
                       ),
                     ),
                   ),
