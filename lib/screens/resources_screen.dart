@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/components/document_card.dart';
 import 'package:faculty_app/components/filter_modal.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -86,8 +87,10 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
 
     if (_searchQuery.isNotEmpty) {
       query = query
-          .orderBy("title") // Ensure ordering before using startAt()
-          .startAt([_searchQuery]).endAt(["$_searchQuery\uf8ff"]);
+          .orderBy("title_lower") // Ensure ordering before using startAt()
+          .startAt(
+              [_searchQuery.toLowerCase()]) // Convert search query to lowercase
+          .endAt(["${_searchQuery.toLowerCase()}\uf8ff"]);
     }
 
     if (appliedFilters != null) {
@@ -129,6 +132,125 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
         print(appliedFilters);
       });
     }
+  }
+
+  Future<void> deleteExcos(String documentId) async {
+    try {
+      // Reference to the post document
+      DocumentReference excosRef =
+          FirebaseFirestore.instance.collection('resources').doc(documentId);
+
+      // Fetch the post data to get the image URL
+      DocumentSnapshot excosSnapshot = await excosRef.get();
+      if (!excosSnapshot.exists) {
+        print("Post not found.");
+        return;
+      }
+
+      Map<String, dynamic>? postData =
+          excosSnapshot.data() as Map<String, dynamic>?;
+      String? imageUrl = postData?['document'];
+
+      // Delete the image from Firebase Storage if it exists
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        try {
+          // Extract the file path from the URL
+          String filePath = imageUrl
+              .split('o/')[1] // Get the storage path
+              .split('?')[0] // Remove query parameters
+              .replaceAll('%2F', '/'); // Decode path
+
+          await FirebaseStorage.instance.ref(filePath).delete();
+          print("Document deleted successfully.");
+        } catch (imageError) {
+          print("Error deleting image: $imageError");
+        }
+      }
+
+      // Delete the post itself
+      await excosRef.delete();
+      print("Post deleted successfully.");
+    } catch (e) {
+      print("Error deleting post: $e");
+    }
+  }
+
+  void confirmDelete(excosId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          "Delete document?",
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black),
+        ),
+        content: Text("Are you sure you want to delete this document?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel",
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+            onPressed: () {
+              deleteExcos(excosId);
+              Navigator.pop(context);
+            },
+            child: Text("Delete",
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void showDeleteBottomSheet(BuildContext context, documentId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Allows keyboard to push content up
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
+          child: Wrap(children: [
+            Center(
+              child: Container(
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 15.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xff347928),
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  minimumSize: Size(double.infinity, 50),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  confirmDelete(documentId);
+                },
+                child: Text("Delete document",
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w900)),
+              ),
+            ),
+          ]),
+        );
+      },
+    );
   }
 
   @override
@@ -249,6 +371,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                             return DocumentCard(
                               imageText: 'assets/images/unknown.png',
                               documentName: resource["title"],
+                              documentDetail: resource['document'],
+                              documentExtension: '.pdf',
                               documentSize: "Loading...",
                               date: timeAgo(
                                   (resource['date'] as Timestamp).toDate()),
@@ -258,8 +382,10 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                           if (snapshot.hasError || snapshot.data == null) {
                             return DocumentCard(
                               imageText: 'assets/images/unknown.png',
+                              documentDetail: resource['document'],
                               documentName: resource["title"],
                               documentSize: "Unknown Size",
+                              documentExtension: '.pdf',
                               date: timeAgo(
                                   (resource['date'] as Timestamp).toDate()),
                             );
@@ -279,14 +405,30 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                             "Image": "assets/images/image.png",
                             "Unknown": "assets/images/unknown.png"
                           };
+                          Map<String, String> fileExtensions = {
+                            "PDF": ".pdf",
+                            "Word": ".docx",
+                            "PowerPoint": ".pptx",
+                            "Excel": ".xlsx",
+                          };
 
-                          return DocumentCard(
-                            imageText: fileIcons[fileType] ??
-                                'assets/images/unknown.png',
-                            documentName: resource["title"],
-                            documentSize: fileSize,
-                            date: timeAgo(
-                                (resource['date'] as Timestamp).toDate()),
+                          return GestureDetector(
+                            onLongPress: () => resource['userId'] ==
+                                    FirebaseAuth.instance.currentUser?.uid
+                                ? showDeleteBottomSheet(
+                                    context, resource['resource_id'])
+                                : null,
+                            child: DocumentCard(
+                              imageText: fileIcons[fileType] ??
+                                  'assets/images/unknown.png',
+                              documentName: resource["title"],
+                              documentDetail: resource['document'],
+                              documentExtension:
+                                  fileExtensions[fileType] ?? '.pdf',
+                              documentSize: fileSize,
+                              date: timeAgo(
+                                  (resource['date'] as Timestamp).toDate()),
+                            ),
                           );
                         },
                       );

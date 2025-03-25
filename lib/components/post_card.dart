@@ -92,26 +92,32 @@ class _PostsState extends State<Posts> {
   void confirmDelete() {
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: Text("Delete Post?"),
-            content: Text("Are you sure you want to delete this post?"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () {
-                  deletePost(widget.postId);
-                  Navigator.pop(context);
-                },
-                child: isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text("Delete", style: TextStyle(color: Colors.red)),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text(
+          "Delete Post?",
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black),
+        ),
+        content: Text("Are you sure you want to delete this post?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel",
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
           ),
+          TextButton(
+            onPressed: () {
+              deletePost(widget.postId);
+              Navigator.pop(context);
+            },
+            child: isLoading
+                ? CircularProgressIndicator(color: Colors.white)
+                : Text("Delete",
+                    style: TextStyle(
+                        color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -124,24 +130,40 @@ class _PostsState extends State<Posts> {
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.all(15.0),
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xff347928),
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
+          child: Wrap(children: [
+            Center(
+              child: Container(
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              minimumSize: Size(double.infinity, 50),
             ),
-            onPressed: () {
-              Navigator.pop(context);
-              confirmDelete();
-            },
-            child: Text("Delete Post",
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w900)),
-          ),
+            Padding(
+              padding: const EdgeInsets.only(top: 15.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xff347928),
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  minimumSize: Size(double.infinity, 50),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  confirmDelete();
+                },
+                child: Text("Delete Post",
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w900)),
+              ),
+            ),
+          ]),
         );
       },
     );
@@ -155,7 +177,7 @@ class _PostsState extends State<Posts> {
     try {
       // Reference to the post document
       DocumentReference postRef =
-      FirebaseFirestore.instance.collection('posts').doc(postId);
+          FirebaseFirestore.instance.collection('posts').doc(postId);
 
       // Fetch the post data to get the image URL
       DocumentSnapshot postSnapshot = await postRef.get();
@@ -165,7 +187,7 @@ class _PostsState extends State<Posts> {
       }
 
       Map<String, dynamic>? postData =
-      postSnapshot.data() as Map<String, dynamic>?;
+          postSnapshot.data() as Map<String, dynamic>?;
       String? imageUrl = postData?['image'];
 
       // Delete the image from Firebase Storage if it exists
@@ -244,17 +266,17 @@ class _PostsState extends State<Posts> {
                     child: ClipOval(
                         child: widget.profilePic.contains('.png')
                             ? Image.asset(
-                          widget.profilePic,
-                          fit: BoxFit.cover,
-                          width: 40,
-                          height: 40,
-                        )
+                                widget.profilePic,
+                                fit: BoxFit.cover,
+                                width: 40,
+                                height: 40,
+                              )
                             : Image.network(
-                          widget.profilePic,
-                          fit: BoxFit.cover,
-                          width: 40,
-                          height: 40,
-                        )),
+                                widget.profilePic,
+                                fit: BoxFit.cover,
+                                width: 40,
+                                height: 40,
+                              )),
                   ),
                   SizedBox(width: 9),
                   Expanded(
@@ -274,7 +296,7 @@ class _PostsState extends State<Posts> {
                                 ),
                                 SizedBox(width: 6),
                                 if (widget.isVerified)
-                                  Icon(Icons.verified,
+                                  Icon(Icons.verified_user_rounded,
                                       color: Colors.blue, size: 15),
                               ],
                             ),
@@ -282,15 +304,15 @@ class _PostsState extends State<Posts> {
                         ),
                         widget.currentUserId == widget.posterId
                             ? GestureDetector(
-                            onTap: () => showDeleteBottomSheet(context),
-                            child: Icon(Icons.more_vert))
+                                onTap: () => showDeleteBottomSheet(context),
+                                child: Icon(Icons.more_vert))
                             : Container()
                       ],
                     ),
                   )
                 ],
               ),
-              SizedBox(height: 8),
+              SizedBox(height: 17),
 
               GestureDetector(
                 onTap: () => setState(() => _isExpanded = !_isExpanded),
@@ -298,30 +320,35 @@ class _PostsState extends State<Posts> {
                   _isExpanded
                       ? widget.caption
                       : widget.caption.length > 70
-                      ? '${widget.caption.substring(0, 70)}... more'
-                      : widget.caption,
+                          ? '${widget.caption.substring(0, 70)}... more'
+                          : widget.caption,
                   style: TextStyle(color: Colors.black),
                 ),
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 15),
               widget.image != null && widget.image.isNotEmpty
                   ? Image.network(
-                widget.image,
-                width: double.infinity,
-                height: MediaQuery
-                    .of(context)
-                    .size
-                    .width * 0.50,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) =>
-                const Icon(
-                    Icons.broken_image,
-                    size: 50,
-                    color: Colors.grey),
-              )
+                      widget.image,
+                      width: double.infinity,
+                      // ✅ Ensure it takes full width
+                      height: MediaQuery.of(context).size.width * 0.70,
+
+                      // Adjust height
+                      fit: BoxFit.contain,
+                      // ✅ Ensures full width without cropping
+                      alignment: Alignment.center,
+                      // ✅ Keeps it centered
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.broken_image,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
+                    )
                   : Container(),
 
-              SizedBox(height: 8),
+              widget.image != null && widget.image.isNotEmpty
+                  ? SizedBox(height: 8)
+                  : Container(),
 
               // Like, Comment, Bookmark
               Row(

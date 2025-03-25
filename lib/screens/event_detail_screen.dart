@@ -117,19 +117,26 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Event?"),
+        title: const Text(
+          "Delete Event?",
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black),
+        ),
         content: const Text("Are you sure you want to delete this event?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: const Text("Cancel",
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               deleteEvent();
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete",
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

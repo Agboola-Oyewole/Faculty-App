@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
 
 import '../screens/content_create_screen.dart';
@@ -36,13 +36,25 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
         }
       }
 
-      // Get file extension
-      String fileExtension = url.split('.').last.split('?').first;
-      String fullFileName = "$fileName.$fileExtension";
+      // Get the Downloads directory
+      Directory downloadsDir = Directory('/storage/emulated/0/Download');
+      if (!downloadsDir.existsSync()) {
+        print("❌ Downloads directory not found!");
+        return;
+      }
 
-      // Get the app-specific directory
-      Directory? dir = await getExternalStorageDirectory();
-      String savePath = "${dir!.path}/$fullFileName";
+      // Get the file extension properly
+      String fileExtension = path.extension(url.split('?').first);
+      if (fileExtension.isEmpty) {
+        fileExtension = ".pdf"; // Default to PDF if no extension found
+      }
+
+      // Construct the final filename
+      String fullFileName =
+          "$fileName$fileExtension"; // Example: "Academic Calendar.pdf"
+
+      // Define the save path
+      String savePath = "${downloadsDir.path}/$fullFileName";
 
       // Download the file
       Dio dio = Dio();
@@ -255,8 +267,16 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                             );
                           }
                         },
-                        child:
-                            Icon(Icons.download, color: Colors.black, size: 22))
+                        child: Container(
+                            decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: const BorderRadius.all(
+                                    Radius.circular(5.0)),
+                                border:
+                                    Border.all(color: Colors.black, width: 1)),
+                            padding: const EdgeInsets.all(5.0),
+                            child: Icon(Icons.download,
+                                color: Colors.black, size: 22)))
                   ],
                 )
               : Row(
@@ -296,8 +316,17 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                             );
                           }
                         },
-                        child: Icon(Icons.download,
-                            color: Colors.black, size: 22)),
+                        child: Container(
+                          decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(5.0)),
+                              border:
+                                  Border.all(color: Colors.black, width: 1)),
+                          padding: const EdgeInsets.all(5.0),
+                          child: Icon(Icons.download,
+                              color: Colors.black, size: 22),
+                        )),
                   ],
                 ),
         ],

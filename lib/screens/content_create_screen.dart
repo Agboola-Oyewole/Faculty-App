@@ -1,11 +1,14 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:faculty_app/bottom_nav_bar.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
+import '../components/exam_and_lecture_card.dart';
 
 class CreateContentScreen extends StatefulWidget {
   const CreateContentScreen({super.key, required this.tabIndex});
@@ -478,6 +481,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           "title": title,
           "document": documentUrl ?? "",
           "department": selectedDepartment,
+          "title_lower": title.toLowerCase(), // Lowercase title for search
           'resource_id': resourcesId,
           "level": selectedLevel,
           "semester": selectedSemester,
@@ -580,6 +584,44 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       setState(() {
         isLoading = false;
       });
+      if (currentTabName == 'Exam') {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => ExamAndLectureCard(
+                      title: 'Current Exam Schedule',
+                      firebaseCollection: 'exams',
+                    )));
+      } else if (currentTabName == 'Lecture') {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => ExamAndLectureCard(
+                      title: 'Current Lecture Timetable',
+                      firebaseCollection: 'lectures',
+                    )));
+      } else if (currentTabName == 'Academic') {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => ExamAndLectureCard(
+                      title: 'Current Academic Calendar',
+                      firebaseCollection: 'academic',
+                    )));
+      } else {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) => BottomNavBar(
+                      initialIndex: currentTabName == 'Posts'
+                          ? 0
+                          : currentTabName == 'Events'
+                              ? 1
+                              : currentTabName == 'Resources'
+                                  ? 2
+                                  : 0,
+                    )));
+      }
     } else {
       setState(() {
         isLoading = false;
@@ -792,28 +834,37 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   }
 
   Widget buildTextFormField(controller, isNotPresale, titleHint) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(
-            color: Color(0xff347928),
-            width: 1.5,
+    return Padding(
+      padding: const EdgeInsets.only(top: 10.0),
+      child: TextFormField(
+        controller: controller,
+        maxLines: null,
+        // ✅ Allows multi-line input
+        keyboardType: TextInputType.multiline,
+        // ✅ Enables multiple lines
+        textInputAction: TextInputAction.newline,
+        // ✅ Prevents submission on Enter
+        decoration: InputDecoration(
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide(
+              color: Color(0xff347928),
+              width: 1.5,
+            ),
           ),
+          labelText: titleHint,
+          labelStyle: TextStyle(color: Colors.black),
+          border: OutlineInputBorder(),
         ),
-        labelText: titleHint,
-        labelStyle: TextStyle(color: Colors.black),
-        border: OutlineInputBorder(),
-      ),
-      validator: isNotPresale
-          ? (value) {
-              if (value == null || value.isEmpty) {
-                return 'This field is required';
+        validator: isNotPresale
+            ? (value) {
+                if (value == null || value.isEmpty) {
+                  return 'This field is required';
+                }
+                return null;
               }
-              return null;
-            }
-          : null,
+            : null,
+      ),
     );
   }
 
