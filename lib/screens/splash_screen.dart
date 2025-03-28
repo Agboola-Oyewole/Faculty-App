@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/screens/personal_details.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -104,9 +105,11 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
 
         // Redirect based on user status
         if (isNewUser) {
+          print('Inside the personal');
           Navigator.pushReplacement(context,
               MaterialPageRoute(builder: (context) => PersonalInfoScreen()));
         } else {
+          print('Inside the bottom');
           Navigator.pushReplacement(
               context, MaterialPageRoute(builder: (context) => BottomNavBar()));
         }
@@ -145,7 +148,40 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
         'created_at': FieldValue.serverTimestamp(),
       });
 
+      final userId = user.uid;
+      final docRef =
+          FirebaseFirestore.instance.collection('schedules').doc(userId);
+
+      final docSnapshot = await docRef.get();
+
+      if (!docSnapshot.exists) {
+        // Create the default schedule document
+        await docRef.set({
+          "userId": userId,
+          "schedule": {
+            "Monday": [],
+            "Tuesday": [],
+            "Wednesday": [],
+            "Thursday": [],
+            "Friday": [],
+            "Saturday": [],
+            "Sunday": []
+          }
+        });
+      }
+      print("✅ User Schedule Data Created: ${user.displayName}");
+
+      FirebaseMessaging messaging = FirebaseMessaging.instance;
+      String? token = await messaging.getToken();
+
+      if (token != null) {
+        await FirebaseFirestore.instance.collection("users").doc(userId).set({
+          "fcmToken": token,
+        }, SetOptions(merge: true));
+      }
+
       print("✅ New user created in Firestore.");
+      print('Returning true now');
       return true; // New user
     } else {
       print("ℹ️ User already exists in Firestore.");

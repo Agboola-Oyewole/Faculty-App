@@ -2,7 +2,10 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+import '../main.dart';
 
 class DocumentCard extends StatefulWidget {
   const DocumentCard(
@@ -26,8 +29,39 @@ class DocumentCard extends StatefulWidget {
 }
 
 class _DocumentCardState extends State<DocumentCard> {
+  bool isLoading = false;
+
+  Future<void> showDownloadNotification(String fileName) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'download_channel', // ✅ Unique channel ID
+      'Download Notifications', // ✅ Channel name
+      channelDescription: 'Shows notifications for completed downloads',
+      importance: Importance.max, // ✅ Max importance
+      priority: Priority.high,
+      playSound: true, // ✅ Play sound
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    // 🔥 Generate a unique notification ID (use timestamp)
+    int notificationId =
+        DateTime.now().millisecondsSinceEpoch.remainder(100000);
+
+    await flutterLocalNotificationsPlugin.show(
+      notificationId, // Notification ID
+      'Download Complete ✅',
+      '$fileName has been saved to Downloads 📂',
+      platformChannelSpecifics,
+    );
+  }
+
   Future<void> downloadFile(
       String url, String fileName, String documentExtension) async {
+    setState(() {
+      isLoading = true;
+    });
     try {
       if (Platform.isAndroid) {
         if (await Permission.manageExternalStorage.isDenied) {
@@ -64,6 +98,9 @@ class _DocumentCardState extends State<DocumentCard> {
       await dio.download(url, savePath);
 
       print("✅ File downloaded: $savePath");
+      // ✅ Show notification when download completes
+      await showDownloadNotification(fullFileName);
+      print('Sent notificarion');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Downloaded: $fullFileName")),
       );
@@ -72,6 +109,10 @@ class _DocumentCardState extends State<DocumentCard> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Download failed")),
       );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -152,11 +193,21 @@ class _DocumentCardState extends State<DocumentCard> {
                             const BorderRadius.all(Radius.circular(5.0)),
                         border: Border.all(color: Colors.black, width: 1)),
                     padding: const EdgeInsets.all(5.0),
-                    child: Icon(
-                      Icons.download,
-                      color: Colors.black,
-                      size: 22,
-                    ),
+                    child: isLoading
+                        ? SizedBox(
+                            width: 20, // Adjust the size as needed
+                            height: 20, // Adjust the size as needed
+                            child: CircularProgressIndicator(
+                              color: Colors.black,
+                              value: 0.3, // Progress value (0.0 - 1.0)
+                              strokeWidth: 3, // Thickness of the indicator
+                            ),
+                          )
+                        : Icon(
+                            Icons.download,
+                            color: Colors.black,
+                            size: 22,
+                          ),
                   ),
                 ),
               )

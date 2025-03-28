@@ -165,7 +165,7 @@ class ProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Text(
         title,
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
       ),
     );
   }
@@ -176,7 +176,10 @@ class ProfileScreen extends StatelessWidget {
       required VoidCallback onTap}) {
     return ListTile(
       leading: Icon(icon, color: Colors.black54),
-      title: Text(title),
+      title: Text(
+        title,
+        style: TextStyle(fontWeight: FontWeight.w600),
+      ),
       trailing: Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
     );

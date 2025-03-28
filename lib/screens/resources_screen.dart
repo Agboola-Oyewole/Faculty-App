@@ -134,7 +134,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
     }
   }
 
-  Future<void> deleteExcos(String documentId) async {
+  Future<void> deleteDocument(String documentId) async {
     try {
       // Reference to the post document
       DocumentReference excosRef =
@@ -175,7 +175,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
     }
   }
 
-  void confirmDelete(excosId) {
+  void confirmDelete(documentId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -193,7 +193,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
           ),
           TextButton(
             onPressed: () {
-              deleteExcos(excosId);
+              deleteDocument(documentId);
               Navigator.pop(context);
             },
             child: Text("Delete",

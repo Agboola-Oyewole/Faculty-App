@@ -1,9 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/components/exam_and_lecture_card.dart';
+import 'package:faculty_app/screens/attendance_screen.dart';
 import 'package:faculty_app/screens/content_create_screen.dart';
 import 'package:faculty_app/screens/event_screen.dart';
 import 'package:faculty_app/screens/excos_page.dart';
 import 'package:faculty_app/screens/profile_screen.dart';
 import 'package:faculty_app/screens/resources_screen.dart';
+import 'package:faculty_app/screens/schedule_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -36,6 +39,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     super.initState();
     _currentIndex =
         widget.initialIndex; // Set the initial index to the optional parameter
+    getUserDetails();
   }
 
   // List of screens
@@ -45,6 +49,47 @@ class _BottomNavBarState extends State<BottomNavBar> {
     ResourcesScreen(),
     const ProfileScreen(),
   ];
+
+  Map<String, dynamic>? userData;
+
+  Future<void> getUserDetails() async {
+    Map<String, dynamic>? fetchedData = await fetchCurrentUserDetails();
+    if (fetchedData != null) {
+      setState(() {
+        userData = fetchedData;
+      });
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchCurrentUserDetails() async {
+    try {
+      // Get the currently signed-in user
+      User? user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        print("❌ No user is currently signed in.");
+        return null;
+      }
+
+      // Reference to Firestore document
+      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
+          .instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!doc.exists) {
+        print("❌ User document not found in Firestore.");
+        return null;
+      }
+
+      // Return user details as a Map
+      return doc.data();
+    } catch (e) {
+      print("❌ Error fetching user details: $e");
+      return null;
+    }
+  }
 
   @override
   void dispose() {
@@ -185,10 +230,34 @@ class _BottomNavBarState extends State<BottomNavBar> {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => ExamAndLectureCard(
-                                    title: 'Lecture Timetable',
-                                    firebaseCollection: 'exams',
-                                  )));
+                              builder: (context) =>
+                                  userData?['role'] == 'student'
+                                      ? AttendanceScreen()
+                                      : AddClassScreen()));
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.timer_sharp),
+                    title: Row(
+                      children: [
+                        Text('Lecture Schedule'),
+                        SizedBox(
+                          width: 5,
+                        ),
+                        Text(
+                          'Beta',
+                          style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => WeeklyScheduleScreen()));
                     },
                   ),
                   ListTile(
