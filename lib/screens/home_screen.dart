@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/components/post_card.dart';
-import 'package:faculty_app/screens/notification_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -99,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(
-          top: 30.0, left: 15.0, right: 15.0, bottom: 0.0),
+          top: 20.0, left: 15.0, right: 15.0, bottom: 0.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -134,57 +133,60 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => NotificationsScreen()));
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(10.0)),
-                      border: Border.all(color: Colors.black, width: 1)),
-                  padding: const EdgeInsets.all(8.0),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(
-                        Icons.notifications_none_rounded,
-                        color: Colors.black,
-                        size: 25,
-                      ),
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 10,
-                            minHeight: 10,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
+              // GestureDetector(
+              //   onTap: () {
+              //     Navigator.push(
+              //         context,
+              //         MaterialPageRoute(
+              //             builder: (context) => NotificationsScreen()));
+              //   },
+              //   child: Container(
+              //     decoration: BoxDecoration(
+              //         color: Colors.transparent,
+              //         borderRadius:
+              //             const BorderRadius.all(Radius.circular(10.0)),
+              //         border: Border.all(color: Colors.black, width: 1)),
+              //     padding: const EdgeInsets.all(8.0),
+              //     child: Stack(
+              //       clipBehavior: Clip.none,
+              //       children: [
+              //         const Icon(
+              //           Icons.notifications_none_rounded,
+              //           color: Colors.black,
+              //           size: 25,
+              //         ),
+              //         Positioned(
+              //           top: 0,
+              //           right: 0,
+              //           child: Container(
+              //             padding: const EdgeInsets.all(4),
+              //             decoration: BoxDecoration(
+              //               color: Colors.red,
+              //               shape: BoxShape.circle,
+              //             ),
+              //             constraints: const BoxConstraints(
+              //               minWidth: 10,
+              //               minHeight: 10,
+              //             ),
+              //           ),
+              //         ),
+              //       ],
+              //     ),
+              //   ),
+              // )
             ],
           ),
           SizedBox(height: 15),
           Container(color: Colors.grey.withOpacity(0.5), height: 1.0),
-          SizedBox(height: 10),
+          SizedBox(height: 15),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refreshPosts,
               child: _isLoading
-                  ? Center(child: CircularProgressIndicator())
+                  ? Center(
+                      child: CircularProgressIndicator(
+                      color: Color(0xff347928),
+                    ))
                   : _posts.isEmpty
                       ? Center(child: Text('No posts available'))
                       : ListView.builder(
@@ -211,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       'assets/images/user.png',
                                   caption: postData['title'] ?? '',
                                   commentCount: commentCount.toString(),
+                                  imageAspect: postData['imageAspect'],
                                   image: postData['image'] ??
                                       'assets/images/503 Error Service.png',
                                   initialLikes: postData['likes'] ?? [],

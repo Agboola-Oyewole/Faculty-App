@@ -34,10 +34,64 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
     "Sunday": [],
   };
 
+  String? _selectedCourseCode;
+
+  List<String> courseCodes = [];
+
   @override
   void initState() {
     super.initState();
+    fetchUserCourseCodes();
     _fetchUserSchedules();
+  }
+
+  Future<void> fetchUserCourseCodes() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
+          .instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (!doc.exists) return;
+
+      String userLevel = doc.data()?['level'] ?? '';
+      String userDepartment = doc.data()?['department'] ?? '';
+      String userSemester = doc.data()?['semester'] ?? '';
+
+      QuerySnapshot filesSnapshot =
+          await FirebaseFirestore.instance.collectionGroup("files").get();
+
+      Set<String> tempCourseCodes = {};
+
+      for (var fileDoc in filesSnapshot.docs) {
+        Map<String, dynamic> data = fileDoc.data() as Map<String, dynamic>;
+
+        if (!data.containsKey('course_code')) continue;
+
+        String courseCode = data['course_code'] ?? 'Unknown';
+        String resourceLevel = data['level'] ?? '';
+        String resourceDepartment = data['department'] ?? '';
+        String resourceSemester = data['semester'] ?? '';
+
+        bool levelMatch = (resourceLevel == userLevel);
+        bool departmentMatch = (resourceDepartment == userDepartment ||
+            resourceDepartment == "All");
+        bool semesterMatch = (resourceSemester == userSemester);
+
+        if (levelMatch && departmentMatch && semesterMatch) {
+          tempCourseCodes.add(courseCode);
+        }
+      }
+
+      setState(() {
+        courseCodes = tempCourseCodes.toList();
+      });
+    } catch (e) {
+      print('❌ Error fetching course codes: $e');
+    }
   }
 
   Future<void> deleteSchedule(
@@ -175,29 +229,44 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
     });
   }
 
-  String convertToTimestamp(String timeString) {
+  String convertToTimestamp(BuildContext context, String timeString) {
     // Get current date
     DateTime now = DateTime.now();
 
-    // Parse input time
-    final DateFormat inputFormat = DateFormat("h:mm a");
-    DateTime parsedTime = inputFormat.parse(timeString);
+    try {
+      DateFormat inputFormat;
 
-    // Combine current date with parsed time
-    DateTime finalDateTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      parsedTime.hour,
-      parsedTime.minute,
-    );
+      // Check if timeString contains AM or PM (12-hour format)
+      if (timeString.contains("AM") || timeString.contains("PM")) {
+        inputFormat = DateFormat("h:mm a"); // 12-hour format
+      } else {
+        inputFormat = DateFormat("HH:mm"); // 24-hour format
+      }
 
-    // Convert to UTC and return ISO 8601 format
-    return finalDateTime.toUtc().toIso8601String();
+      // Parse input time
+      DateTime parsedTime = inputFormat.parse(timeString);
+
+      // Combine current date with parsed time
+      DateTime finalDateTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        parsedTime.hour,
+        parsedTime.minute,
+      );
+
+      // Convert to UTC and return ISO 8601 format
+      return finalDateTime.toUtc().toIso8601String();
+    } catch (e) {
+      print("❌ Error parsing time: $e");
+      return now
+          .toUtc()
+          .toIso8601String(); // Default to current time if parsing fails
+    }
   }
 
   Future<void> addScheduleEvent(BuildContext context, String day,
-      String eventName, TimeOfDay startTime, TimeOfDay? endTime) async {
+      TimeOfDay startTime, TimeOfDay? endTime) async {
     setState(() {
       isLoading = true;
     });
@@ -223,18 +292,18 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
 
         // Add the new event
         eventsForDay.add({
-          "name": eventName,
-          "startTime": Timestamp.fromDate(
-              DateTime.parse(convertToTimestamp(startTime.format(context)))),
+          "name": _selectedCourseCode,
+          "startTime": Timestamp.fromDate(DateTime.parse(
+              convertToTimestamp(context, startTime.format(context)))),
           "endTime": Timestamp.fromDate(DateTime.parse(
-                  convertToTimestamp(endTime!.format(context)))) ??
-              ''
+              convertToTimestamp(context, endTime!.format(context))))
         });
 
         // Update Firestore
         await docRef.update({
           "schedule.$day": eventsForDay, // Only updates the selected day
         });
+        print("I'm here now, this worked then.");
       }
     } catch (e) {
       print(e);
@@ -255,9 +324,31 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
     }
   }
 
+  Widget _buildDropdown(String hint, List<String> items, String? selectedValue,
+      Function(String?) onChanged) {
+    return DropdownButtonFormField<String>(
+      value: selectedValue,
+      items: items
+          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+          .toList(),
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return "$hint is required"; // Show validation message
+        }
+        return null;
+      },
+    );
+  }
+
   // Function to show bottom modal sheet
   void _showAddScheduleModal(BuildContext context, String day) {
-    String eventName = "";
     TimeOfDay? startTime;
     TimeOfDay? endTime;
 
@@ -298,16 +389,19 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
                             // Validate the form
-                            if (eventName.isNotEmpty && startTime != null) {
+                            if (_selectedCourseCode!.isNotEmpty &&
+                                startTime != null) {
                               setState(() {
                                 schedules[day]!.add({
-                                  "name": eventName,
+                                  "name": _selectedCourseCode,
                                   "startTime": startTime!.format(context),
                                   "endTime": endTime?.format(context) ?? ''
                                 });
                               });
+
+                              print('ABOUT TO ADD SCHEDULE');
                               await addScheduleEvent(
-                                  context, day, eventName, startTime!, endTime);
+                                  context, day, startTime!, endTime);
                               print(schedules);
                               _fetchUserSchedules(); // Refresh UI after adding
                               Navigator.pop(context);
@@ -325,23 +419,17 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 15),
+                  SizedBox(height: 20),
                   Form(
                     key: _formKey, // Assign form key
-                    child: TextFormField(
-                      decoration: InputDecoration(
-                        hintText: "Enter Course Code",
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 7),
-                      ),
-                      onChanged: (value) => eventName = value,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'This field is required';
-                        }
-                        return null;
-                      },
-                    ),
+                    child: _buildDropdown(
+                        "Course Code", courseCodes, _selectedCourseCode,
+                        (newValue) {
+                      setState(() => _selectedCourseCode = newValue);
+                    }),
+                  ),
+                  SizedBox(
+                    height: 15,
                   ),
                   Divider(),
                   Padding(
@@ -416,127 +504,105 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: double.infinity, // Full screen height
-      width: double.infinity, // Full screen width
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            // Strong green at the top
-            Color(0xffC7FFD8), // Soft green transition
-            Colors.white,
-
-            Colors.white, // Full white at the bottom
-          ],
-          stops: [
-            0.0,
-            0.7,
-            1.0
-          ], // Smooth transition: 20% green, then fade to white
-        ),
+    return Scaffold(
+      backgroundColor: Color(0xffF1EFEC),
+      appBar: AppBar(
+        backgroundColor: Color(0xffF1EFEC),
+        title: Text("Weekly Schedule"),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: Text("Weekly Schedule"),
-          backgroundColor: Colors.transparent,
-        ),
-        body: isLoading
-            ? Center(
-                child: CircularProgressIndicator(
-                  color: Colors.black,
-                  value: 0.3, // Progress value (0.0 - 1.0)
-                  strokeWidth: 3, // Thickness of the indicator
-                ),
-              )
-            : Padding(
-                padding: const EdgeInsets.only(top: 5.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  // Aligns text to the left
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 15.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info),
-                          SizedBox(width: 10),
-                          Expanded(
-                            // Ensures text wraps instead of overflowing
-                            child: Text(
-                              "Add your course codes based on your lecture timetable to receive alerts before your classes start.",
-                              style: TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.bold),
-                              // Reduce font size if needed
-                              softWrap: true,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView(
-                        children: orderedDays.map((day) {
-                          return ExpansionTile(
-                            title: Text(
-                              day,
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                            children: [
-                              if (schedules[day] == null ||
-                                  schedules[day]!.isEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Text("No schedules for today"),
-                                )
-                              else
-                                ...schedules[day]!.map((schedule) {
-                                  return Card(
-                                    margin: EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 6),
-                                    child: ListTile(
-                                      title: Text(schedule["name"]!,
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold)),
-                                      subtitle: Row(
-                                        children: [
-                                          Text(
-                                              "Time: ${formatDateTime(schedule["startTime"])} "),
-                                          Text(
-                                              "- ${formatDateTime(schedule["endTime"])}"),
-                                        ],
-                                      ),
-                                      trailing: GestureDetector(
-                                        onTap: () {
-                                          showDeleteBottomSheet(
-                                              context, userId, day, schedule);
-                                        },
-                                        child: Icon(Icons.more_vert),
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              // Add Schedule Button
-                              TextButton.icon(
-                                onPressed: () =>
-                                    _showAddScheduleModal(context, day),
-                                icon: Icon(Icons.add, color: Color(0xff347928)),
-                                label: Text("Add Schedule",
-                                    style: TextStyle(color: Color(0xff347928))),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
+      body: isLoading
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Colors.black,
+                value: 0.3, // Progress value (0.0 - 1.0)
+                strokeWidth: 3, // Thickness of the indicator
               ),
-      ),
+            )
+          : Padding(
+              padding: const EdgeInsets.only(top: 5.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                // Aligns text to the left
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 15.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info),
+                        SizedBox(width: 10),
+                        Expanded(
+                          // Ensures text wraps instead of overflowing
+                          child: Text(
+                            "Add your course codes based on your lecture timetable to receive alerts before your classes start.",
+                            style: TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.bold),
+                            // Reduce font size if needed
+                            softWrap: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      children: orderedDays.map((day) {
+                        return ExpansionTile(
+                          title: Text(
+                            day,
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          children: [
+                            if (schedules[day] == null ||
+                                schedules[day]!.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Text("No schedules for today"),
+                              )
+                            else
+                              ...schedules[day]!.map((schedule) {
+                                return Card(
+                                  margin: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 6),
+                                  child: ListTile(
+                                    title: Text(schedule["name"]!,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                    subtitle: Row(
+                                      children: [
+                                        Text(
+                                            "Time: ${formatDateTime(schedule["startTime"])} "),
+                                        Text(
+                                            "- ${formatDateTime(schedule["endTime"])}"),
+                                      ],
+                                    ),
+                                    trailing: GestureDetector(
+                                      onTap: () {
+                                        showDeleteBottomSheet(
+                                            context, userId, day, schedule);
+                                      },
+                                      child: Icon(Icons.more_vert),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            // Add Schedule Button
+                            TextButton.icon(
+                              onPressed: () =>
+                                  _showAddScheduleModal(context, day),
+                              icon: Icon(Icons.add, color: Color(0xff347928)),
+                              label: Text("Add Schedule",
+                                  style: TextStyle(color: Color(0xff347928))),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

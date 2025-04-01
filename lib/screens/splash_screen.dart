@@ -101,17 +101,17 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
 
         bool isNewUser = await checkAndCreateUser(user);
 
-        if (!mounted) return;
-
         // Redirect based on user status
-        if (isNewUser) {
-          print('Inside the personal');
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (context) => PersonalInfoScreen()));
-        } else {
-          print('Inside the bottom');
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (context) => BottomNavBar()));
+        if (mounted) {
+          if (isNewUser) {
+            print('Inside the personal');
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (context) => PersonalInfoScreen()));
+          } else {
+            print('Inside the bottom');
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (context) => BottomNavBar()));
+          }
         }
       }
     } catch (e) {

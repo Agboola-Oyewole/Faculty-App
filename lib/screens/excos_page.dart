@@ -390,71 +390,48 @@ class _ExcosPageState extends State<ExcosPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: double.infinity, // Full screen height
-      width: double.infinity, // Full screen width
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            // Strong green at the top
-            Color(0xffC7FFD8), // Soft green transition
-            Colors.white,
-            Colors.white, // Full white at the bottom
-          ],
-          stops: [
-            0.0,
-            0.7,
-            1.0
-          ], // Smooth transition: 20% green, then fade to white
-        ),
-      ),
-      child: Scaffold(
+    return Scaffold(
+      appBar: AppBar(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          title: Text("Meet the Excos"),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15),
-          child: isLoadingFetching
-              ? Center(
-                  child: CircularProgressIndicator(
-                  color: Color(0xff347928),
-                )) // Show loading indicator
-              : profiles.isEmpty
-                  ? Center(
-                      child: Text("No excos available")) // Show empty state
-                  : GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.60,
-                      ),
-                      itemCount: profiles.length,
-                      itemBuilder: (context, index) {
-                        return GestureDetector(
-                            onLongPress: () => showDeleteBottomSheet(
-                                context, profiles[index]['excosId']),
-                            child: ProfileCard(profile: profiles[index]));
-                      },
+        title: Text("Meet the Excos"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15),
+        child: isLoadingFetching
+            ? Center(
+                child: CircularProgressIndicator(
+                color: Color(0xff347928),
+              )) // Show loading indicator
+            : profiles.isEmpty
+                ? Center(child: Text("No excos available")) // Show empty state
+                : GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.50,
                     ),
-        ),
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: FloatingActionButton(
-            onPressed: () => showAddRoleBottomSheet(context),
-            backgroundColor: const Color(0xff347928),
-            elevation: 5.0,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 4.0),
-              child: const Icon(
-                Icons.person_add_alt_rounded,
-                color: Colors.white,
-                size: 25.0,
-              ),
+                    itemCount: profiles.length,
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                          onLongPress: () => showDeleteBottomSheet(
+                              context, profiles[index]['excosId']),
+                          child: ProfileCard(profile: profiles[index]));
+                    },
+                  ),
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: FloatingActionButton(
+          onPressed: () => showAddRoleBottomSheet(context),
+          backgroundColor: const Color(0xff347928),
+          elevation: 5.0,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 4.0),
+            child: const Icon(
+              Icons.person_add_alt_rounded,
+              color: Colors.white,
+              size: 25.0,
             ),
           ),
         ),

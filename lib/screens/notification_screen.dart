@@ -5,66 +5,44 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: double.infinity, // Full screen height
-      width: double.infinity, // Full screen width
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            // Strong green at the top
-            Color(0xffC7FFD8), // Soft green transition
-            Colors.white,
-            Colors.white, // Full white at the bottom
-          ],
-          stops: [
-            0.0,
-            0.7,
-            1.0
-          ], // Smooth transition: 20% green, then fade to white
-        ),
-      ),
-      child: Scaffold(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Notifications"),
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: const Text("Notifications"),
-          backgroundColor: Colors.transparent,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => NotificationSettingsScreen()));
-              },
-            ),
-          ],
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildNotificationSection("New", [
-                _notificationItem("levileon", "started following you.", "34m"),
-                _notificationItem("halukman", "started following you.", "2h"),
-                _notificationItem("mbestra", "liked your reel.", "6h"),
-              ]),
-              _buildNotificationSection("Yesterday", [
-                _notificationItem("verna.dare", "liked your story.", "13h"),
-                _notificationItem("alvian.design", "liked your story.", "14h"),
-                _notificationItem("kretyastudio", "liked your story.", "14h"),
-                _notificationItem(
-                    "fateme_ahmadi", "started following you.", "16h"),
-              ]),
-              _buildNotificationSection("Last 7 days", [
-                _notificationItem("zahrakan", "liked your post.", "2d"),
-                _notificationItem("cristop.rowing", "liked your post.", "2d"),
-              ]),
-            ],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => NotificationSettingsScreen()));
+            },
           ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildNotificationSection("New", [
+              _notificationItem("levileon", "started following you.", "34m"),
+              _notificationItem("halukman", "started following you.", "2h"),
+              _notificationItem("mbestra", "liked your reel.", "6h"),
+            ]),
+            _buildNotificationSection("Yesterday", [
+              _notificationItem("verna.dare", "liked your story.", "13h"),
+              _notificationItem("alvian.design", "liked your story.", "14h"),
+              _notificationItem("kretyastudio", "liked your story.", "14h"),
+              _notificationItem(
+                  "fateme_ahmadi", "started following you.", "16h"),
+            ]),
+            _buildNotificationSection("Last 7 days", [
+              _notificationItem("zahrakan", "liked your post.", "2d"),
+              _notificationItem("cristop.rowing", "liked your post.", "2d"),
+            ]),
+          ],
         ),
       ),
     );
@@ -122,51 +100,29 @@ class _NotificationSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: double.infinity, // Full screen height
-      width: double.infinity, // Full screen width
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            // Strong green at the top
-            Color(0xffC7FFD8), // Soft green transition
-            Colors.white,
-            Colors.white, // Full white at the bottom
-          ],
-          stops: [
-            0.0,
-            0.7,
-            1.0
-          ], // Smooth transition: 20% green, then fade to white
-        ),
-      ),
-      child: Scaffold(
+    return Scaffold(
+      appBar: AppBar(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          title: const Text("Notification Settings"),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.notifications_off),
-                title: const Text("Pause all"),
-                subtitle: const Text("Temporarily pause notifications"),
-                trailing: Switch(
-                  value: _pauseNotifications,
-                  onChanged: (value) {
-                    setState(() {
-                      _pauseNotifications = value;
-                    });
-                  },
-                ),
+        title: const Text("Notification Settings"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.notifications_off),
+              title: const Text("Pause all"),
+              subtitle: const Text("Temporarily pause notifications"),
+              trailing: Switch(
+                value: _pauseNotifications,
+                onChanged: (value) {
+                  setState(() {
+                    _pauseNotifications = value;
+                  });
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

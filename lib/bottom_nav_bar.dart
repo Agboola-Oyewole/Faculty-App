@@ -2,12 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/components/exam_and_lecture_card.dart';
 import 'package:faculty_app/screens/attendance_screen.dart';
 import 'package:faculty_app/screens/content_create_screen.dart';
-import 'package:faculty_app/screens/event_screen.dart';
+import 'package:faculty_app/screens/course_screen.dart';
 import 'package:faculty_app/screens/excos_page.dart';
 import 'package:faculty_app/screens/profile_screen.dart';
 import 'package:faculty_app/screens/resources_screen.dart';
 import 'package:faculty_app/screens/schedule_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -25,6 +26,8 @@ class BottomNavBar extends StatefulWidget {
 
 class _BottomNavBarState extends State<BottomNavBar> {
   late int _currentIndex;
+  Map<String, Map<String, dynamic>>? courseData;
+  bool isLoading = true;
   String? userDisplayName = FirebaseAuth.instance.currentUser?.displayName;
   String? userDisplayPic = FirebaseAuth.instance.currentUser?.photoURL;
   String? userEmail = FirebaseAuth.instance.currentUser?.email;
@@ -40,21 +43,87 @@ class _BottomNavBarState extends State<BottomNavBar> {
     _currentIndex =
         widget.initialIndex; // Set the initial index to the optional parameter
     getUserDetails();
+    fetchResources(); // Fetch data once
   }
 
-  // List of screens
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const EventScreen(),
-    ResourcesScreen(),
-    const ProfileScreen(),
-  ];
+  Future<void> fetchResources() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
+          .instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (!doc.exists) return;
+
+      String userLevel = doc.data()?['level'] ?? '';
+      String userDepartment = doc.data()?['department'] ?? '';
+      String userSemester = doc.data()?['semester'] ?? '';
+
+      QuerySnapshot filesSnapshot =
+          await FirebaseFirestore.instance.collectionGroup("files").get();
+
+      Map<String, Map<String, dynamic>> tempData = {};
+
+      for (var fileDoc in filesSnapshot.docs) {
+        Map<String, dynamic> data = fileDoc.data() as Map<String, dynamic>;
+
+        if (!data.containsKey('document') || !data.containsKey('course_code'))
+          continue;
+
+        String courseCode = data['course_code'] ?? 'Unknown';
+        String fileUrl = data['document'];
+        String resourceLevel = data['level'] ?? '';
+        String resourceDepartment = data['department'] ?? '';
+        String resourceSemester = data['semester'] ?? '';
+
+        bool levelMatch = (resourceLevel == userLevel);
+        bool departmentMatch = (resourceDepartment == userDepartment ||
+            resourceDepartment == "All");
+        bool semesterMatch = (resourceSemester == userSemester);
+
+        if (levelMatch && departmentMatch && semesterMatch) {
+          double fileSizeMB = await getFileSize(fileUrl);
+
+          if (!tempData.containsKey(courseCode)) {
+            tempData[courseCode] = {'count': 0, 'size': 0.0};
+          }
+
+          tempData[courseCode]!['count'] += 1;
+          tempData[courseCode]!['size'] += fileSizeMB;
+        }
+      }
+
+      setState(() {
+        courseData = tempData;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('❌ Error fetching resources: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<double> getFileSize(String url) async {
+    try {
+      final ref = FirebaseStorage.instance.refFromURL(url);
+      final metadata = await ref.getMetadata();
+      return metadata.size! / (1024 * 1024);
+    } catch (e) {
+      print("Error fetching file size: $e");
+      return 0.0;
+    }
+  }
 
   Map<String, dynamic>? userData;
 
   Future<void> getUserDetails() async {
     Map<String, dynamic>? fetchedData = await fetchCurrentUserDetails();
-    if (fetchedData != null) {
+    if (mounted && fetchedData != null) {
       setState(() {
         userData = fetchedData;
       });
@@ -79,7 +148,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
           .get();
 
       if (!doc.exists) {
-        print("❌ User document not found in Firestore.");
+        print("❌ User document not found in Firestore. now");
         return null;
       }
 
@@ -97,8 +166,17 @@ class _BottomNavBarState extends State<BottomNavBar> {
     super.dispose();
   }
 
+  final List<Widget> _screens = [];
+
   @override
   Widget build(BuildContext context) {
+    _screens.clear();
+    _screens.addAll([
+      const HomeScreen(),
+      CourseScreen(courseData: courseData, isLoading: isLoading),
+      ResourcesScreen(),
+      const ProfileScreen(),
+    ]);
     return PopScope(
       canPop: false, // Prevent default back button behavior
       onPopInvokedWithResult: (didPop, result) async {
@@ -108,275 +186,260 @@ class _BottomNavBarState extends State<BottomNavBar> {
         }
       },
       child: SafeArea(
-        child: Container(
-          height: double.infinity, // Full screen height
-          width: double.infinity, // Full screen width
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                // Strong green at the top
-                Color(0xffC7FFD8), // Soft green transition
-                Colors.white,
-
-                Colors.white, // Full white at the bottom
-              ],
-              stops: [
-                0.0,
-                0.7,
-                1.0
-              ], // Smooth transition: 20% green, then fade to white
-            ),
-          ),
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            drawer: Drawer(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  DrawerHeader(
-                    decoration: BoxDecoration(color: Color(0xffC7FFD8)),
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundImage: NetworkImage(userDisplayPic!),
-                          ),
-                          SizedBox(height: 10),
-                          Text(
-                            userDisplayName!,
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            userEmail!,
-                            style: TextStyle(color: Colors.black, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.people),
-                    title: Text('Meet the Excos'),
-                    onTap: () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (context) => ExcosPage()));
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.book),
-                    title: Text('Current Lecture Timetable'),
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ExamAndLectureCard(
-                                    title: 'Current Lecture Timetable',
-                                    firebaseCollection: 'lectures',
-                                  )));
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.calendar_month_outlined),
-                    title: Text('Current Academic Calender'),
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ExamAndLectureCard(
-                                    title: 'Current Academic Calendar',
-                                    firebaseCollection: 'academic',
-                                  )));
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.event),
-                    title: Text('Current Exam Schedule'),
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ExamAndLectureCard(
-                                    title: 'Current Exam Schedule',
-                                    firebaseCollection: 'exams',
-                                  )));
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.local_activity),
-                    title: Row(
+        child: Scaffold(
+          backgroundColor: Color(0xffF1EFEC),
+          drawer: Drawer(
+            elevation: 5,
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                DrawerHeader(
+                  decoration: BoxDecoration(color: const Color(0xff347928)),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Attendance Taking'),
-                        SizedBox(
-                          width: 5,
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundImage: NetworkImage(userDisplayPic!),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          userDisplayName!,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          'Beta',
-                          style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900),
-                        ),
-                      ],
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  userData?['role'] == 'student'
-                                      ? AttendanceScreen()
-                                      : AddClassScreen()));
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.timer_sharp),
-                    title: Row(
-                      children: [
-                        Text('Lecture Schedule'),
-                        SizedBox(
-                          width: 5,
-                        ),
-                        Text(
-                          'Beta',
-                          style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900),
-                        ),
-                      ],
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => WeeklyScheduleScreen()));
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.settings),
-                    title: Text('Settings'),
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => BottomNavBar(
-                                    initialIndex: 3,
-                                  )));
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.logout),
-                    title: Text('Logout'),
-                    onTap: () {
-                      signOut();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            body: _screens[_currentIndex],
-            // Show selected screen
-            bottomNavigationBar: Padding(
-              padding: const EdgeInsets.only(
-                  left: 15.0, right: 15, bottom: 20, top: 10),
-              child: Material(
-                elevation: 5,
-                borderRadius: const BorderRadius.all(Radius.circular(35)),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.black, width: 1.5),
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(35),
-                    ),
-                  ),
-                  padding: const EdgeInsets.only(
-                      top: 6, bottom: 6, left: 5, right: 5),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(35),
-                    ),
-                    child: BottomNavigationBar(
-                      elevation: 5,
-                      backgroundColor: Colors.white,
-                      currentIndex: _currentIndex,
-                      onTap: (index) {
-                        setState(() {
-                          _currentIndex = index; // Update selected index
-                        });
-                      },
-                      selectedLabelStyle:
-                          TextStyle(fontWeight: FontWeight.w900),
-                      unselectedLabelStyle:
-                          TextStyle(fontWeight: FontWeight.bold),
-                      selectedItemColor: Color(0xff347928),
-                      unselectedItemColor: Colors.black,
-                      type: BottomNavigationBarType.fixed,
-                      // Keep all images visible
-                      items: const [
-                        BottomNavigationBarItem(
-                          icon: Icon(Icons.home),
-                          label: 'Home',
-                        ),
-                        BottomNavigationBarItem(
-                          icon: Icon(Icons.event_available),
-                          label: 'Events',
-                        ),
-                        BottomNavigationBarItem(
-                          icon: Icon(Icons.menu_book),
-                          label: 'Resources',
-                        ),
-                        BottomNavigationBarItem(
-                          icon: Icon(Icons.person),
-                          label: 'Profile',
+                          userEmail!,
+                          style: TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       ],
                     ),
                   ),
                 ),
-              ),
+                ListTile(
+                  leading: Icon(Icons.people),
+                  title: Text('Meet the Excos'),
+                  onTap: () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => ExcosPage()));
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.book),
+                  title: Text('Current Lecture Timetable'),
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ExamAndLectureCard(
+                                  title: 'Current Lecture Timetable',
+                                  firebaseCollection: 'lectures',
+                                )));
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.calendar_month_outlined),
+                  title: Text('Current Academic Calender'),
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ExamAndLectureCard(
+                                  title: 'Current Academic Calendar',
+                                  firebaseCollection: 'academic',
+                                )));
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.event),
+                  title: Text('Current Exam Schedule'),
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ExamAndLectureCard(
+                                  title: 'Current Exam Schedule',
+                                  firebaseCollection: 'exams',
+                                )));
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.local_activity),
+                  title: Row(
+                    children: [
+                      Text('Attendance Taking'),
+                      SizedBox(
+                        width: 5,
+                      ),
+                      Text(
+                        'Beta',
+                        style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900),
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => userData?['role'] == 'student'
+                                ? AttendanceScreen()
+                                : AddClassScreen()));
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.timer_sharp),
+                  title: Row(
+                    children: [
+                      Text('Lecture Schedule'),
+                      SizedBox(
+                        width: 5,
+                      ),
+                      Text(
+                        'Beta',
+                        style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900),
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => WeeklyScheduleScreen()));
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.settings),
+                  title: Text('Settings'),
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => BottomNavBar(
+                                  initialIndex: 3,
+                                )));
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.logout),
+                  title: Text('Logout'),
+                  onTap: () {
+                    signOut();
+                  },
+                ),
+              ],
             ),
-            floatingActionButton: _currentIndex != 3
-                ? Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: FloatingActionButton(
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => CreateContentScreen(
-                                      tabIndex: _currentIndex == 0
-                                          ? 0
-                                          : _currentIndex == 1
-                                              ? 1
-                                              : _currentIndex == 2
-                                                  ? 2
-                                                  : 0,
-                                    )));
-                      },
-                      backgroundColor: const Color(0xff347928),
-                      elevation: 5.0,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: const Icon(
-                          Icons.add_a_photo,
-                          color: Colors.white,
-                          size: 25.0,
+          ),
+          body: Stack(
+            children: [
+              _screens[_currentIndex], // Show current screen
+
+              // Floating Navigation Bar
+              Positioned(
+                bottom: 20, // Adjust this value for positioning
+                left: 20,
+                right: 20,
+                child: Material(
+                  elevation: 3,
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.black, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 1,
                         ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _navItem(Icons.home, 'Home', 0),
+                        _navItem(Icons.edit_document, 'Courses', 1),
+                        _navItem(Icons.menu_book, 'Resources', 2),
+                        _navItem(Icons.person, 'Profile', 3),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          floatingActionButton: (_currentIndex != 3 && _currentIndex != 1)
+              ? Padding(
+                  padding: const EdgeInsets.only(
+                      bottom: 85.0, left: 10, right: 10, top: 10),
+                  child: FloatingActionButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreateContentScreen(
+                            tabIndex: _currentIndex,
+                          ),
+                        ),
+                      );
+                    },
+                    backgroundColor: const Color(0xff347928),
+                    elevation: 4.0,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: const Icon(
+                        Icons.add_a_photo,
+                        color: Colors.white,
+                        size: 25.0,
                       ),
                     ),
-                  )
-                : Container(),
-          ),
+                  ),
+                )
+              : Container(),
         ),
+      ),
+    );
+  }
+
+  // Custom Navigation Item
+  Widget _navItem(IconData icon, String label, int index) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: _currentIndex == index ? Color(0xff347928) : Colors.black,
+            size: _currentIndex == index ? 25 : 20,
+          ),
+          Text(
+            label,
+            style: TextStyle(
+                fontWeight:
+                    _currentIndex == index ? FontWeight.w900 : FontWeight.bold,
+                color:
+                    _currentIndex == index ? Color(0xff347928) : Colors.black,
+                fontSize: 13),
+          ),
+        ],
       ),
     );
   }

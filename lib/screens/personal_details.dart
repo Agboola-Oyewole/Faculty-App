@@ -24,13 +24,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     await GoogleSignIn().signOut();
   }
 
-  Future<void> updateUserDetails({
-    required String department,
-    required String level,
-    required String dateOfBirth,
-    required String faculty,
-    required String gender,
-  }) async {
+  Future<void> updateUserDetails(
+      {required String department,
+      required String level,
+      required String dateOfBirth,
+      required String faculty,
+      required String gender,
+      required String semester}) async {
     // Get the current logged-in user
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -69,6 +69,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   }
 
   String? _selectedDepartment;
+  String? _selectedSemester;
   String? _selectedLevel;
   String? _selectedGender;
 
@@ -86,6 +87,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     "300 Level",
     "400 Level",
     "500 Level"
+  ];
+
+  final List<String> semester = [
+    "First Semester",
+    "Second Semester",
   ];
 
   final List<String> genders = ["Male", "Female"];
@@ -109,28 +115,17 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: double.infinity, // Full screen height
-      width: double.infinity, // Full screen width
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            // Strong green at the top
-            Color(0xffC7FFD8), // Soft green transition
-            Colors.white,
-            Colors.white, // Full white at the bottom
-          ],
-          stops: [
-            0.0,
-            0.7,
-            1.0
-          ], // Smooth transition: 20% green, then fade to white
-        ),
-      ),
+    return PopScope(
+      canPop: false, // Prevent default back button behavior
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          // Exit the app
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Complete your details or Exit the app!")),
+          );
+        }
+      },
       child: Scaffold(
-        backgroundColor: Colors.transparent,
         // appBar: AppBar(
         //   leading: IconButton(
         //     icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -179,6 +174,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 _buildDropdown("Gender", genders, _selectedGender, (newValue) {
                   setState(() => _selectedGender = newValue);
                 }),
+                const SizedBox(height: 12),
+                _buildDropdown("Level", semester, _selectedSemester,
+                    (newValue) {
+                  setState(() => _selectedSemester = newValue);
+                }),
                 const SizedBox(height: 30),
 
                 // Continue Button
@@ -196,6 +196,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       await updateUserDetails(
                         // Await the function if it's async
                         department: _selectedDepartment!,
+                        semester: _selectedDepartment!,
                         level: _selectedLevel!,
                         dateOfBirth: dobController.text,
                         faculty: 'Environmental Sciences',

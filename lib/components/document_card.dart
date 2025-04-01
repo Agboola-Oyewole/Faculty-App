@@ -121,7 +121,7 @@ class _DocumentCardState extends State<DocumentCard> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Material(
-        elevation: 5,
+        elevation: 3,
         borderRadius: const BorderRadius.all(Radius.circular(10)),
         child: Container(
           padding: EdgeInsets.all(10),
@@ -192,7 +192,7 @@ class _DocumentCardState extends State<DocumentCard> {
                         borderRadius:
                             const BorderRadius.all(Radius.circular(5.0)),
                         border: Border.all(color: Colors.black, width: 1)),
-                    padding: const EdgeInsets.all(5.0),
+                    padding: const EdgeInsets.all(3.0),
                     child: isLoading
                         ? SizedBox(
                             width: 20, // Adjust the size as needed
@@ -206,7 +206,7 @@ class _DocumentCardState extends State<DocumentCard> {
                         : Icon(
                             Icons.download,
                             color: Colors.black,
-                            size: 22,
+                            size: 20,
                           ),
                   ),
                 ),

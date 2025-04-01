@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'excos_page.dart';
-import 'notification_screen.dart';
 
 // Profile Screen
 class ProfileScreen extends StatelessWidget {
@@ -24,7 +23,7 @@ class ProfileScreen extends StatelessWidget {
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
           // Exit the app
-          Navigator.push(
+          Navigator.pushReplacement(
               context, MaterialPageRoute(builder: (context) => BottomNavBar()));
         }
       },
@@ -59,18 +58,18 @@ class ProfileScreen extends StatelessWidget {
                   //     MaterialPageRoute(builder: (_) => SecurityScreen()),
                   //   ),
                   // ),
-                  _buildMenuItem(
-                    context,
-                    title: "Notifications Preferences",
-                    icon: Icons.notifications,
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  NotificationSettingsScreen()));
-                    },
-                  ),
+                  // _buildMenuItem(
+                  //   context,
+                  //   title: "Notifications Preferences",
+                  //   icon: Icons.notifications,
+                  //   onTap: () {
+                  //     Navigator.push(
+                  //         context,
+                  //         MaterialPageRoute(
+                  //             builder: (context) =>
+                  //                 NotificationSettingsScreen()));
+                  //   },
+                  // ),
                   SizedBox(
                     height: 10,
                   ),
@@ -178,7 +177,7 @@ class ProfileScreen extends StatelessWidget {
       leading: Icon(icon, color: Colors.black54),
       title: Text(
         title,
-        style: TextStyle(fontWeight: FontWeight.w600),
+        style: TextStyle(fontWeight: FontWeight.w400),
       ),
       trailing: Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
@@ -196,6 +195,7 @@ class PersonalInfoScreen extends StatefulWidget {
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   String? _selectedLevel;
+  String? _selectedSemester;
 
   final List<String> levels = [
     "100 Level",
@@ -204,6 +204,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     "400 Level",
     "500 Level"
   ];
+
+  final List<String> semester = [
+    "First Semester",
+    "Second Semester",
+  ];
+
   bool isLoading = false; // Track loading state
 
   Map<String, dynamic>? userData;
@@ -254,9 +260,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     }
   }
 
-  Future<void> updateUserDetails({
-    required String level,
-  }) async {
+  Future<void> updateUserDetails({String? level, String? semester}) async {
     // Get the current logged-in user
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -264,13 +268,29 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       // Reference to Firestore user document
       final userRef =
           FirebaseFirestore.instance.collection('users').doc(user.uid);
+
       setState(() {
         isLoading = true; // Start loading
       });
 
       try {
+        // Fetch existing user data from Firestore
+        DocumentSnapshot userSnapshot = await userRef.get();
+        Map<String, dynamic>? userData =
+            userSnapshot.data() as Map<String, dynamic>?;
+
+        if (userData == null) {
+          print("⚠️ User data not found.");
+          return;
+        }
+
+        // Use existing values if new ones are null
+        String updatedLevel = level ?? userData['level'];
+        String updatedSemester = semester ?? userData['semester'];
+
         await userRef.update({
-          'level': level,
+          'level': updatedLevel,
+          'semester': updatedSemester,
           'updated_at': FieldValue.serverTimestamp(), // Track last update
         });
 
@@ -295,106 +315,89 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: double.infinity, // Full screen height
-      width: double.infinity, // Full screen width
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            // Strong green at the top
-            Color(0xffC7FFD8), // Soft green transition
-            Colors.white,
-            Colors.white, // Full white at the bottom
-          ],
-          stops: [
-            0.0,
-            0.7,
-            1.0
-          ], // Smooth transition: 20% green, then fade to white
-        ),
-      ),
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: Color(0xffF1EFEC),
+      appBar: AppBar(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          title: Text("Personal Information"),
-        ),
-        body: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: userData == null
-                ? Center(
-                    child:
-                        CircularProgressIndicator()) // Show loading until data loads
-                : Column(
-                    children: [
-                      Center(
+        title: Text("Personal Information"),
+      ),
+      body: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: userData == null
+              ? Center(
+                  child:
+                      CircularProgressIndicator()) // Show loading until data loads
+              : Column(
+                  children: [
+                    Center(
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Colors.white,
+                            radius: 50,
+                            backgroundImage: userData!['profile_pic'] != null &&
+                                    userData!['profile_pic'].isNotEmpty
+                                ? NetworkImage(userData!['profile_pic'])
+                                : AssetImage('assets/images/user.png')
+                                    as ImageProvider,
+                          ),
+                          SizedBox(height: 15),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Expanded(
+                      child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            CircleAvatar(
-                              backgroundColor: Colors.white,
-                              radius: 50,
-                              backgroundImage:
-                                  userData!['profile_pic'] != null &&
-                                          userData!['profile_pic'].isNotEmpty
-                                      ? NetworkImage(userData!['profile_pic'])
-                                      : AssetImage('assets/images/user.png')
-                                          as ImageProvider,
-                            ),
-                            SizedBox(height: 15),
+                            _buildTextField("First Name",
+                                userData?['first_name'] ?? "Not provided"),
+                            _buildTextField("Last Name",
+                                userData?['last_name'] ?? "Not provided"),
+                            _buildTextField("Date of Birth",
+                                userData?['date_of_birth'] ?? "Not provided"),
+                            _buildTextField("Department",
+                                userData?['department'] ?? "Not provided"),
+                            _buildTextField("Faculty",
+                                userData?['faculty'] ?? "Not provided"),
+                            _buildDropdown(userData?['level'], 'Level', levels,
+                                _selectedLevel, (newValue) {
+                              setState(() => _selectedLevel = newValue);
+                            }),
+                            _buildDropdown(userData?['semester'], 'Semester',
+                                semester, _selectedSemester, (newValue) {
+                              setState(() => _selectedSemester = newValue);
+                            }),
+                            _buildTextField("Gender",
+                                userData?['gender'] ?? "Not provided"),
                           ],
                         ),
                       ),
-                      SizedBox(height: 20),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              _buildTextField("First Name",
-                                  userData?['first_name'] ?? "Not provided"),
-                              _buildTextField("Last Name",
-                                  userData?['last_name'] ?? "Not provided"),
-                              _buildTextField("Date of Birth",
-                                  userData?['date_of_birth'] ?? "Not provided"),
-                              _buildTextField("Department",
-                                  userData?['department'] ?? "Not provided"),
-                              _buildTextField("Faculty",
-                                  userData?['faculty'] ?? "Not provided"),
-                              _buildDropdown(userData?['level'], 'Level',
-                                  levels, _selectedLevel, (newValue) {
-                                setState(() => _selectedLevel = newValue);
-                              }),
-                              _buildTextField("Gender",
-                                  userData?['gender'] ?? "Not provided"),
-                            ],
-                          ),
+                    ),
+                    SizedBox(height: 10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xff347928),
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
+                        minimumSize: Size(double.infinity, 50),
                       ),
-                      SizedBox(height: 10),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xffC7FFD8),
-                          elevation: 3,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          minimumSize: Size(double.infinity, 50),
-                        ),
-                        onPressed: () {
-                          updateUserDetails(level: _selectedLevel!);
-                        },
-                        child: isLoading
-                            ? CircularProgressIndicator(color: Colors.white)
-                            : Text("Save",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w900)),
-                      ),
-                      SizedBox(height: 15),
-                    ],
-                  )),
-      ),
+                      onPressed: () {
+                        updateUserDetails(
+                            level: _selectedLevel, semester: _selectedSemester);
+                      },
+                      child: isLoading
+                          ? CircularProgressIndicator(color: Colors.white)
+                          : Text("Save",
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900)),
+                    ),
+                    SizedBox(height: 15),
+                  ],
+                )),
     );
   }
 

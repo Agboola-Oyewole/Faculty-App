@@ -52,7 +52,7 @@ class _EventScreenState extends State<EventScreen> {
       },
       child: Padding(
         padding: const EdgeInsets.only(
-            top: 30.0, left: 15.0, right: 15.0, bottom: 0.0),
+            top: 20.0, left: 15.0, right: 15.0, bottom: 0.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -71,7 +71,9 @@ class _EventScreenState extends State<EventScreen> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(
-                        child: CircularProgressIndicator()); // Show loading
+                        child: CircularProgressIndicator(
+                      color: Color(0xff347928),
+                    )); // Show loading
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return Center(

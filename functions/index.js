@@ -66,8 +66,23 @@ async function sendNotification(token, eventName, startTime) {
     console.log(`✅ Notification sent for "${eventName}" at ${formattedTime}`);
   } catch (error) {
     console.error("❌ Error sending notification:", error);
+
+    // 🔴 Handle expired/invalid token
+    if (error.code === "messaging/registration-token-not-registered") {
+      console.log(`⚠️ Expired token detected. Removing from Firestore: ${token}`);
+
+      // Find the user with this token and remove it
+      const usersRef = admin.firestore().collection("users");
+      const querySnapshot = await usersRef.where("fcmToken", "==", token).get();
+
+      querySnapshot.forEach(async (doc) => {
+        await doc.ref.update({ fcmToken: admin.firestore.FieldValue.delete() });
+        console.log(`✅ Removed expired token from user: ${doc.id}`);
+      });
+    }
   }
 }
+
 
 // ✅ CREATE A GOOGLE SHEET FOR CLASS ATTENDANCE
 exports.createClassSheet = onDocumentCreated("attendance/{classId}", async (event) => {

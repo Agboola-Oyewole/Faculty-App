@@ -83,16 +83,20 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
   }
 
   Stream<QuerySnapshot> getResourcesStream() {
-    Query query = FirebaseFirestore.instance.collection("resources");
+    Query query = FirebaseFirestore.instance
+        .collectionGroup("files")
+        .orderBy("title_lower") // Requires index
+        .orderBy("date", descending: true);
 
+    print("Fetching resources...");
+
+    // Apply search query only if not empty
     if (_searchQuery.isNotEmpty) {
-      query = query
-          .orderBy("title_lower") // Ensure ordering before using startAt()
-          .startAt(
-              [_searchQuery.toLowerCase()]) // Convert search query to lowercase
-          .endAt(["${_searchQuery.toLowerCase()}\uf8ff"]);
+      query = query.startAt([_searchQuery.toLowerCase()]).endAt(
+          ["${_searchQuery.toLowerCase()}\uf8ff"]);
     }
 
+    // Apply filters (if any)
     if (appliedFilters != null) {
       appliedFilters!.forEach((key, value) {
         if (value != null && value.toString().trim().isNotEmpty) {
@@ -109,13 +113,10 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
       });
     }
 
-    // Default sorting if no sorting is applied
-    if (!(appliedFilters?.containsKey("sortBy") ?? false) &&
-        _searchQuery.isEmpty) {
-      query = query.orderBy("date", descending: true);
-    }
-
-    return query.snapshots();
+    return query.snapshots().map((snapshot) {
+      print("Resources fetched: ${snapshot.docs.length} documents");
+      return snapshot;
+    });
   }
 
   void _openFilterModal() async {
@@ -259,7 +260,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
-          Navigator.push(
+          Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => BottomNavBar()),
           );
@@ -267,7 +268,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
       },
       child: Padding(
         padding: const EdgeInsets.only(
-            top: 30.0, left: 15.0, right: 15.0, bottom: 0.0),
+            top: 20.0, left: 15.0, right: 15.0, bottom: 0.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -276,7 +277,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
               'Resources',
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
@@ -292,13 +293,13 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                     child: Row(
                       children: [
                         Icon(Icons.search, color: Colors.grey[600]),
-                        const SizedBox(width: 15),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
                             style: const TextStyle(
                                 color: Colors.black, fontSize: 16),
                             decoration: const InputDecoration(
-                              hintText: 'Search resources...',
+                              hintText: 'Search resources',
                               hintStyle: TextStyle(color: Colors.grey),
                               border: InputBorder.none,
                             ),
@@ -309,7 +310,6 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 8),
                       ],
                     ),
                   ),
@@ -346,12 +346,25 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                 stream: getResourcesStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    print("Waiting for resources...");
+                    return const Center(
+                      child:
+                          CircularProgressIndicator(color: Color(0xff347928)),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    print("Firestore error: ${snapshot.error}");
+                    return const Center(
+                        child: Text("Error fetching resources"));
                   }
 
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    print("No resources found");
                     return const Center(child: Text("No resources found"));
                   }
+
+                  print("Displaying ${snapshot.data!.docs.length} resources");
 
                   final docs = snapshot.data!.docs;
 
@@ -359,6 +372,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                     itemCount: docs.length,
                     itemBuilder: (context, index) {
                       var resource = docs[index].data() as Map<String, dynamic>;
+                      print('Resource data: $resource');
 
                       return FutureBuilder<List<String>>(
                         future: Future.wait([
@@ -369,7 +383,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
                             return DocumentCard(
-                              imageText: 'assets/images/unknown.png',
+                              imageText:
+                                  'assets/images/document-removebg-preview.png',
                               documentName: resource["title"],
                               documentDetail: resource['document'],
                               documentExtension: '.pdf',
@@ -381,7 +396,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
 
                           if (snapshot.hasError || snapshot.data == null) {
                             return DocumentCard(
-                              imageText: 'assets/images/unknown.png',
+                              imageText:
+                                  'assets/images/document-removebg-preview.png',
                               documentDetail: resource['document'],
                               documentName: resource["title"],
                               documentSize: "Unknown Size",
@@ -391,19 +407,17 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                             );
                           }
 
-                          String fileSize =
-                              snapshot.data![0]; // First Future result
-                          String fileType =
-                              snapshot.data![1]; // Second Future result
+                          String fileSize = snapshot.data![0];
+                          String fileType = snapshot.data![1];
 
-                          // Map fileType to an asset image
                           Map<String, String> fileIcons = {
                             "PDF": "assets/images/pdf.png",
                             "Word": "assets/images/word.png",
                             "PowerPoint": "assets/images/powerpoint.png",
                             "Excel": "assets/images/excel.png",
                             "Image": "assets/images/image.png",
-                            "Unknown": "assets/images/unknown.png"
+                            "Unknown":
+                                "assets/images/document-removebg-preview.png"
                           };
                           Map<String, String> fileExtensions = {
                             "PDF": ".pdf",
@@ -420,7 +434,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                                 : null,
                             child: DocumentCard(
                               imageText: fileIcons[fileType] ??
-                                  'assets/images/unknown.png',
+                                  'assets/images/document-removebg-preview.png',
                               documentName: resource["title"],
                               documentDetail: resource['document'],
                               documentExtension:

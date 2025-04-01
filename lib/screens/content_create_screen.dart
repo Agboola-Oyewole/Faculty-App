@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,11 +26,11 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
   // Separate GlobalKey for each tab to prevent duplicate errors
   final List<GlobalKey<FormState>> _formKeys =
-      List.generate(6, (index) => GlobalKey<FormState>());
+      List.generate(5, (index) => GlobalKey<FormState>());
 
   // Controllers for text inputs
   final List<TextEditingController> _titleControllers =
-      List.generate(6, (index) => TextEditingController());
+      List.generate(5, (index) => TextEditingController());
 
   final TextEditingController ticketController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
@@ -143,7 +144,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   ];
   final List<String> activeTabNames = [
     "Posts",
-    "Events",
     "Resources",
     "Exam",
     "Lecture",
@@ -206,7 +206,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.index = widget.tabIndex;
   }
 
@@ -415,16 +415,48 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
         // Step 1: Generate a unique postId before writing to Firestore
         String postId = postsRef.doc().id;
+
+        double? imageHeight;
+
+        if (imageUrl == null || imageUrl.isEmpty) {
+          imageUrl = ""; // If no image, default to empty
+        } else {
+          try {
+            final Completer<Size> completer = Completer<Size>();
+
+            final Image image = Image.network(imageUrl);
+            image.image.resolve(const ImageConfiguration()).addListener(
+              ImageStreamListener((ImageInfo info, bool _) {
+                double screenWidth = MediaQuery.of(context).size.width;
+                double aspectRatio = info.image.width / info.image.height;
+                double calculatedHeight = screenWidth / aspectRatio;
+
+                completer.complete(
+                    Size(info.image.width.toDouble(), calculatedHeight));
+              }),
+            );
+
+            // Wait for the image size to be retrieved
+            Size imageSize = await completer.future;
+            imageHeight = imageSize.height;
+          } catch (e) {
+            print("❌ Error fetching image height: $e");
+          }
+        }
+
+        // Now, imageHeight is guaranteed to have a value
         formData = {
           "userId": userId,
           "title": title,
-          "image": imageUrl ?? "",
+          "image": imageUrl,
           "date": FieldValue.serverTimestamp(),
           "postId": postId,
+          "imageAspect": imageHeight ?? 200.0, // Default height if unavailable
           "likes": [],
           "bookmarks": [],
           "share_count": 0,
         };
+
         await postsRef.doc(postId).set(formData);
       } else if (currentTabName == 'Events') {
         String? imageUrl = await uploadFile(_imageEvent, "events");
@@ -460,6 +492,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         await eventsRef.doc(eventId).set(formData);
       } else if (currentTabName == 'Resources') {
         String? documentUrl = await uploadFile(_document, "resources");
+
         if (!validateFields(context, {
           "Title": title,
           "Document": documentUrl,
@@ -471,25 +504,32 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         })) {
           return;
         }
-        CollectionReference resourcesRef =
-            FirebaseFirestore.instance.collection('resources');
 
-        // Step 1: Generate a unique postId before writing to Firestore
-        String resourcesId = resourcesRef.doc().id;
-        formData = {
+        // Get Firestore reference
+        String courseCode = courseCodeController.text;
+        CollectionReference filesRef = FirebaseFirestore.instance
+            .collection('resources')
+            .doc(courseCode) // Store resources inside course documents
+            .collection('files');
+
+        // Generate a unique resource ID
+        String resourceId = filesRef.doc().id;
+
+        Map<String, dynamic> formData = {
           "userId": userId,
           "title": title,
           "document": documentUrl ?? "",
           "department": selectedDepartment,
           "title_lower": title.toLowerCase(), // Lowercase title for search
-          'resource_id': resourcesId,
+          "resource_id": resourceId,
           "level": selectedLevel,
           "semester": selectedSemester,
-          "course_code": courseCodeController.text,
+          "course_code": courseCode,
           "document_type": selectedType,
           "date": FieldValue.serverTimestamp()
         };
-        await resourcesRef.doc(resourcesId).set(formData);
+
+        await filesRef.doc(resourceId).set(formData);
       } else if (currentTabName == 'Exam') {
         String? imageUrl = await uploadFile(_imageExam, "exams");
 
@@ -499,8 +539,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           "Department": selectedDepartment,
           "Level": selectedLevel,
           "Semester": selectedSemester,
-          "Date Start": _selectedDate?.toIso8601String(),
-          "Date End": _selectedDateEnd?.toIso8601String(),
         })) {
           return;
         }
@@ -515,8 +553,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           "title": title,
           "image": imageUrl ?? "",
           "examId": examsId,
-          "date_start": _selectedDate?.toIso8601String(),
-          "date_end": _selectedDateEnd?.toIso8601String(),
           "department": selectedDepartment,
           "level": selectedLevel,
           "semester": selectedSemester,
@@ -632,7 +668,9 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xffF1EFEC),
       appBar: AppBar(
+        backgroundColor: Color(0xffF1EFEC),
         title: Text('Manage Faculty Content'),
         bottom: TabBar(
           controller: _tabController,
@@ -646,7 +684,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           ),
           tabs: [
             Tab(icon: Icon(Icons.article), text: "Posts"),
-            Tab(icon: Icon(Icons.event), text: "Events"),
             Tab(icon: Icon(Icons.book), text: "Resources"),
             Tab(icon: Icon(Icons.schedule), text: "Exam"),
             Tab(icon: Icon(Icons.schedule), text: "Lecture"),
@@ -660,15 +697,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         children: [
           _buildForm(0, "Post Title", true, false, false, false, false, false,
               false, false, false, false, false, false),
-          _buildForm(1, "Event Title", true, false, false, true, true, false,
-              false, true, false, true, false, false),
-          _buildForm(2, "Resource Title", false, true, true, false, false, true,
+          _buildForm(1, "Resource Title", false, true, true, false, false, true,
               true, false, true, false, true, false),
-          _buildForm(3, "Exam Schedule Title", true, false, false, false, false,
+          _buildForm(2, "Exam Schedule Title", true, false, false, false, false,
               true, true, false, true, false, false, false),
-          _buildForm(4, "Lecture Schedule Title", true, false, false, false,
+          _buildForm(3, "Lecture Schedule Title", true, false, false, false,
               false, true, true, false, true, false, false, false),
-          _buildForm(5, "Academic Calender Title", false, true, false, false,
+          _buildForm(4, "Academic Calender Title", false, true, false, false,
               false, false, false, false, false, false, false, true),
         ],
       ),
@@ -699,8 +734,8 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             buildTextFormField(_titleControllers[index], true,
                 titleHint == 'Post Title' ? 'Caption' : titleHint),
             SizedBox(height: 10),
-            if (allowImage && titleHint == 'Event Title')
-              _buildImageEventUpload(),
+            // if (allowImage && titleHint == 'Event Title')
+            //   _buildImageEventUpload(),
             if (allowImage && titleHint == 'Post Title')
               _buildImagePostUpload(),
             if (allowImage && titleHint == 'Exam Schedule Title')

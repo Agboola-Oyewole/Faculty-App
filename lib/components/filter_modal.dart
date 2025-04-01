@@ -181,7 +181,7 @@ class _FilterModalState extends State<FilterModal> {
                       child: ElevatedButton(
                         onPressed: resetFilters,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey,
+                          backgroundColor: Colors.black,
                           elevation: 3,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -198,7 +198,7 @@ class _FilterModalState extends State<FilterModal> {
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xffC7FFD8),
+                          backgroundColor: Color(0xff347928),
                           elevation: 3,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -216,7 +216,7 @@ class _FilterModalState extends State<FilterModal> {
                         },
                         child: Text("Apply Filters",
                             style: TextStyle(
-                                color: Colors.black,
+                                color: Colors.white,
                                 fontWeight: FontWeight.w900)),
                       ),
                     ),

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AddClassScreen extends StatefulWidget {
   const AddClassScreen({super.key});
@@ -194,7 +195,7 @@ class _AddClassScreenState extends State<AddClassScreen> {
                     text: longitude?.toString() ?? "Fetching location..."),
                 enabled: false,
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 20),
               // Department Dropdown
               _buildDropdown("Department", departments, _selectedDepartment,
                   (newValue) {
@@ -304,6 +305,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   void initState() {
     super.initState();
     getUserDetails();
+    _getCurrentLocation();
     fetchDeviceId();
   }
 
@@ -323,6 +325,33 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       return iosInfo.identifierForVendor; // Unique iOS device ID
     }
     return null;
+  }
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                "Location services are disabled. Please turn on your location.")),
+      );
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text("Location permissions are permanently denied.")),
+        );
+        return;
+      }
+    }
   }
 
   Future<void> checkIn(String classId, Map<String, dynamic> venue) async {
@@ -595,15 +624,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
+  Future<void> openGoogleSheetLink(url) async {
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      print('Could not launch $url');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Class Attendance")),
+      backgroundColor: Color(0xffF1EFEC),
+      appBar: AppBar(
+          backgroundColor: Color(0xffF1EFEC), title: Text("Class Attendance")),
       body: Column(
         children: [
           // Student Info Input
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 15),
             child: Column(
               children: [
                 TextField(
@@ -638,11 +677,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      "No classes available for your level & department.",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Center(
+                      child: Text(
+                        "No classes available for your level & department.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   );
                 }
@@ -650,7 +693,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 var classes = snapshot.data!.docs;
 
                 return Padding(
-                  padding: const EdgeInsets.only(top: 20.0),
+                  padding:
+                      const EdgeInsets.only(top: 20.0, left: 10, right: 10),
                   child: ListView.builder(
                     itemCount: classes.length,
                     itemBuilder: (context, index) {
@@ -661,7 +705,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
                       return GestureDetector(
                         onLongPress: () {
-                          showDeleteBottomSheet(context, metadata['classId']);
+                          userData?['role'] == 'student'
+                              ? null
+                              : showDeleteBottomSheet(
+                                  context, metadata['classId']);
                         },
                         child: Card(
                           child: ListTile(
@@ -684,9 +731,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                   SizedBox(
                                     height: 8,
                                   ),
-                                  SelectableText(
-                                    "${metadata['sheetUrl'] ?? 'No link generated.'}",
-                                    style: TextStyle(color: Colors.blue),
+                                  GestureDetector(
+                                    onTap: () {
+                                      final Uri url =
+                                          Uri.parse(metadata['sheetUrl']);
+                                      openGoogleSheetLink(url);
+                                    },
+                                    child: SelectableText(
+                                      "${metadata['sheetUrl'] ?? 'No link generated.'}",
+                                      style: TextStyle(color: Colors.blue),
+                                    ),
                                   ),
                                 ],
                               ),
