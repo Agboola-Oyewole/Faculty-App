@@ -548,6 +548,7 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
                     child: ListView(
                       children: orderedDays.map((day) {
                         return ExpansionTile(
+                          initiallyExpanded: true,
                           title: Text(
                             day,
                             style: TextStyle(

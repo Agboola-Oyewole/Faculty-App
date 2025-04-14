@@ -26,6 +26,7 @@ class FolderCard extends StatelessWidget {
             borderRadius: BorderRadius.all(Radius.circular(10)),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Image.asset(
@@ -34,9 +35,11 @@ class FolderCard extends StatelessWidget {
                 'assets/images/folder-removebg-preview.png',
               ),
               SizedBox(height: 10),
-              Text(
-                '$courseCode Folder',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Flexible(
+                child: Text(
+                  '$courseCode Folder',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
               SizedBox(height: 5),
               Text(

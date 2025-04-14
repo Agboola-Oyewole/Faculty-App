@@ -48,7 +48,7 @@ class AuthCheck extends StatelessWidget {
   Future<Map<String, dynamic>?> fetchUserDetails(String uid) async {
     try {
       DocumentSnapshot<Map<String, dynamic>> doc =
-      await FirebaseFirestore.instance.collection('users').doc(uid).get();
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
       if (doc.exists) {
         return doc.data();
@@ -79,7 +79,7 @@ class AuthCheck extends StatelessWidget {
                 return Scaffold(
                   body: Center(
                       child:
-                      CircularProgressIndicator(color: Color(0xff347928))),
+                          CircularProgressIndicator(color: Color(0xff347928))),
                 );
               } else if (userSnapshot.hasData && userSnapshot.data != null) {
                 bool hasMissingFields = [
@@ -88,8 +88,7 @@ class AuthCheck extends StatelessWidget {
                   'level',
                   'faculty',
                   'gender'
-                ].any((field) =>
-                (userSnapshot.data![field] == null ||
+                ].any((field) => (userSnapshot.data![field] == null ||
                     (userSnapshot.data![field] as String).isEmpty));
 
                 if (hasMissingFields) {
@@ -116,7 +115,7 @@ class AuthCheck extends StatelessWidget {
 
 // ✅ Initialize Local Notifications
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
+    FlutterLocalNotificationsPlugin();
 
 Future<void> initNotifications() async {
   if (await Permission.notification.isDenied) {
@@ -124,7 +123,7 @@ Future<void> initNotifications() async {
   }
 
   const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
   final InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,

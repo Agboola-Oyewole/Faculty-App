@@ -1,15 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:faculty_app/components/exam_and_lecture_card.dart';
-import 'package:faculty_app/screens/attendance_screen.dart';
 import 'package:faculty_app/screens/content_create_screen.dart';
 import 'package:faculty_app/screens/course_screen.dart';
-import 'package:faculty_app/screens/excos_page.dart';
+import 'package:faculty_app/screens/hub_screen.dart';
 import 'package:faculty_app/screens/profile_screen.dart';
-import 'package:faculty_app/screens/resources_screen.dart';
-import 'package:faculty_app/screens/schedule_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -27,6 +24,7 @@ class BottomNavBar extends StatefulWidget {
 class _BottomNavBarState extends State<BottomNavBar> {
   late int _currentIndex;
   Map<String, Map<String, dynamic>>? courseData;
+  ValueNotifier<bool> isVisible = ValueNotifier(true);
   bool isLoading = true;
   String? userDisplayName = FirebaseAuth.instance.currentUser?.displayName;
   String? userDisplayPic = FirebaseAuth.instance.currentUser?.photoURL;
@@ -70,8 +68,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
       for (var fileDoc in filesSnapshot.docs) {
         Map<String, dynamic> data = fileDoc.data() as Map<String, dynamic>;
 
-        if (!data.containsKey('document') || !data.containsKey('course_code'))
+        if (!data.containsKey('document') || !data.containsKey('course_code')) {
           continue;
+        }
 
         String courseCode = data['course_code'] ?? 'Unknown';
         String fileUrl = data['document'];
@@ -102,9 +101,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
       });
     } catch (e) {
       print('❌ Error fetching resources: $e');
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -174,7 +175,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     _screens.addAll([
       const HomeScreen(),
       CourseScreen(courseData: courseData, isLoading: isLoading),
-      ResourcesScreen(),
+      HubScreen(),
       const ProfileScreen(),
     ]);
     return PopScope(
@@ -188,227 +189,122 @@ class _BottomNavBarState extends State<BottomNavBar> {
       child: SafeArea(
         child: Scaffold(
           backgroundColor: Color(0xffF1EFEC),
-          drawer: Drawer(
-            elevation: 5,
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                DrawerHeader(
-                  decoration: BoxDecoration(color: const Color(0xff347928)),
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundImage: NetworkImage(userDisplayPic!),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          userDisplayName!,
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          userEmail!,
-                          style: TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.people),
-                  title: Text('Meet the Excos'),
-                  onTap: () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => ExcosPage()));
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.book),
-                  title: Text('Current Lecture Timetable'),
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => ExamAndLectureCard(
-                                  title: 'Current Lecture Timetable',
-                                  firebaseCollection: 'lectures',
-                                )));
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.calendar_month_outlined),
-                  title: Text('Current Academic Calender'),
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => ExamAndLectureCard(
-                                  title: 'Current Academic Calendar',
-                                  firebaseCollection: 'academic',
-                                )));
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.event),
-                  title: Text('Current Exam Schedule'),
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => ExamAndLectureCard(
-                                  title: 'Current Exam Schedule',
-                                  firebaseCollection: 'exams',
-                                )));
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.local_activity),
-                  title: Row(
-                    children: [
-                      Text('Attendance Taking'),
-                      SizedBox(
-                        width: 5,
-                      ),
-                      Text(
-                        'Beta',
-                        style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900),
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => userData?['role'] == 'student'
-                                ? AttendanceScreen()
-                                : AddClassScreen()));
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.timer_sharp),
-                  title: Row(
-                    children: [
-                      Text('Lecture Schedule'),
-                      SizedBox(
-                        width: 5,
-                      ),
-                      Text(
-                        'Beta',
-                        style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900),
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => WeeklyScheduleScreen()));
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.settings),
-                  title: Text('Settings'),
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => BottomNavBar(
-                                  initialIndex: 3,
-                                )));
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.logout),
-                  title: Text('Logout'),
-                  onTap: () {
-                    signOut();
-                  },
-                ),
-              ],
-            ),
-          ),
           body: Stack(
             children: [
-              _screens[_currentIndex], // Show current screen
+              NotificationListener<ScrollNotification>(
+                onNotification: (scrollNotification) {
+                  if (scrollNotification is UserScrollNotification) {
+                    if (scrollNotification.direction ==
+                        ScrollDirection.reverse) {
+                      isVisible.value = false;
+                    } else if (scrollNotification.direction ==
+                        ScrollDirection.forward) {
+                      isVisible.value = true;
+                    }
+                  }
+                  return false;
+                },
+                child: _screens[_currentIndex], // Show current screen
+              ),
 
-              // Floating Navigation Bar
+              // Animated Floating Navigation Bar
               Positioned(
-                bottom: 20, // Adjust this value for positioning
+                bottom: 20,
                 left: 20,
                 right: 20,
-                child: Material(
-                  elevation: 3,
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.white,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.black, width: 1),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 10, horizontal: 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _navItem(Icons.home, 'Home', 0),
-                        _navItem(Icons.edit_document, 'Courses', 1),
-                        _navItem(Icons.menu_book, 'Resources', 2),
-                        _navItem(Icons.person, 'Profile', 3),
-                      ],
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: isVisible,
+                  builder: (context, visible, child) {
+                    return AnimatedSlide(
+                      duration: Duration(milliseconds: 200),
+                      offset: visible ? Offset(0, 0) : Offset(0, 1),
+                      child: AnimatedOpacity(
+                        duration: Duration(milliseconds: 200),
+                        opacity: visible ? 1.0 : 0.0,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Material(
+                    elevation: 3,
+                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.white,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.black, width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _navItem(Icons.home, 'Home', 0),
+                          _navItem(Icons.edit_document, 'Courses', 1),
+                          _navItem(Icons.grid_view_rounded, 'Hub', 2),
+                          _navItem(Icons.person, 'Profile', 3),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          floatingActionButton: (_currentIndex != 3 && _currentIndex != 1)
-              ? Padding(
-                  padding: const EdgeInsets.only(
-                      bottom: 85.0, left: 10, right: 10, top: 10),
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreateContentScreen(
-                            tabIndex: _currentIndex,
+
+          // Floating Action Button with visibility
+          floatingActionButton: ValueListenableBuilder<bool>(
+            valueListenable: isVisible,
+            builder: (context, visible, child) {
+              return AnimatedSlide(
+                duration: Duration(milliseconds: 200),
+                offset: visible ? Offset(0, 0) : Offset(0, 2),
+                child: AnimatedOpacity(
+                  duration: Duration(milliseconds: 200),
+                  opacity: visible ? 1.0 : 0.0,
+                  child: child,
+                ),
+              );
+            },
+            child:
+                (_currentIndex != 3 && _currentIndex != 1 && _currentIndex != 2)
+                    ? Padding(
+                        padding: const EdgeInsets.only(
+                            bottom: 85.0, left: 10, right: 10, top: 10),
+                        child: FloatingActionButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreateContentScreen(
+                                  tabIndex: _currentIndex == 0
+                                      ? 0
+                                      : _currentIndex == 2
+                                          ? 1
+                                          : 0,
+                                ),
+                              ),
+                            );
+                          },
+                          backgroundColor: const Color(0xff347928),
+                          elevation: 4.0,
+                          child: const Icon(
+                            Icons.add_a_photo,
+                            color: Colors.white,
+                            size: 25.0,
                           ),
                         ),
-                      );
-                    },
-                    backgroundColor: const Color(0xff347928),
-                    elevation: 4.0,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: const Icon(
-                        Icons.add_a_photo,
-                        color: Colors.white,
-                        size: 25.0,
-                      ),
-                    ),
-                  ),
-                )
-              : Container(),
+                      )
+                    : Container(),
+          ),
         ),
       ),
     );

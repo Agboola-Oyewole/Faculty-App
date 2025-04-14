@@ -46,7 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       _fetchUserData(posts);
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
       print("Error fetching posts: $e");
     }
   }
@@ -108,25 +110,25 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Row(
                 children: [
-                  GestureDetector(
-                    onTap: () {
-                      Scaffold.of(context).openDrawer();
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                          color: Colors.white60,
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(10.0)),
-                          border: Border.all(color: Colors.black, width: 1)),
-                      padding: const EdgeInsets.all(10.0),
-                      child: const Icon(
-                        Icons.menu,
-                        color: Colors.black,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 15),
+                  // GestureDetector(
+                  //   onTap: () {
+                  //     Scaffold.of(context).openDrawer();
+                  //   },
+                  //   child: Container(
+                  //     decoration: BoxDecoration(
+                  //         color: Colors.white60,
+                  //         borderRadius:
+                  //             const BorderRadius.all(Radius.circular(10.0)),
+                  //         border: Border.all(color: Colors.black, width: 1)),
+                  //     padding: const EdgeInsets.all(10.0),
+                  //     child: const Icon(
+                  //       Icons.menu,
+                  //       color: Colors.black,
+                  //       size: 18,
+                  //     ),
+                  //   ),
+                  // ),
+                  SizedBox(width: 5),
                   Text(
                     'FES Connect Hub',
                     style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),

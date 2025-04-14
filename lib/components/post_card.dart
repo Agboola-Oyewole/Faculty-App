@@ -90,6 +90,110 @@ class _PostsState extends State<Posts> {
     );
   }
 
+  Future<List<Map<String, dynamic>>> fetchUserDetails(
+      List<dynamic> userIds) async {
+    final firestore = FirebaseFirestore.instance;
+    List<Map<String, dynamic>> userList = [];
+
+    for (String userId in userIds) {
+      final doc = await firestore.collection('users').doc(userId).get();
+      if (doc.exists) {
+        userList.add(doc.data()!..putIfAbsent('id', () => doc.id));
+      }
+    }
+
+    return userList;
+  }
+
+  void showLikesBottomSheet(BuildContext context, List<dynamic> likesList) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+      ),
+      builder: (context) {
+        return FractionallySizedBox(
+          heightFactor: 0.6, // 60% of screen height
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: fetchUserDetails(likesList),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(child: Text("Error loading likes")),
+                );
+              }
+
+              final users = snapshot.data!;
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 15.0),
+                    child: Center(
+                      child: Container(
+                        width: 60,
+                        height: 5,
+                        margin: EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.grey,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 15, bottom: 10),
+                    child: Text(
+                      'Likes',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                    child: Divider(),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      itemCount: users.length,
+                      itemBuilder: (context, index) {
+                        final user = users[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 15.0, vertical: 10.0),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundImage:
+                                    NetworkImage(user['profile_pic'] ?? ''),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                  "Liked by ${user['first_name'] ?? 'Unknown'}")
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   void confirmDelete() {
     showDialog(
       context: context,
@@ -257,7 +361,7 @@ class _PostsState extends State<Posts> {
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
                 decoration: BoxDecoration(
-                  color: Color(0xffDBDBDB),
+                  color: Colors.white,
                   borderRadius: BorderRadius.all(Radius.circular(10)),
                   // border: Border.all(color: Colors.grey, width: 1.0),
                 ),
@@ -393,13 +497,19 @@ class _PostsState extends State<Posts> {
                                 );
                               },
                             ),
-                            SizedBox(width: 5),
-                            ValueListenableBuilder<int>(
-                              valueListenable: likeCount,
-                              builder: (context, count, _) {
-                                return Text("$count",
-                                    style: TextStyle(fontSize: 13));
+                            SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                showLikesBottomSheet(
+                                    context, widget.initialLikes);
                               },
+                              child: ValueListenableBuilder<int>(
+                                valueListenable: likeCount,
+                                builder: (context, count, _) {
+                                  return Text("$count",
+                                      style: TextStyle(fontSize: 13));
+                                },
+                              ),
                             ),
                             SizedBox(width: 8),
                             GestureDetector(

@@ -111,7 +111,7 @@ class _AddClassScreenState extends State<AddClassScreen> {
 
     try {
       final classRef =
-          FirebaseFirestore.instance.collection('attendance').doc();
+      FirebaseFirestore.instance.collection('attendance').doc();
 
       await classRef.set({
         'metadata': {
@@ -198,9 +198,9 @@ class _AddClassScreenState extends State<AddClassScreen> {
               SizedBox(height: 20),
               // Department Dropdown
               _buildDropdown("Department", departments, _selectedDepartment,
-                  (newValue) {
-                setState(() => _selectedDepartment = newValue);
-              }),
+                      (newValue) {
+                    setState(() => _selectedDepartment = newValue);
+                  }),
               const SizedBox(height: 12),
 
               // Level Dropdown
@@ -219,13 +219,13 @@ class _AddClassScreenState extends State<AddClassScreen> {
                 ),
                 child: isLoading
                     ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white, // Customize color
-                          strokeWidth: 4,
-                        ),
-                      )
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white, // Customize color
+                    strokeWidth: 4,
+                  ),
+                )
                     : Text('Add Class', style: TextStyle(color: Colors.white)),
               ),
               SizedBox(
@@ -255,7 +255,7 @@ class _AddClassScreenState extends State<AddClassScreen> {
                   ),
                 ),
                 child:
-                    Text('Join a class', style: TextStyle(color: Colors.white)),
+                Text('Join a class', style: TextStyle(color: Colors.white)),
               )
             ],
           ),
@@ -276,7 +276,7 @@ class _AddClassScreenState extends State<AddClassScreen> {
         hintText: hint,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
@@ -440,14 +440,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
       // ✅ Step 2: Check if Device ID Already Exists
       QuerySnapshot deviceCheck =
-          await studentsCollection.where("deviceId", isEqualTo: deviceId).get();
+      await studentsCollection.where("deviceId", isEqualTo: deviceId).get();
 
       if (deviceCheck.docs.isNotEmpty) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content:
-                  Text("🚨 This device has already been used for check-in!")),
+              Text("🚨 This device has already been used for check-in!")),
         );
         return;
       }
@@ -522,7 +522,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     try {
       // Reference to the class document
       DocumentReference classRef =
-          FirebaseFirestore.instance.collection('attendance').doc(documentId);
+      FirebaseFirestore.instance.collection('attendance').doc(documentId);
 
       // Fetch the document to check if it exists
       DocumentSnapshot classSnapshot = await classRef.get();
@@ -548,31 +548,33 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   void confirmDelete(documentId) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          "End Attendance",
-          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black),
-        ),
-        content: Text(
-            "Are you sure you want to end this attendance?, this action can't be undone."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel",
-                style: TextStyle(
-                    color: Colors.black, fontWeight: FontWeight.bold)),
-          ),
-          TextButton(
-            onPressed: () {
-              endAttendance(documentId);
-              Navigator.pop(context);
-            },
-            child: Text("End",
-                style:
+      builder: (context) =>
+          AlertDialog(
+            title: Text(
+              "End Attendance",
+              style: TextStyle(
+                  fontWeight: FontWeight.w900, color: Colors.black),
+            ),
+            content: Text(
+                "Are you sure you want to end this attendance?, this action can't be undone."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Cancel",
+                    style: TextStyle(
+                        color: Colors.black, fontWeight: FontWeight.bold)),
+              ),
+              TextButton(
+                onPressed: () {
+                  endAttendance(documentId);
+                  Navigator.pop(context);
+                },
+                child: Text("End",
+                    style:
                     TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -650,7 +652,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   decoration: InputDecoration(labelText: "Full Name"),
                   controller: TextEditingController(
                       text: FirebaseAuth.instance.currentUser?.displayName
-                              .toString() ??
+                          .toString() ??
                           "Fetching location..."),
                   enabled: false,
                 ),
@@ -666,10 +668,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               stream: FirebaseFirestore.instance
                   .collection('attendance')
                   .where('metadata.level',
-                      isEqualTo: userData?['level']) // 🔹 Filter by level
+                  isEqualTo: userData?['level']) // 🔹 Filter by level
                   .where('metadata.department',
-                      isEqualTo:
-                          userData?['department']) // 🔹 Filter by department
+                  isEqualTo:
+                  userData?['department']) // 🔹 Filter by department
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -694,12 +696,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
                 return Padding(
                   padding:
-                      const EdgeInsets.only(top: 20.0, left: 10, right: 10),
+                  const EdgeInsets.only(top: 20.0, left: 10, right: 10),
                   child: ListView.builder(
                     itemCount: classes.length,
                     itemBuilder: (context, index) {
                       var classData =
-                          classes[index].data() as Map<String, dynamic>;
+                      classes[index].data() as Map<String, dynamic>;
                       String classId = classes[index].id;
                       var metadata = classData['metadata'];
 
@@ -708,12 +710,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           userData?['role'] == 'student'
                               ? null
                               : showDeleteBottomSheet(
-                                  context, metadata['classId']);
+                              context, metadata['classId']);
                         },
                         child: Card(
                           child: ListTile(
                             title:
-                                Text("Lecturer: ${metadata['lecturer_name']}"),
+                            Text("Lecturer: ${metadata['lecturer_name']}"),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Column(
@@ -734,11 +736,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                   GestureDetector(
                                     onTap: () {
                                       final Uri url =
-                                          Uri.parse(metadata['sheetUrl']);
+                                      Uri.parse(metadata['sheetUrl']);
                                       openGoogleSheetLink(url);
                                     },
-                                    child: SelectableText(
-                                      "${metadata['sheetUrl'] ?? 'No link generated.'}",
+                                    child: Text(
+                                      "${metadata['sheetUrl'] ??
+                                          'No link generated.'}",
                                       style: TextStyle(color: Colors.blue),
                                     ),
                                   ),
@@ -746,27 +749,28 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               ),
                             ),
                             trailing: ElevatedButton(
-                              onPressed: () => metadata['completed']
+                              onPressed: () =>
+                              metadata['completed']
                                   ? null
                                   : checkIn(classId, metadata['venue']),
                               child: isLoading
                                   ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white, // Customize color
-                                        strokeWidth: 4,
-                                      ),
-                                    )
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white, // Customize color
+                                  strokeWidth: 4,
+                                ),
+                              )
                                   : Text(
-                                      metadata['completed']
-                                          ? 'Ended'
-                                          : "Check In",
-                                      style: TextStyle(
-                                          color: metadata['completed']
-                                              ? Colors.grey
-                                              : Colors.black),
-                                    ),
+                                metadata['completed']
+                                    ? 'Ended'
+                                    : "Check In",
+                                style: TextStyle(
+                                    color: metadata['completed']
+                                        ? Colors.grey
+                                        : Colors.black),
+                              ),
                             ),
                           ),
                         ),

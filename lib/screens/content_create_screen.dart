@@ -653,9 +653,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                           ? 0
                           : currentTabName == 'Events'
                               ? 1
-                              : currentTabName == 'Resources'
-                                  ? 2
-                                  : 0,
+                              : 0,
                     )));
       }
     } else {

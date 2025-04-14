@@ -27,16 +27,14 @@ class ProfileScreen extends StatelessWidget {
               context, MaterialPageRoute(builder: (context) => BottomNavBar()));
         }
       },
-      child: Padding(
-        padding: const EdgeInsets.only(
-            top: 30.0, left: 15.0, right: 15.0, bottom: 0.0),
-        child: Column(
-          children: [
-            _buildHeader(),
-            SizedBox(
-              height: 30,
-            ),
-            Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                  top: 30.0, left: 15.0, right: 15.0, bottom: 0.0),
               child: ListView(
                 children: [
                   _buildSectionTitle("Account Settings"),
@@ -126,8 +124,8 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -136,26 +134,39 @@ class ProfileScreen extends StatelessWidget {
     String? userDisplayName = FirebaseAuth.instance.currentUser?.displayName;
     String? userDisplayPic = FirebaseAuth.instance.currentUser?.photoURL;
     String? userEmail = FirebaseAuth.instance.currentUser?.email;
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 50,
-          backgroundImage: NetworkImage(userDisplayPic!),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 30),
+      decoration: BoxDecoration(
+          color: Color(0xff347928),
+          borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(25),
+              bottomRight: Radius.circular(25))),
+      child: Expanded(
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 40,
+              backgroundImage: NetworkImage(userDisplayPic!),
+            ),
+            SizedBox(height: 18),
+            Text(
+              userDisplayName!,
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+            ),
+            SizedBox(
+              height: 5,
+            ),
+            Text(
+              userEmail!,
+              style: TextStyle(color: Colors.white54),
+            ),
+          ],
         ),
-        SizedBox(height: 10),
-        Text(
-          userDisplayName!,
-          style: TextStyle(
-              color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        SizedBox(
-          height: 5,
-        ),
-        Text(
-          userEmail!,
-          style: TextStyle(color: Colors.black45),
-        ),
-      ],
+      ),
     );
   }
 
@@ -173,14 +184,69 @@ class ProfileScreen extends StatelessWidget {
       {required String title,
       required IconData icon,
       required VoidCallback onTap}) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.black54),
-      title: Text(
-        title,
-        style: TextStyle(fontWeight: FontWeight.w400),
-      ),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: onTap,
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 10.0, top: 5),
+            child: Material(
+              borderRadius: BorderRadius.circular(16),
+              elevation: 3,
+              child: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Color(0xffDBDBDB).withOpacity(0.5),
+                                borderRadius: const BorderRadius.all(
+                                    Radius.circular(10.0)),
+                              ),
+                              padding: const EdgeInsets.all(8.0),
+                              child: Icon(
+                                icon,
+                                size: 18,
+                              ),
+                            ),
+                            SizedBox(
+                              width: 15,
+                            ),
+                            Expanded(
+                              child: Text(
+                                title,
+                                // Lecture title
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                          decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(5.0)),
+                              border:
+                                  Border.all(color: Colors.black, width: 1)),
+                          padding: const EdgeInsets.all(5.0),
+                          child: Icon(Icons.arrow_forward_ios,
+                              color: Colors.black, size: 15)),
+                    ]),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
