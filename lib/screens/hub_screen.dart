@@ -1,13 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/components/hub_container.dart';
 import 'package:faculty_app/screens/attendance_screen.dart';
 import 'package:faculty_app/screens/excos_page.dart';
 import 'package:faculty_app/screens/schedule_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../bottom_nav_bar.dart';
 import '../components/exam_and_lecture_card.dart';
+import '../utilities/utils.dart';
 
 class HubScreen extends StatefulWidget {
   const HubScreen({super.key});
@@ -67,36 +66,6 @@ class _HubScreenState extends State<HubScreen> {
     }
   }
 
-  Future<Map<String, dynamic>?> fetchCurrentUserDetails() async {
-    try {
-      // Get the currently signed-in user
-      User? user = FirebaseAuth.instance.currentUser;
-
-      if (user == null) {
-        print("❌ No user is currently signed in.");
-        return null;
-      }
-
-      // Reference to Firestore document
-      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
-          .instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (!doc.exists) {
-        print("❌ User document not found in Firestore. now");
-        return null;
-      }
-
-      // Return user details as a Map
-      return doc.data();
-    } catch (e) {
-      print("❌ Error fetching user details: $e");
-      return null;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -140,34 +109,35 @@ class _HubScreenState extends State<HubScreen> {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => items[index]['title'] ==
-                                      "Current Lecture Timetable"
+                              builder: (context) =>
+                              items[index]['title'] ==
+                                  "Current Lecture Timetable"
                                   ? ExamAndLectureCard(
-                                      title: 'Current Lecture Timetable',
-                                      firebaseCollection: 'lectures',
-                                    )
+                                title: 'Current Lecture Timetable',
+                                firebaseCollection: 'lectures',
+                              )
                                   : items[index]['title'] ==
-                                          "Current Academic Calendar"
-                                      ? ExamAndLectureCard(
-                                          title: 'Current Academic Calendar',
-                                          firebaseCollection: 'academic',
-                                        )
-                                      : items[index]['title'] ==
-                                              "Current Exam Schedule"
-                                          ? ExamAndLectureCard(
-                                              title: 'Current Exam Schedule',
-                                              firebaseCollection: 'exams',
-                                            )
-                                          : items[index]['title'] ==
-                                                  "CGPA Calculator"
-                                              ? ExcosPage()
-                                              : items[index]['title'] ==
-                                                      "Lecture Schedule (Beta)"
-                                                  ? WeeklyScheduleScreen()
-                                                  : userData?['role'] ==
-                                                          'student'
-                                                      ? AttendanceScreen()
-                                                      : AddClassScreen()));
+                                  "Current Academic Calendar"
+                                  ? ExamAndLectureCard(
+                                title: 'Current Academic Calendar',
+                                firebaseCollection: 'academic',
+                              )
+                                  : items[index]['title'] ==
+                                  "Current Exam Schedule"
+                                  ? ExamAndLectureCard(
+                                title: 'Current Exam Schedule',
+                                firebaseCollection: 'exams',
+                              )
+                                  : items[index]['title'] ==
+                                  "CGPA Calculator"
+                                  ? ExcosPage()
+                                  : items[index]['title'] ==
+                                  "Lecture Schedule (Beta)"
+                                  ? WeeklyScheduleScreen()
+                                  : userData?['role'] ==
+                                  'student'
+                                  ? AttendanceScreen()
+                                  : AddClassScreen()));
                     },
                     child: HubContainer(
                       title: items[index]['title']!,

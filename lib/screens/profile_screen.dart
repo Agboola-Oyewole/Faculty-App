@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../utilities/utils.dart';
 import 'excos_page.dart';
 
 // Profile Screen
@@ -292,37 +293,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     if (fetchedData != null) {
       setState(() {
         userData = fetchedData;
+        _selectedSemester = userData?['semester'];
+        _selectedLevel = userData?['level'];
       });
-    }
-  }
-
-  Future<Map<String, dynamic>?> fetchCurrentUserDetails() async {
-    try {
-      // Get the currently signed-in user
-      User? user = FirebaseAuth.instance.currentUser;
-
-      if (user == null) {
-        print("❌ No user is currently signed in.");
-        return null;
-      }
-
-      // Reference to Firestore document
-      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
-          .instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (!doc.exists) {
-        print("❌ User document not found in Firestore.");
-        return null;
-      }
-
-      // Return user details as a Map
-      return doc.data();
-    } catch (e) {
-      print("❌ Error fetching user details: $e");
-      return null;
     }
   }
 
@@ -359,6 +332,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           'semester': updatedSemester,
           'updated_at': FieldValue.serverTimestamp(), // Track last update
         });
+
+        await refreshResources(); // if you don’t need to use the result directly
 
         print("✅ User details updated successfully!");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -451,11 +426,39 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                         minimumSize: Size(double.infinity, 50),
                       ),
                       onPressed: () {
+                        // Check if values have actually changed
+                        if (userData != null &&
+                            userData!['level'] == _selectedLevel &&
+                            userData!['semester'] == _selectedSemester) {
+                          print('⚠️ No changes detected. Skipping update.');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("No changes made.")),
+                          );
+                          return; // Do nothing if no changes
+                        }
                         updateUserDetails(
                             level: _selectedLevel, semester: _selectedSemester);
                       },
                       child: isLoading
-                          ? CircularProgressIndicator(color: Colors.white)
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Please Wait',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900),
+                                ),
+                                SizedBox(
+                                  width: 15,
+                                ),
+                                SizedBox(
+                                    height: 21,
+                                    width: 21,
+                                    child: CircularProgressIndicator(
+                                        color: Colors.white)),
+                              ],
+                            )
                           : Text("Save",
                               style: TextStyle(
                                   color: Colors.white,

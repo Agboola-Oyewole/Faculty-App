@@ -57,6 +57,7 @@ dependencies:
   permission_handler: ^11.4.0
   intl: ^0.20.2
   google_sign_in: ^6.3.0
+  shared_preferences: ^2.5.3
   open_filex: ^4.7.0
   flutter_inappwebview: ^6.1.5
 

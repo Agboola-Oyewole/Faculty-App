@@ -1,14 +1,18 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/screens/content_create_screen.dart';
 import 'package:faculty_app/screens/course_screen.dart';
 import 'package:faculty_app/screens/hub_screen.dart';
 import 'package:faculty_app/screens/profile_screen.dart';
+import 'package:faculty_app/utilities/utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/home_screen.dart';
 
@@ -41,10 +45,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
     _currentIndex =
         widget.initialIndex; // Set the initial index to the optional parameter
     getUserDetails();
-    fetchResources(); // Fetch data once
+    print('ABJDHFUFKKG');
+    initCourseData(); // loads from cache or fetches
   }
 
   Future<void> fetchResources() async {
+    setState(() {
+      isLoading = true;
+    });
     try {
       User? user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -84,7 +92,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
         bool semesterMatch = (resourceSemester == userSemester);
 
         if (levelMatch && departmentMatch && semesterMatch) {
-          double fileSizeMB = await getFileSize(fileUrl);
+          double fileSizeMB = await getFileSize(fileUrl); // your own function
 
           if (!tempData.containsKey(courseCode)) {
             tempData[courseCode] = {'count': 0, 'size': 0.0};
@@ -95,10 +103,17 @@ class _BottomNavBarState extends State<BottomNavBar> {
         }
       }
 
-      setState(() {
-        courseData = tempData;
-        isLoading = false;
-      });
+      // Save to SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String encoded = jsonEncode(tempData);
+      await prefs.setString("courseData_${user.uid}", encoded);
+
+      // Update UI
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     } catch (e) {
       print('❌ Error fetching resources: $e');
       if (mounted) {
@@ -109,14 +124,18 @@ class _BottomNavBarState extends State<BottomNavBar> {
     }
   }
 
-  Future<double> getFileSize(String url) async {
-    try {
-      final ref = FirebaseStorage.instance.refFromURL(url);
-      final metadata = await ref.getMetadata();
-      return metadata.size! / (1024 * 1024);
-    } catch (e) {
-      print("Error fetching file size: $e");
-      return 0.0;
+  Future<void> initCourseData() async {
+    Map<String, Map<String, dynamic>>? data = await loadCourseDataFromPrefs();
+
+    if (mounted) {
+      if (data != null) {
+        setState(() {
+          courseData = data;
+          isLoading = false;
+        });
+      } else {
+        await fetchResources(); // fallback if no cached data
+      }
     }
   }
 
@@ -131,33 +150,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
     }
   }
 
-  Future<Map<String, dynamic>?> fetchCurrentUserDetails() async {
+  Future<double> getFileSize(String url) async {
     try {
-      // Get the currently signed-in user
-      User? user = FirebaseAuth.instance.currentUser;
-
-      if (user == null) {
-        print("❌ No user is currently signed in.");
-        return null;
-      }
-
-      // Reference to Firestore document
-      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
-          .instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (!doc.exists) {
-        print("❌ User document not found in Firestore. now");
-        return null;
-      }
-
-      // Return user details as a Map
-      return doc.data();
+      final ref = FirebaseStorage.instance.refFromURL(url);
+      final metadata = await ref.getMetadata();
+      return metadata.size! / (1024 * 1024);
     } catch (e) {
-      print("❌ Error fetching user details: $e");
-      return null;
+      print("Error fetching file size: $e");
+      return 0.0;
     }
   }
 
@@ -174,7 +174,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     _screens.clear();
     _screens.addAll([
       const HomeScreen(),
-      CourseScreen(courseData: courseData, isLoading: isLoading),
+      CourseScreen(),
       HubScreen(),
       const ProfileScreen(),
     ]);
@@ -196,7 +196,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   if (scrollNotification is UserScrollNotification) {
                     if (scrollNotification.direction ==
                         ScrollDirection.reverse) {
-                      isVisible.value = false;
+                      if (_currentIndex == 2) {
+                      } else if (_currentIndex == 3) {
+                      } else {
+                        isVisible.value = false;
+                      }
                     } else if (scrollNotification.direction ==
                         ScrollDirection.forward) {
                       isVisible.value = true;
@@ -204,7 +208,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   }
                   return false;
                 },
-                child: _screens[_currentIndex], // Show current screen
+                child: isLoading
+                    ? Center(
+                        child:
+                            CircularProgressIndicator(color: Color(0xff347928)))
+                    : _screens[_currentIndex], // Show current screen
               ),
 
               // Animated Floating Navigation Bar

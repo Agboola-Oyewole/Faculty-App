@@ -175,7 +175,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                 crossAxisCount: 2,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
-                                childAspectRatio: 1.3,
+                                childAspectRatio: 1.2,
                               ),
                               itemCount: items.length,
                               itemBuilder: (context, index) {
