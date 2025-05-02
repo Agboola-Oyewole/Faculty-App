@@ -139,7 +139,7 @@ class ProfileScreen extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: 30),
       decoration: BoxDecoration(
-          color: Color(0xff347928),
+          color: Colors.black,
           borderRadius: BorderRadius.only(
               bottomLeft: Radius.circular(25),
               bottomRight: Radius.circular(25))),
@@ -147,23 +147,66 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           children: [
             CircleAvatar(
-              radius: 40,
+              radius: 30,
               backgroundImage: NetworkImage(userDisplayPic!),
             ),
-            SizedBox(height: 18),
+            SizedBox(height: 20),
             Text(
               userDisplayName!,
               style: TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold),
             ),
             SizedBox(
-              height: 5,
+              height: 8,
             ),
             Text(
               userEmail!,
-              style: TextStyle(color: Colors.white54),
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+            SizedBox(
+              height: 10,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.hive_outlined,
+                      size: 15,
+                      color: Colors.white,
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Text(
+                      'Building Department',
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  width: 10,
+                ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.book,
+                      size: 15,
+                      color: Colors.white,
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Text(
+                      "1st Semester",
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
@@ -176,7 +219,7 @@ class ProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Text(
         title,
-        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
       ),
     );
   }
@@ -192,13 +235,13 @@ class ProfileScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(bottom: 10.0, top: 5),
             child: Material(
-              borderRadius: BorderRadius.circular(16),
-              elevation: 3,
+              borderRadius: BorderRadius.circular(5),
+              elevation: 1,
               child: Container(
                 padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -210,7 +253,7 @@ class ProfileScreen extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: Color(0xffDBDBDB).withOpacity(0.5),
                                 borderRadius: const BorderRadius.all(
-                                    Radius.circular(10.0)),
+                                    Radius.circular(5.0)),
                               ),
                               padding: const EdgeInsets.all(8.0),
                               child: Icon(
@@ -226,22 +269,17 @@ class ProfileScreen extends StatelessWidget {
                                 title,
                                 // Lecture title
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 13),
+                                    fontWeight: FontWeight.bold, fontSize: 12),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Container(
-                          decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(5.0)),
-                              border:
-                                  Border.all(color: Colors.black, width: 1)),
-                          padding: const EdgeInsets.all(5.0),
-                          child: Icon(Icons.arrow_forward_ios,
-                              color: Colors.black, size: 15)),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Icon(Icons.arrow_forward_ios,
+                            color: Colors.black, size: 15),
+                      ),
                     ]),
               ),
             ),
@@ -337,7 +375,21 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
         print("✅ User details updated successfully!");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Details updated successfully!')),
+          SnackBar(
+            content: Text(
+              "✅ User details updated successfully!",
+              style: TextStyle(color: Colors.black),
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.black),
+            ),
+            margin: EdgeInsets.all(16),
+            elevation: 3,
+            duration: Duration(seconds: 3),
+          ),
         );
       } catch (e) {
         print("❌ Error updating user details: $e");
@@ -357,13 +409,16 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffF1EFEC),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text("Personal Information"),
+        title: Text(
+          "Personal Information",
+          style: TextStyle(fontSize: 18),
+        ),
       ),
       body: Padding(
-          padding: EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(15.0),
           child: userData == null
               ? Center(
                   child:
@@ -375,7 +430,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                         children: [
                           CircleAvatar(
                             backgroundColor: Colors.white,
-                            radius: 50,
+                            radius: 40,
                             backgroundImage: userData!['profile_pic'] != null &&
                                     userData!['profile_pic'].isNotEmpty
                                 ? NetworkImage(userData!['profile_pic'])
@@ -418,10 +473,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     SizedBox(height: 10),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xff347928),
-                        elevation: 3,
+                        backgroundColor: Colors.black,
+                        elevation: 2,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                         minimumSize: Size(double.infinity, 50),
                       ),
@@ -432,7 +487,21 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             userData!['semester'] == _selectedSemester) {
                           print('⚠️ No changes detected. Skipping update.');
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("No changes made.")),
+                            SnackBar(
+                              content: Text(
+                                "⚠️ No changes made.",
+                                style: TextStyle(color: Colors.black),
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(color: Colors.black),
+                              ),
+                              margin: EdgeInsets.all(16),
+                              elevation: 3,
+                              duration: Duration(seconds: 3),
+                            ),
                           );
                           return; // Do nothing if no changes
                         }
@@ -504,6 +573,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
           hintText: hint,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.black),
+          ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),

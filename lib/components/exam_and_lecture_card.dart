@@ -93,10 +93,10 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
               padding: const EdgeInsets.only(top: 15.0),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xff347928),
+                  backgroundColor: Colors.black,
                   elevation: 3,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   minimumSize: Size(double.infinity, 50),
                 ),
@@ -204,8 +204,8 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
 
     await flutterLocalNotificationsPlugin.show(
       notificationId, // Notification ID
-      'Download Complete ✅',
-      '$fileName has been saved to Downloads 📂',
+      'FES Connect Hub',
+      'Download Complete. Document has been saved to Downloads 📂',
       platformChannelSpecifics,
     );
   }
@@ -261,7 +261,21 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
           if (!status.isGranted) {
             print("❌ Storage permission denied.");
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Permissions Denied!")),
+              SnackBar(
+                content: Text(
+                  "❌ Storage permission denied!",
+                  style: TextStyle(color: Colors.black),
+                ),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: Colors.black),
+                ),
+                margin: EdgeInsets.all(16),
+                elevation: 3,
+                duration: Duration(seconds: 3),
+              ),
             );
             return;
           }
@@ -307,12 +321,40 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
       // ✅ Show notification when download completes
       await showDownloadNotification(fullFileName);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Downloaded: $fullFileName")),
+        SnackBar(
+          content: Text(
+            "✅ Downloaded: $fullFileName",
+            style: TextStyle(color: Colors.black),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Colors.black),
+          ),
+          margin: EdgeInsets.all(16),
+          elevation: 3,
+          duration: Duration(seconds: 3),
+        ),
       );
     } catch (e) {
       print("❌ Download error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Download failed")),
+        SnackBar(
+          content: Text(
+            "❌ Download Failed",
+            style: TextStyle(color: Colors.black),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Colors.black),
+          ),
+          margin: EdgeInsets.all(16),
+          elevation: 3,
+          duration: Duration(seconds: 3),
+        ),
       );
     } finally {
       setState(() {
@@ -324,10 +366,13 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffF1EFEC),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(widget.title),
+        title: Text(
+          widget.title,
+          style: TextStyle(fontSize: 18),
+        ),
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
@@ -346,9 +391,6 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
           var userData = userSnapshot.data!;
           String department = userData['department'];
           String level = userData['level'];
-          print(department);
-          print(level);
-          print('HOEUO');
 
           return StreamBuilder<QuerySnapshot>(
             stream: widget.firebaseCollection == "academic"
@@ -411,14 +453,17 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                                       : 0,
                         )));
           },
-          backgroundColor: const Color(0xff347928),
-          elevation: 5.0,
+          backgroundColor: Colors.black,
+          elevation: 3.0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(5), // Add border radius here
+          ),
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: const Icon(
               Icons.add_a_photo,
               color: Colors.white,
-              size: 25.0,
+              size: 20.0,
             ),
           ),
         ),
@@ -428,13 +473,13 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
 
   Widget _buildScheduleCard2(QueryDocumentSnapshot schedule) {
     return Material(
-      borderRadius: BorderRadius.circular(16),
-      elevation: 3,
+      borderRadius: BorderRadius.circular(5),
+      elevation: 1,
       child: Container(
-        padding: EdgeInsets.all(20),
+        padding: EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(5),
         ),
         child:
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -444,13 +489,13 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                 Container(
                   decoration: BoxDecoration(
                     color: Color(0xffDBDBDB).withOpacity(0.5),
-                    borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+                    borderRadius: const BorderRadius.all(Radius.circular(5.0)),
                   ),
                   padding: const EdgeInsets.all(12.0),
                   child: Image.asset(
                     'assets/images/file.png',
-                    width: 24,
-                    height: 24,
+                    width: 20,
+                    height: 20,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -465,7 +510,7 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                         "${schedule['title']}",
                         // Lecture title
                         style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13),
+                            fontWeight: FontWeight.bold, fontSize: 12),
                       ),
                       SizedBox(
                         height: 5,
@@ -479,7 +524,7 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                           : Text(
                               "${schedule['department']}  |  ${schedule['semester']}  |  ${schedule['level']}",
                               style:
-                                  TextStyle(color: Colors.grey, fontSize: 12),
+                                  TextStyle(color: Colors.grey, fontSize: 10),
                             ),
                     ],
                   ),
@@ -509,8 +554,8 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                   padding: const EdgeInsets.all(5.0),
                   child: isLoading
                       ? SizedBox(
-                          width: 20, // Adjust the size as needed
-                          height: 20, // Adjust the size as needed
+                          width: 15, // Adjust the size as needed
+                          height: 15, // Adjust the size as needed
                           child: CircularProgressIndicator(
                             color: Colors.black,
                             value: 0.3, // Progress value (0.0 - 1.0)

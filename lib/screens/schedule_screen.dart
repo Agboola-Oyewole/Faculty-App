@@ -329,14 +329,19 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
     return DropdownButtonFormField<String>(
       value: selectedValue,
       items: items
-          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+          .map((item) => DropdownMenuItem(
+              value: item,
+              child: Text(
+                item,
+                style: TextStyle(fontSize: 14),
+              )))
           .toList(),
       onChanged: onChanged,
       decoration: InputDecoration(
         hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
@@ -378,12 +383,15 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
                       TextButton(
                         onPressed: () => Navigator.pop(context),
                         child: Text("Cancel",
-                            style: TextStyle(color: Colors.red, fontSize: 16)),
+                            style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold)),
                       ),
                       Text(
                         "New Lecture Time",
                         style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                            fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                       TextButton(
                         onPressed: () async {
@@ -415,7 +423,9 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
                         },
                         child: Text("Save",
                             style: TextStyle(
-                                color: Color(0xff347928), fontSize: 16)),
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12)),
                       ),
                     ],
                   ),
@@ -457,11 +467,19 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 10),
                   ListTile(
-                    leading: Icon(Icons.calendar_today),
-                    title: Text(day),
-                    trailing: Icon(Icons.check_circle_rounded),
+                    leading: Icon(
+                      Icons.calendar_today,
+                      size: 17,
+                    ),
+                    title: Text(
+                      day,
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    trailing: Icon(
+                      Icons.check_circle_rounded,
+                      size: 17,
+                    ),
                   ),
                   SizedBox(height: 20),
                 ],
@@ -490,12 +508,16 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
       },
       child: Row(
         children: [
-          Icon(Icons.access_time, color: Colors.blue),
+          Icon(
+            Icons.alarm,
+            color: Colors.blue,
+            size: 17,
+          ),
           SizedBox(width: 5),
           Text(
             time != null ? time.format(context) : label,
             style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black),
           ),
         ],
       ),
@@ -505,10 +527,13 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffF1EFEC),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Color(0xffF1EFEC),
-        title: Text("Weekly Schedule"),
+        backgroundColor: Colors.transparent,
+        title: Text(
+          "Weekly Schedule",
+          style: TextStyle(fontSize: 18),
+        ),
       ),
       body: isLoading
           ? Center(
@@ -529,14 +554,17 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
                         horizontal: 16.0, vertical: 15.0),
                     child: Row(
                       children: [
-                        Icon(Icons.info),
+                        Icon(
+                          Icons.info,
+                          size: 17,
+                        ),
                         SizedBox(width: 10),
                         Expanded(
                           // Ensures text wraps instead of overflowing
                           child: Text(
                             "Add your course codes based on your lecture timetable to receive alerts before your classes start.",
                             style: TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.bold),
+                                fontSize: 10, fontWeight: FontWeight.bold),
                             // Reduce font size if needed
                             softWrap: true,
                           ),
@@ -552,30 +580,41 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
                           title: Text(
                             day,
                             style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
+                                fontSize: 14, fontWeight: FontWeight.bold),
                           ),
                           children: [
                             if (schedules[day] == null ||
                                 schedules[day]!.isEmpty)
                               Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text("No schedules for today"),
+                                padding: const EdgeInsets.all(10.0),
+                                child: Text(
+                                  "No schedules for today",
+                                  style: TextStyle(fontSize: 12),
+                                ),
                               )
                             else
                               ...schedules[day]!.map((schedule) {
                                 return Card(
+                                  color: Color(0xffEFEEEA),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                        5), // Add border radius here
+                                  ),
                                   margin: EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 6),
                                   child: ListTile(
                                     title: Text(schedule["name"]!,
                                         style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11)),
                                     subtitle: Row(
                                       children: [
                                         Text(
-                                            "Time: ${formatDateTime(schedule["startTime"])} "),
+                                            "Time: ${formatDateTime(schedule["startTime"])} ",
+                                            style: TextStyle(fontSize: 11)),
                                         Text(
-                                            "- ${formatDateTime(schedule["endTime"])}"),
+                                            "- ${formatDateTime(schedule["endTime"])}",
+                                            style: TextStyle(fontSize: 11)),
                                       ],
                                     ),
                                     trailing: GestureDetector(
@@ -583,7 +622,10 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
                                         showDeleteBottomSheet(
                                             context, userId, day, schedule);
                                       },
-                                      child: Icon(Icons.more_vert),
+                                      child: Icon(
+                                        Icons.more_vert,
+                                        size: 18,
+                                      ),
                                     ),
                                   ),
                                 );
@@ -592,9 +634,9 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
                             TextButton.icon(
                               onPressed: () =>
                                   _showAddScheduleModal(context, day),
-                              icon: Icon(Icons.add, color: Color(0xff347928)),
+                              icon: Icon(Icons.add, color: Colors.black),
                               label: Text("Add Schedule",
-                                  style: TextStyle(color: Color(0xff347928))),
+                                  style: TextStyle(color: Colors.black)),
                             ),
                           ],
                         );

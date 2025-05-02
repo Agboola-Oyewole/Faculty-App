@@ -252,10 +252,10 @@ class _PostsState extends State<Posts> {
               padding: const EdgeInsets.only(top: 15.0),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xff347928),
+                  backgroundColor: Colors.black,
                   elevation: 3,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   minimumSize: Size(double.infinity, 50),
                 ),
@@ -350,215 +350,212 @@ class _PostsState extends State<Posts> {
   Widget build(BuildContext context) {
     return isLoading
         ? CircularProgressIndicator(
-            color: Color(0xff347928), // Customize color
+            color: Colors.black, // Customize color
             strokeWidth: 4,
           )
-        : Padding(
-            padding: const EdgeInsets.only(bottom: 10.0),
-            child: Material(
-              elevation: 3,
-              borderRadius: const BorderRadius.all(Radius.circular(10)),
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
-                  // border: Border.all(color: Colors.grey, width: 1.0),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Profile Row
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: Colors.black,
-                          radius: 17,
-                          child: ClipOval(
-                              child: widget.profilePic.contains('.png')
-                                  ? Image.asset(
-                                      widget.profilePic,
-                                      fit: BoxFit.cover,
-                                      width: 40,
-                                      height: 40,
-                                    )
-                                  : Image.network(
-                                      widget.profilePic,
-                                      fit: BoxFit.cover,
-                                      width: 40,
-                                      height: 40,
-                                    )),
-                        ),
-                        SizedBox(width: 9),
-                        Expanded(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        widget.userName,
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12),
-                                      ),
-                                      SizedBox(width: 6),
-                                      if (widget.isVerified)
-                                        Icon(Icons.verified_user_rounded,
-                                            color: Colors.blue, size: 15),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              widget.currentUserId == widget.posterId
-                                  ? GestureDetector(
-                                      onTap: () =>
-                                          showDeleteBottomSheet(context),
-                                      child: Icon(Icons.more_vert))
-                                  : Container()
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                    SizedBox(height: 17),
-                    widget.image != null && widget.image.isNotEmpty
-                        ? GestureDetector(
-                            onTap: () =>
-                                setState(() => _isExpanded = !_isExpanded),
-                            child: Text(
-                              _isExpanded
-                                  ? widget.caption
-                                  : widget.caption.length > 70
-                                      ? '${widget.caption.substring(0, 70)}... more'
-                                      : widget.caption,
-                              style: TextStyle(color: Colors.black),
-                            ),
-                          )
-                        : GestureDetector(
-                            onTap: () =>
-                                setState(() => _isExpanded = !_isExpanded),
-                            child: Text(
-                              _isExpanded
-                                  ? widget.caption
-                                  : widget.caption.length > 250
-                                      ? '${widget.caption.substring(0, 250)}... more'
-                                      : widget.caption,
-                              style: TextStyle(color: Colors.black),
-                            ),
-                          ),
-                    SizedBox(height: 15),
-                    widget.image != null && widget.image.isNotEmpty
-                        ? Image.network(
-                            widget.image,
-                            width: double.infinity,
-                            // ✅ Ensure it takes full width
-                            height: widget.imageAspect,
-
-                            // Adjust height
-                            fit: BoxFit.contain,
-                            // ✅ Ensures full width without cropping
-                            alignment: Alignment.center,
-
-                            // ✅ Keeps it centered
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(
-                              Icons.broken_image,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
-                          )
-                        : Container(),
-
-                    widget.image != null && widget.image.isNotEmpty
-                        ? SizedBox(height: 8)
-                        : Container(),
-
-                    // Like, Comment, Bookmark
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
+        : Material(
+            elevation: 0,
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                // border: Border.all(color: Colors.grey, width: 1.0),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile Row
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.black,
+                        radius: 17,
+                        child: ClipOval(
+                            child: widget.profilePic.contains('.png')
+                                ? Image.asset(
+                                    widget.profilePic,
+                                    fit: BoxFit.cover,
+                                    width: 32,
+                                    height: 32,
+                                  )
+                                : Image.network(
+                                    widget.profilePic,
+                                    fit: BoxFit.cover,
+                                    width: 32,
+                                    height: 32,
+                                  )),
+                      ),
+                      SizedBox(width: 9),
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            ValueListenableBuilder<bool>(
-                              valueListenable: isLiked,
-                              builder: (context, liked, _) {
-                                return GestureDetector(
-                                  onTap: toggleLike,
-                                  child: Image.asset(
-                                      liked
-                                          ? 'assets/images/heart__1_-removebg-preview.png'
-                                          : 'assets/images/heart-removebg-preview.png',
-                                      width: 23,
-                                      height: 23),
-                                );
-                              },
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      widget.userName,
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 10),
+                                    ),
+                                    SizedBox(width: 6),
+                                    if (widget.isVerified)
+                                      Icon(Icons.verified,
+                                          color: Colors.blue, size: 13),
+                                  ],
+                                ),
+                              ],
                             ),
-                            SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () {
-                                showLikesBottomSheet(
-                                    context, widget.initialLikes);
-                              },
-                              child: ValueListenableBuilder<int>(
-                                valueListenable: likeCount,
-                                builder: (context, count, _) {
-                                  return Text("$count",
-                                      style: TextStyle(fontSize: 13));
-                                },
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => showCommentsBottomSheet(context),
-                              child: Image.asset(
-                                  'assets/images/comment--removebg-preview.png',
-                                  width: 25,
-                                  height: 25),
-                            ),
-                            SizedBox(width: 5),
-                            Text(widget.commentCount,
-                                style: TextStyle(fontSize: 13)),
+                            widget.currentUserId == widget.posterId
+                                ? GestureDetector(
+                                    onTap: () => showDeleteBottomSheet(context),
+                                    child: Icon(
+                                      Icons.more_vert,
+                                      size: 13,
+                                    ))
+                                : Container()
                           ],
                         ),
-                        Row(
-                          children: [
-                            ValueListenableBuilder<bool>(
-                              valueListenable: isBookmarked,
-                              builder: (context, bookmarked, _) {
-                                return GestureDetector(
-                                  onTap: toggleBookmark,
-                                  child: Image.asset(
-                                      bookmarked
-                                          ? 'assets/images/ribbon-blue-removebg-preview.png'
-                                          : 'assets/images/ribbon-removebg-preview.png',
-                                      width: 23,
-                                      height: 23),
-                                );
-                              },
-                            ),
-                            SizedBox(
-                              width: 4,
-                            ),
-                            ValueListenableBuilder<int>(
-                              valueListenable: bookmarkCount,
+                      )
+                    ],
+                  ),
+                  SizedBox(height: 17),
+                  widget.image != null && widget.image.isNotEmpty
+                      ? GestureDetector(
+                          onTap: () =>
+                              setState(() => _isExpanded = !_isExpanded),
+                          child: Text(
+                            _isExpanded
+                                ? widget.caption
+                                : widget.caption.length > 70
+                                    ? '${widget.caption.substring(0, 70)}... more'
+                                    : widget.caption,
+                            style: TextStyle(color: Colors.black, fontSize: 12),
+                          ),
+                        )
+                      : GestureDetector(
+                          onTap: () =>
+                              setState(() => _isExpanded = !_isExpanded),
+                          child: Text(
+                            _isExpanded
+                                ? widget.caption
+                                : widget.caption.length > 250
+                                    ? '${widget.caption.substring(0, 250)}... more'
+                                    : widget.caption,
+                            style: TextStyle(color: Colors.black, fontSize: 12),
+                          ),
+                        ),
+                  SizedBox(height: 10),
+                  widget.image != null && widget.image.isNotEmpty
+                      ? Image.network(
+                          widget.image,
+                          width: double.infinity,
+                          // ✅ Ensure it takes full width
+                          height: widget.imageAspect,
+
+                          // Adjust height
+                          fit: BoxFit.contain,
+                          // ✅ Ensures full width without cropping
+                          alignment: Alignment.center,
+
+                          // ✅ Keeps it centered
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                            Icons.broken_image,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                        )
+                      : Container(),
+
+                  widget.image != null && widget.image.isNotEmpty
+                      ? SizedBox(height: 8)
+                      : Container(),
+
+                  // Like, Comment, Bookmark
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          ValueListenableBuilder<bool>(
+                            valueListenable: isLiked,
+                            builder: (context, liked, _) {
+                              return GestureDetector(
+                                onTap: toggleLike,
+                                child: Image.asset(
+                                    liked
+                                        ? 'assets/images/heart__1_-removebg-preview.png'
+                                        : 'assets/images/heart-removebg-preview.png',
+                                    width: 19,
+                                    height: 19),
+                              );
+                            },
+                          ),
+                          SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              showLikesBottomSheet(
+                                  context, widget.initialLikes);
+                            },
+                            child: ValueListenableBuilder<int>(
+                              valueListenable: likeCount,
                               builder: (context, count, _) {
                                 return Text("$count",
                                     style: TextStyle(fontSize: 13));
                               },
-                            )
-                          ],
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 5),
-                    Text(widget.postTime,
-                        style: TextStyle(color: Colors.grey[500])),
-                  ],
-                ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => showCommentsBottomSheet(context),
+                            child: Image.asset(
+                                'assets/images/comment--removebg-preview.png',
+                                width: 21,
+                                height: 21),
+                          ),
+                          SizedBox(width: 5),
+                          Text(widget.commentCount,
+                              style: TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          ValueListenableBuilder<bool>(
+                            valueListenable: isBookmarked,
+                            builder: (context, bookmarked, _) {
+                              return GestureDetector(
+                                onTap: toggleBookmark,
+                                child: Image.asset(
+                                    bookmarked
+                                        ? 'assets/images/ribbon-blue-removebg-preview.png'
+                                        : 'assets/images/ribbon-removebg-preview.png',
+                                    width: 19,
+                                    height: 19),
+                              );
+                            },
+                          ),
+                          SizedBox(
+                            width: 4,
+                          ),
+                          ValueListenableBuilder<int>(
+                            valueListenable: bookmarkCount,
+                            builder: (context, count, _) {
+                              return Text("$count",
+                                  style: TextStyle(fontSize: 13));
+                            },
+                          )
+                        ],
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 5),
+                  Text(widget.postTime,
+                      style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                ],
               ),
             ),
           );

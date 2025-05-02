@@ -99,8 +99,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(
-          top: 20.0, left: 15.0, right: 15.0, bottom: 0.0),
+      padding:
+          const EdgeInsets.only(top: 20.0, left: 0.0, right: 0.0, bottom: 0.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -129,9 +129,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   //   ),
                   // ),
                   SizedBox(width: 5),
-                  Text(
-                    'FES Connect Hub',
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                    child: Text(
+                      'FES Connect Hub',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                    ),
                   ),
                 ],
               ),
@@ -180,14 +184,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           SizedBox(height: 15),
           Container(color: Colors.grey.withOpacity(0.5), height: 1.0),
-          SizedBox(height: 15),
           Expanded(
             child: RefreshIndicator(
+              backgroundColor: Colors.white,
+              color: Colors.black,
               onRefresh: _refreshPosts,
               child: _isLoading
                   ? Center(
                       child: CircularProgressIndicator(
-                      color: Color(0xff347928),
+                      color: Colors.black,
                     ))
                   : _posts.isEmpty
                       ? Center(child: Text('No posts available'))
@@ -209,24 +214,34 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ? snapshot.data!.docs.length
                                     : 0;
 
-                                return Posts(
-                                  userName: userData['first_name'] ?? 'Unknown',
-                                  profilePic: userData['profile_pic'] ??
-                                      'assets/images/user.png',
-                                  caption: postData['title'] ?? '',
-                                  commentCount: commentCount.toString(),
-                                  imageAspect: postData['imageAspect'],
-                                  image: postData['image'] ??
-                                      'assets/images/503 Error Service.png',
-                                  initialLikes: postData['likes'] ?? [],
-                                  initialBookmarks: postData['bookmarks'] ?? [],
-                                  postTime: timeAgo(
-                                      (postData['date'] as Timestamp).toDate()),
-                                  isVerified:
-                                      (userData['role'] ?? false) != 'student',
-                                  postId: postData['postId'],
-                                  posterId: postData['userId'],
-                                  currentUserId: currentUser!,
+                                return Column(
+                                  children: [
+                                    Posts(
+                                      userName:
+                                          userData['first_name'] ?? 'Unknown',
+                                      profilePic: userData['profile_pic'] ??
+                                          'assets/images/user.png',
+                                      caption: postData['title'] ?? '',
+                                      commentCount: commentCount.toString(),
+                                      imageAspect: postData['imageAspect'],
+                                      image: postData['image'] ??
+                                          'assets/images/503 Error Service.png',
+                                      initialLikes: postData['likes'] ?? [],
+                                      initialBookmarks:
+                                          postData['bookmarks'] ?? [],
+                                      postTime: timeAgo(
+                                          (postData['date'] as Timestamp)
+                                              .toDate()),
+                                      isVerified: (userData['role'] ?? false) !=
+                                          'student',
+                                      postId: postData['postId'],
+                                      posterId: postData['userId'],
+                                      currentUserId: currentUser!,
+                                    ),
+                                    Container(
+                                        color: Colors.grey.withOpacity(0.5),
+                                        height: 1.0),
+                                  ],
                                 );
                               },
                             );

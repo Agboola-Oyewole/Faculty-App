@@ -74,7 +74,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: isLoading ? Colors.white : Color(0xff347928),
+      backgroundColor: isLoading ? Colors.white : Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         iconTheme:
@@ -84,14 +84,15 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
           'Course Details',
           style: TextStyle(
               color: isLoading ? Colors.black : Colors.white,
-              fontWeight: FontWeight.w900),
+              fontWeight: FontWeight.w900,
+              fontSize: 18),
         ),
       ),
       body: isLoading
           ? Expanded(
               child: Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xff347928), // Customize color
+                  color: Colors.black, // Customize color
                   strokeWidth: 4,
                 ),
               ),
@@ -109,7 +110,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                       style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,
-                          fontSize: 18),
+                          fontSize: 15),
                     ),
                     SizedBox(
                       height: 15,
@@ -122,18 +123,21 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                             Icon(
                               Icons.menu_book_outlined,
                               color: Colors.white,
-                              size: 15,
+                              size: 13,
                             ),
                             SizedBox(
                               width: 5,
                             ),
                             Text(
                               '${widget.courseId}    ',
-                              style: TextStyle(color: Colors.white),
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 12),
                             ),
                           ],
                         ),
-                        Text('|    ', style: TextStyle(color: Colors.white)),
+                        Text('|    ',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 12)),
                         Row(
                           children: [
                             Icon(
@@ -145,7 +149,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                               width: 5,
                             ),
                             Text('${courseDetails['unit']} Units',
-                                style: TextStyle(color: Colors.white)),
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 12)),
                           ],
                         ),
                       ],

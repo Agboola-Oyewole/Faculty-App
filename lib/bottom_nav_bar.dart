@@ -188,7 +188,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
       },
       child: SafeArea(
         child: Scaffold(
-          backgroundColor: Color(0xffF1EFEC),
+          backgroundColor: Colors.white,
           body: Stack(
             children: [
               NotificationListener<ScrollNotification>(
@@ -210,8 +210,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 },
                 child: isLoading
                     ? Center(
-                        child:
-                            CircularProgressIndicator(color: Color(0xff347928)))
+                        child: CircularProgressIndicator(color: Colors.black))
                     : _screens[_currentIndex], // Show current screen
               ),
 
@@ -235,13 +234,13 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   },
                   child: Material(
                     elevation: 3,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(5),
                     color: Colors.white,
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black, width: 1),
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(color: Colors.black, width: 1.5),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.1),
@@ -251,7 +250,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                         ],
                       ),
                       padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 10),
+                          vertical: 7, horizontal: 00),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
@@ -282,36 +281,41 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 ),
               );
             },
-            child:
-                (_currentIndex != 3 && _currentIndex != 1 && _currentIndex != 2)
-                    ? Padding(
-                        padding: const EdgeInsets.only(
-                            bottom: 85.0, left: 10, right: 10, top: 10),
-                        child: FloatingActionButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => CreateContentScreen(
-                                  tabIndex: _currentIndex == 0
-                                      ? 0
-                                      : _currentIndex == 2
-                                          ? 1
-                                          : 0,
-                                ),
-                              ),
-                            );
-                          },
-                          backgroundColor: const Color(0xff347928),
-                          elevation: 4.0,
-                          child: const Icon(
-                            Icons.add_a_photo,
-                            color: Colors.white,
-                            size: 25.0,
+            child: (_currentIndex != 3 &&
+                    _currentIndex != 1 &&
+                    _currentIndex != 2)
+                ? Padding(
+                    padding: const EdgeInsets.only(
+                        bottom: 85.0, left: 10, right: 10, top: 10),
+                    child: FloatingActionButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateContentScreen(
+                              tabIndex: _currentIndex == 0
+                                  ? 0
+                                  : _currentIndex == 2
+                                      ? 1
+                                      : 0,
+                            ),
                           ),
-                        ),
-                      )
-                    : Container(),
+                        );
+                      },
+                      backgroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(5), // Add border radius here
+                      ),
+                      elevation: 4.0,
+                      child: const Icon(
+                        Icons.add_a_photo,
+                        color: Colors.white,
+                        size: 23.0,
+                      ),
+                    ),
+                  )
+                : Container(),
           ),
         ),
       ),
@@ -331,17 +335,16 @@ class _BottomNavBarState extends State<BottomNavBar> {
         children: [
           Icon(
             icon,
-            color: _currentIndex == index ? Color(0xff347928) : Colors.black,
-            size: _currentIndex == index ? 25 : 20,
+            color: _currentIndex == index ? Colors.grey[600] : Colors.black,
+            size: _currentIndex == index ? 23 : 18,
           ),
           Text(
             label,
             style: TextStyle(
                 fontWeight:
                     _currentIndex == index ? FontWeight.w900 : FontWeight.bold,
-                color:
-                    _currentIndex == index ? Color(0xff347928) : Colors.black,
-                fontSize: 13),
+                color: _currentIndex == index ? Colors.grey[600] : Colors.black,
+                fontSize: 12),
           ),
         ],
       ),

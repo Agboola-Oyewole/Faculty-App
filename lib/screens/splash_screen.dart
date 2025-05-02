@@ -387,7 +387,7 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                                 width: 24,
                                 height: 24,
                                 child: CircularProgressIndicator(
-                                  color: Color(0xff347928), // Customize color
+                                  color: Colors.black, // Customize color
                                   strokeWidth: 4,
                                 ),
                               )

@@ -100,8 +100,7 @@ class _ExcosPageState extends State<ExcosPage> {
                         child: Text(
                       'ADD NEW ROLE',
                       style: TextStyle(
-                          color: Color(0xff347928),
-                          fontWeight: FontWeight.bold),
+                          color: Colors.black, fontWeight: FontWeight.bold),
                     )),
                   ),
                   buildTextFormField(nameController, 'Full Name'),
@@ -127,7 +126,11 @@ class _ExcosPageState extends State<ExcosPage> {
                             () => isLoading = false); // Stop loading spinner
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xff347928),
+                        backgroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                              5), // Add border radius here
+                        ),
                         minimumSize: Size(double.infinity, 50),
                       ),
                       child: isLoading
@@ -159,7 +162,21 @@ class _ExcosPageState extends State<ExcosPage> {
     for (var entry in fields.entries) {
       if (entry.value == null || entry.value.toString().trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Please fill in the '${entry.key}' field.")),
+          SnackBar(
+            content: Text(
+              "🚫 Please fill in the '${entry.key}' field.",
+              style: TextStyle(color: Colors.black),
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.black),
+            ),
+            margin: EdgeInsets.all(16),
+            elevation: 3,
+            duration: Duration(seconds: 3),
+          ),
         );
         setState(() {
           isLoading = false;
@@ -220,7 +237,21 @@ class _ExcosPageState extends State<ExcosPage> {
       await excosRef.doc(excosId).set(formData);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Data submitted successfully!")),
+        SnackBar(
+          content: Text(
+            "✅ Data submitted successfully!.",
+            style: TextStyle(color: Colors.black),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Colors.black),
+          ),
+          margin: EdgeInsets.all(16),
+          elevation: 3,
+          duration: Duration(seconds: 3),
+        ),
       );
 
       _clearForm();
@@ -366,10 +397,10 @@ class _ExcosPageState extends State<ExcosPage> {
               padding: const EdgeInsets.only(top: 15.0),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xff347928),
+                  backgroundColor: Colors.black,
                   elevation: 3,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   minimumSize: Size(double.infinity, 50),
                 ),
@@ -393,14 +424,17 @@ class _ExcosPageState extends State<ExcosPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text("Meet the Excos"),
+        title: Text(
+          "Meet the Excos",
+          style: TextStyle(fontSize: 18),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15),
         child: isLoadingFetching
             ? Center(
                 child: CircularProgressIndicator(
-                color: Color(0xff347928),
+                color: Colors.black,
               )) // Show loading indicator
             : profiles.isEmpty
                 ? Center(child: Text("No excos available")) // Show empty state
@@ -421,11 +455,14 @@ class _ExcosPageState extends State<ExcosPage> {
                   ),
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
         child: FloatingActionButton(
           onPressed: () => showAddRoleBottomSheet(context),
-          backgroundColor: const Color(0xff347928),
-          elevation: 5.0,
+          backgroundColor: Colors.black,
+          elevation: 3.0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(5), // Add border radius here
+          ),
           child: Padding(
             padding: const EdgeInsets.only(left: 4.0),
             child: const Icon(
@@ -448,7 +485,8 @@ class _ExcosPageState extends State<ExcosPage> {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: .0, top: 5),
-            child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(label,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           ),
           SizedBox(height: 5),
           DropdownButtonFormField<String>(
@@ -493,7 +531,7 @@ class _ExcosPageState extends State<ExcosPage> {
         controller: controller,
         decoration: InputDecoration(
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(5),
             borderSide: BorderSide(
               color: Color(0xff347928),
               width: 1.5,
@@ -513,7 +551,7 @@ class _ExcosPageState extends State<ExcosPage> {
       children: [
         Text(
           "Upload Image",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
         ),
         SizedBox(height: 8),
         GestureDetector(
@@ -523,7 +561,7 @@ class _ExcosPageState extends State<ExcosPage> {
             width: double.infinity,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(5),
               color: Colors.grey[200],
             ),
             child: _imagePost != null
@@ -553,7 +591,7 @@ class ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
           decoration: BoxDecoration(
@@ -585,15 +623,16 @@ class ProfileCard extends StatelessWidget {
           height: 8,
         ),
         Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
               width: 150, // Adjust based on your layout
               child: Text(
+                textAlign: TextAlign.center,
                 profile['full_Name'],
                 style: TextStyle(
                   color: Colors.black,
-                  fontSize: 17,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
                 overflow: TextOverflow.visible, // Ensures wrapping
@@ -604,10 +643,11 @@ class ProfileCard extends StatelessWidget {
             SizedBox(
               width: 150,
               child: Text(
+                textAlign: TextAlign.center,
                 profile['role'],
                 style: TextStyle(
                   color: Colors.black.withOpacity(0.7),
-                  fontSize: 14,
+                  fontSize: 11,
                 ),
                 softWrap: true,
               ),
@@ -616,10 +656,11 @@ class ProfileCard extends StatelessWidget {
             SizedBox(
               width: 150,
               child: Text(
+                textAlign: TextAlign.center,
                 profile['session'],
                 style: TextStyle(
                   color: Colors.black.withOpacity(0.7),
-                  fontSize: 14,
+                  fontSize: 11,
                 ),
                 softWrap: true,
               ),

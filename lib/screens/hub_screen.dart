@@ -98,9 +98,9 @@ class _HubScreenState extends State<HubScreen> {
               child: GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  crossAxisSpacing: 12,
+                  crossAxisSpacing: 25,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 0.94,
+                  childAspectRatio: 1.2,
                 ),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
@@ -109,35 +109,34 @@ class _HubScreenState extends State<HubScreen> {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) =>
-                              items[index]['title'] ==
-                                  "Current Lecture Timetable"
+                              builder: (context) => items[index]['title'] ==
+                                      "Current Lecture Timetable"
                                   ? ExamAndLectureCard(
-                                title: 'Current Lecture Timetable',
-                                firebaseCollection: 'lectures',
-                              )
+                                      title: 'Current Lecture Timetable',
+                                      firebaseCollection: 'lectures',
+                                    )
                                   : items[index]['title'] ==
-                                  "Current Academic Calendar"
-                                  ? ExamAndLectureCard(
-                                title: 'Current Academic Calendar',
-                                firebaseCollection: 'academic',
-                              )
-                                  : items[index]['title'] ==
-                                  "Current Exam Schedule"
-                                  ? ExamAndLectureCard(
-                                title: 'Current Exam Schedule',
-                                firebaseCollection: 'exams',
-                              )
-                                  : items[index]['title'] ==
-                                  "CGPA Calculator"
-                                  ? ExcosPage()
-                                  : items[index]['title'] ==
-                                  "Lecture Schedule (Beta)"
-                                  ? WeeklyScheduleScreen()
-                                  : userData?['role'] ==
-                                  'student'
-                                  ? AttendanceScreen()
-                                  : AddClassScreen()));
+                                          "Current Academic Calendar"
+                                      ? ExamAndLectureCard(
+                                          title: 'Current Academic Calendar',
+                                          firebaseCollection: 'academic',
+                                        )
+                                      : items[index]['title'] ==
+                                              "Current Exam Schedule"
+                                          ? ExamAndLectureCard(
+                                              title: 'Current Exam Schedule',
+                                              firebaseCollection: 'exams',
+                                            )
+                                          : items[index]['title'] ==
+                                                  "CGPA Calculator"
+                                              ? ExcosPage()
+                                              : items[index]['title'] ==
+                                                      "Lecture Schedule (Beta)"
+                                                  ? WeeklyScheduleScreen()
+                                                  : userData?['role'] ==
+                                                          'student'
+                                                      ? AttendanceScreen()
+                                                      : AddClassScreen()));
                     },
                     child: HubContainer(
                       title: items[index]['title']!,

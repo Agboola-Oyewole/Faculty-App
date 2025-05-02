@@ -121,7 +121,21 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         if (!didPop) {
           // Exit the app
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Complete your details or Exit the app!")),
+            SnackBar(
+              content: Text(
+                "⚠️ Complete your details or exit the app!",
+                style: TextStyle(color: Colors.black),
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: Colors.black),
+              ),
+              margin: EdgeInsets.all(16),
+              elevation: 3,
+              duration: Duration(seconds: 3),
+            ),
           );
         }
       },

@@ -17,34 +17,34 @@ class FolderCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10.0),
       child: Material(
-        elevation: 3,
-        borderRadius: BorderRadius.circular(10),
+        elevation: 1,
+        borderRadius: BorderRadius.circular(5),
         child: Container(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: Color(0xffDBDBDB),
-            borderRadius: BorderRadius.all(Radius.circular(10)),
+            color: Colors.white,
+            borderRadius: BorderRadius.all(Radius.circular(5)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Image.asset(
-                width: 40,
-                height: 40,
+                width: 30,
+                height: 30,
                 'assets/images/folder-removebg-preview.png',
               ),
               SizedBox(height: 10),
               Flexible(
                 child: Text(
                   '$courseCode Folder',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
               SizedBox(height: 5),
               Text(
                 '$fileCount ${fileCount > 1 ? 'Files' : 'File'}   •   ${totalSize.toStringAsFixed(2)}MB',
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                style: TextStyle(color: Colors.grey[600], fontSize: 10),
               ),
             ],
           ),

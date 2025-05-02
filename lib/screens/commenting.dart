@@ -70,6 +70,26 @@ class _CommentSectionState extends State<CommentSection> {
     });
   }
 
+  String timeAgo(DateTime postTime) {
+    Duration difference = DateTime.now().difference(postTime);
+
+    if (difference.inSeconds < 60) {
+      return '${difference.inSeconds} seconds ago';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} minutes ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hours ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inDays < 30) {
+      return '${(difference.inDays / 7).floor()} weeks ago';
+    } else if (difference.inDays < 365) {
+      return '${(difference.inDays / 30).floor()} months ago';
+    } else {
+      return '${(difference.inDays / 365).floor()} years ago';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -77,13 +97,20 @@ class _CommentSectionState extends State<CommentSection> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
+        color: Colors.white,
         height: MediaQuery.of(context).size.height * 0.6,
         padding: EdgeInsets.only(bottom: 15, left: 15, right: 15, top: 30),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text("Comments",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 5.0),
+                child: Text("Comments",
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              ),
+            ),
             Divider(),
             Expanded(
               child: isLoading
@@ -115,15 +142,36 @@ class _CommentSectionState extends State<CommentSection> {
                                     as Map<String, dynamic>;
                                 return ListTile(
                                   leading: CircleAvatar(
+                                    radius: 18,
                                     backgroundImage: userData['profile_pic'] !=
                                             null
                                         ? NetworkImage(userData['profile_pic'])
                                         : AssetImage('assets/images/user.png')
                                             as ImageProvider,
                                   ),
-                                  title:
-                                      Text(userData['first_name'] ?? "Unknown"),
-                                  subtitle: Text(comment['comment']),
+                                  title: Row(
+                                    children: [
+                                      Text(
+                                        userData['first_name'] ?? "Unknown",
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        width: 5,
+                                      ),
+                                    ],
+                                  ),
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Text(comment['comment']),
+                                  ),
+                                  trailing: Text(
+                                    timeAgo((comment['timestamp'] as Timestamp)
+                                        .toDate()),
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey),
+                                  ),
                                 );
                               },
                             );
@@ -138,19 +186,21 @@ class _CommentSectionState extends State<CommentSection> {
                     child: TextField(
                       controller: _commentController,
                       decoration: InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                         hintText: "Write a comment...",
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                       ),
                     ),
                   ),
                   SizedBox(width: 10),
                   isLoadingComment
-                      ? CircularProgressIndicator(color: Color(0xff347928))
+                      ? CircularProgressIndicator(color: Colors.black)
                       : GestureDetector(
                           onTap: addComment,
-                          child: Icon(Icons.send, color: Color(0xff347928)),
+                          child: Icon(Icons.send, color: Colors.black),
                         ),
                 ],
               ),

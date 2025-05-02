@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:faculty_app/screens/attendance_screen.dart';
 import 'package:faculty_app/screens/personal_details.dart';
 import 'package:faculty_app/screens/splash_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,9 +13,14 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'bottom_nav_bar.dart';
 
+// ✅ Global navigator key for notification taps
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
   print("📩 Background Message: ${message.notification?.body}");
-  showNotification(message.notification?.title, message.notification?.body);
+  showNotification(
+      message.notification?.title, message.notification?.body, message.data);
 }
 
 void main() async {
@@ -23,7 +31,7 @@ void main() async {
   await initNotifications();
   setupFirebaseMessaging();
 
-  // ✅ Handle background notifications
+  // ✅ Background notification handling
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   runApp(MyApp());
@@ -35,6 +43,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(fontFamily: 'Poppins'),
       home: AuthCheck(),
@@ -78,8 +87,7 @@ class AuthCheck extends StatelessWidget {
               if (userSnapshot.connectionState == ConnectionState.waiting) {
                 return Scaffold(
                   body: Center(
-                      child:
-                          CircularProgressIndicator(color: Color(0xff347928))),
+                      child: CircularProgressIndicator(color: Colors.black)),
                 );
               } else if (userSnapshot.hasData && userSnapshot.data != null) {
                 bool hasMissingFields = [
@@ -129,48 +137,89 @@ Future<void> initNotifications() async {
     android: initializationSettingsAndroid,
   );
 
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  await flutterLocalNotificationsPlugin.initialize(
+    initializationSettings,
+    onDidReceiveNotificationResponse: (details) {
+      final payload = details.payload;
+      final type = jsonDecode(payload!)['type'];
+
+      if (type == 'attendance') {
+        navigatorKey.currentState?.push(MaterialPageRoute(
+          builder: (_) => AttendanceScreen(),
+        ));
+      } else {
+        navigatorKey.currentState?.push(MaterialPageRoute(
+          builder: (_) => BottomNavBar(),
+        ));
+      }
+    },
+  );
+
+  // If app is opened from terminated state by tapping notification
+  RemoteMessage? initialMessage =
+      await FirebaseMessaging.instance.getInitialMessage();
+
+  if (initialMessage != null) {
+    // Retrieve the type from the payload
+    final type = initialMessage.data['type'];
+
+    if (type == 'attendance') {
+      // Navigate to AttendanceScreen if type is 'attendance'
+      navigatorKey.currentState?.push(MaterialPageRoute(
+        builder: (_) => AttendanceScreen(), // 👉 Navigate to AttendanceScreen
+      ));
+    } else {
+      // Navigate to BottomNavBar for other types
+      navigatorKey.currentState?.push(MaterialPageRoute(
+        builder: (_) => BottomNavBar(), // 👉 Navigate to BottomNavBar
+      ));
+    }
+  }
 }
 
-// ✅ Setup Firebase Messaging for handling notifications
+// ✅ Setup Firebase Messaging
 void setupFirebaseMessaging() {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-  // Request permission for notifications
-  messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
+  messaging.requestPermission(alert: true, badge: true, sound: true);
 
-  // Listen for new messages while the app is in foreground
+  // Foreground
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     print("📩 Foreground Notification: ${message.notification?.body}");
-    showNotification(message.notification?.title, message.notification?.body);
+    showNotification(
+        message.notification?.title, message.notification?.body, message.data);
   });
 
-  // Handle when a user taps on a notification and opens the app
+  // Tap on notification
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    print("📂 Notification Clicked!");
+    final type = message.data['type'];
+
+    if (type == 'attendance') {
+      navigatorKey.currentState?.push(MaterialPageRoute(
+        builder: (_) => AttendanceScreen(),
+      ));
+    } else {
+      navigatorKey.currentState?.push(MaterialPageRoute(
+        builder: (_) => BottomNavBar(),
+      ));
+    }
   });
 
-  // ✅ Listen for token refresh and update Firestore
+  // FCM token refresh
   FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await FirebaseFirestore.instance
           .collection("users")
           .doc(user.uid)
-          .update({
-        "fcmToken": newToken,
-      });
+          .update({"fcmToken": newToken});
       print("🔄 FCM Token Refreshed and Updated: $newToken");
     }
   });
 }
 
-// ✅ Show notification in the system tray
-void showNotification(String? title, String? body) {
+// ✅ Show notification
+void showNotification(String? title, String? body, Map<String, dynamic> data) {
   var androidDetails = AndroidNotificationDetails(
     'channelId',
     'channelName',
@@ -180,5 +229,7 @@ void showNotification(String? title, String? body) {
   );
 
   var notificationDetails = NotificationDetails(android: androidDetails);
-  flutterLocalNotificationsPlugin.show(0, title, body, notificationDetails);
+
+  flutterLocalNotificationsPlugin.show(0, title, body, notificationDetails,
+      payload: jsonEncode(data));
 }

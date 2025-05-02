@@ -87,14 +87,14 @@ class _CourseScreenState extends State<CourseScreen> {
             isLoading
                 ? Container()
                 : Material(
-                    borderRadius: BorderRadius.circular(16),
-                    elevation: 3,
+                    borderRadius: BorderRadius.circular(5),
+                    elevation: 2,
                     child: Container(
                       padding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                       child: Row(children: [
                         Expanded(
@@ -104,7 +104,7 @@ class _CourseScreenState extends State<CourseScreen> {
                                 decoration: BoxDecoration(
                                   color: Color(0xffDBDBDB).withOpacity(0.5),
                                   borderRadius: const BorderRadius.all(
-                                      Radius.circular(10.0)),
+                                      Radius.circular(5.0)),
                                 ),
                                 padding: const EdgeInsets.all(8.0),
                                 child: Icon(
@@ -121,7 +121,7 @@ class _CourseScreenState extends State<CourseScreen> {
                                   // Lecture title
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 13),
+                                      fontSize: 11),
                                 ),
                               ),
                             ],
@@ -141,7 +141,7 @@ class _CourseScreenState extends State<CourseScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       CircularProgressIndicator(
-                        color: Color(0xff347928),
+                        color: Colors.black,
                       ),
                       SizedBox(
                         height: 20,

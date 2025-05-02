@@ -15,10 +15,10 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: "v4", auth });
 const drive = google.drive({ version: "v3", auth });
 
-// ✅ EXISTING PUSH NOTIFICATIONS
+// ✅ FIXED PUSH NOTIFICATIONS
 exports.sendScheduledNotifications = onSchedule("every 5 minutes", async () => {
   const db = admin.firestore();
-  const currentTime = admin.firestore.Timestamp.now();
+  const currentTime = Date.now(); // Current time in milliseconds
   const usersSnapshot = await db.collection("schedules").get();
 
   for (const userDoc of usersSnapshot.docs) {
@@ -33,32 +33,35 @@ exports.sendScheduledNotifications = onSchedule("every 5 minutes", async () => {
     for (const event of eventsForToday) {
       if (!event.startTime) continue;
 
-      const eventStartTime = event.startTime;
-      const notificationTime = admin.firestore.Timestamp.fromDate(
-        new Date(eventStartTime.toDate().getTime() - 5 * 60000)
-      );
+      const eventStartTime = event.startTime.toDate(); // Convert Firestore Timestamp to Date
+      const eventStartMillis = eventStartTime.getTime();
+      const notificationTimeMillis = eventStartMillis - 5 * 60 * 1000; // 5 minutes before event
 
-      if (currentTime.seconds >= notificationTime.seconds &&
-          currentTime.seconds < eventStartTime.seconds) {
-        await sendNotification(fcmToken, event.name, event.startTime.toDate());
+      if (currentTime >= notificationTimeMillis && currentTime < eventStartMillis) {
+        await sendNotification(fcmToken, event.name, eventStartTime);
       }
     }
   }
 });
 
+// Get user's FCM token
 async function getUserFcmToken(userId) {
   const userDoc = await admin.firestore().collection("users").doc(userId).get();
   return userDoc.exists ? userDoc.data().fcmToken : null;
 }
 
+// Send notification
 async function sendNotification(token, eventName, startTime) {
   const formattedTime = DateTime.fromJSDate(startTime, { zone: "Africa/Lagos" }).toFormat("hh:mm a");
   const payload = {
     notification: {
-      title: "Upcoming Lecture 🚀",
+      title: "FES Connect Hub",
       body: `Your Course ${eventName} Lecture starts at ${formattedTime}. Get ready!`,
     },
     token: token,
+    data: {
+      type: "schedule",
+    },
   };
 
   try {
@@ -67,22 +70,21 @@ async function sendNotification(token, eventName, startTime) {
   } catch (error) {
     console.error("❌ Error sending notification:", error);
 
-    // 🔴 Handle expired/invalid token
+    // Handle expired token error
     if (error.code === "messaging/registration-token-not-registered") {
       console.log(`⚠️ Expired token detected. Removing from Firestore: ${token}`);
 
-      // Find the user with this token and remove it
       const usersRef = admin.firestore().collection("users");
       const querySnapshot = await usersRef.where("fcmToken", "==", token).get();
 
-      querySnapshot.forEach(async (doc) => {
+      // Use for...of to await async function calls properly
+      for (const doc of querySnapshot.docs) {
         await doc.ref.update({ fcmToken: admin.firestore.FieldValue.delete() });
         console.log(`✅ Removed expired token from user: ${doc.id}`);
-      });
+      }
     }
   }
 }
-
 
 // ✅ CREATE A GOOGLE SHEET FOR CLASS ATTENDANCE
 exports.createClassSheet = onDocumentCreated("attendance/{classId}", async (event) => {
@@ -92,7 +94,6 @@ exports.createClassSheet = onDocumentCreated("attendance/{classId}", async (even
   const classData = snap.data();
 
   try {
-    // Create a new Google Sheet
     const response = await sheets.spreadsheets.create({
       requestBody: {
         properties: { title: `Class - ${classData.metadata.courseCode}` },
@@ -105,7 +106,6 @@ exports.createClassSheet = onDocumentCreated("attendance/{classId}", async (even
 
     console.log(`✅ Created Google Sheet for ${classData.metadata.courseCode}: ${sheetUrl}`);
 
-    // Make the sheet public (readable by everyone)
     await drive.permissions.create({
       fileId: spreadsheetId,
       requestBody: {
@@ -114,13 +114,11 @@ exports.createClassSheet = onDocumentCreated("attendance/{classId}", async (even
       },
     });
 
-    // Store the Sheet ID & URL inside Firestore
     await admin.firestore().collection("attendance").doc(classId).update({
       "metadata.sheetId": spreadsheetId,
-      "metadata.sheetUrl": sheetUrl, // 🔹 Now storing the URL
+      "metadata.sheetUrl": sheetUrl,
     });
 
-    // Initialize the sheet with headers
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: "Attendance!A1:F1",
@@ -143,10 +141,9 @@ exports.syncAttendanceToSheet = onDocumentWritten("attendance/{classId}/students
   const { classId, studentId } = event.params;
   const studentData = snap.after ? snap.after.data() : null;
 
-  if (!studentData) return null; // If document was deleted, do nothing
+  if (!studentData) return null;
 
   try {
-    // Fetch class metadata to get the Sheet ID
     const classDoc = await admin.firestore().collection("attendance").doc(classId).get();
     const classData = classDoc.data();
     if (!classData || !classData.metadata.sheetId) {
@@ -156,7 +153,6 @@ exports.syncAttendanceToSheet = onDocumentWritten("attendance/{classId}/students
 
     const spreadsheetId = classData.metadata.sheetId;
 
-    // Append student attendance to the correct sheet
     const values = [
       [classId, studentData.name, studentData.matric_no, new Date().toISOString(), studentData.status],
     ];
@@ -175,4 +171,55 @@ exports.syncAttendanceToSheet = onDocumentWritten("attendance/{classId}/students
   }
 
   return null;
+});
+
+exports.sendClassNotification = onDocumentCreated('attendance/{classId}', async (event) => {
+  const snap = event.data;  // Access document snapshot from event
+  const classData = snap.data();
+  const department = classData.metadata.department;
+  const level = classData.metadata.level;
+  const code = classData.metadata.courseCode;
+
+  // Get all users who match the department and level
+  const usersSnapshot = await admin.firestore()
+    .collection('users')
+    .where('department', '==', department)
+    .where('level', '==', level)
+    .get();
+
+  if (usersSnapshot.empty) {
+    console.log('No users found for this department and level');
+    return null;
+  }
+
+  // Prepare the notification message
+  const message = {
+    notification: {
+      title: 'Attendance Started!',
+      body: `Lecture attendance for ${code} has started. Please check in.`,
+    },
+    tokens: [],
+    "data": {
+        "type": "attendance"
+     }
+  };
+
+  // Add FCM tokens of matching users
+  usersSnapshot.forEach((doc) => {
+    const user = doc.data();
+    if (user.fcmToken) {
+      message.tokens.push(user.fcmToken);
+    }
+  });
+
+  // Send the notification
+  try {
+  console.log('Messages', message);
+    const response = await admin.messaging().sendEachForMulticast(message);
+    console.log(`${response.successCount} notifications sent successfully`);
+    return null;
+  } catch (error) {
+    console.log('Error sending notifications:', error);
+    return null;
+  }
 });

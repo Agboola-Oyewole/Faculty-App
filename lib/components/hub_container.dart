@@ -16,32 +16,32 @@ class HubContainer extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10.0),
       child: Material(
-        elevation: 3,
-        borderRadius: BorderRadius.circular(10),
+        elevation: 1,
+        borderRadius: BorderRadius.circular(5),
         child: Container(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: Color(0xffDBDBDB),
-            borderRadius: BorderRadius.all(Radius.circular(10)),
+            color: Colors.white,
+            borderRadius: BorderRadius.all(Radius.circular(5)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Image.asset(
-                width: 40,
-                height: 40,
+                width: 30,
+                height: 30,
                 'assets/images/$image',
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 15),
               Text(
                 title,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
               ),
               SizedBox(height: 5),
               Expanded(
                 child: Text(
                   description,
-                  style: TextStyle(color: Colors.grey[800], fontSize: 13),
+                  style: TextStyle(color: Colors.grey[800], fontSize: 10),
                 ),
               ),
             ],

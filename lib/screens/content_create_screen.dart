@@ -173,9 +173,19 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content:
-                                    Text("You can only select up to 3 tags!"),
-                                duration: Duration(seconds: 2),
+                                content: Text(
+                                  "🚫 You can only select up to 3 tags!",
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: BorderSide(color: Colors.black),
+                                ),
+                                margin: EdgeInsets.all(16),
+                                elevation: 3,
+                                duration: Duration(seconds: 3),
                               ),
                             );
                           }
@@ -363,8 +373,18 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "Only class representatives or elected student posts can post in the $currentTabName tab!",
+              "🚫 Only class representatives or elected student posts can post in the $currentTabName tab!",
+              style: TextStyle(color: Colors.black),
             ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.black),
+            ),
+            margin: EdgeInsets.all(16),
+            elevation: 3,
+            duration: Duration(seconds: 3),
           ),
         );
         _clearForm();
@@ -380,7 +400,20 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           if (entry.value == null || entry.value.toString().trim().isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                  content: Text("Please fill in the '${entry.key}' field.")),
+                content: Text(
+                  "🚫  Please fill in the '${entry.key}' field.",
+                  style: TextStyle(color: Colors.black),
+                ),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: Colors.black),
+                ),
+                margin: EdgeInsets.all(16),
+                elevation: 3,
+                duration: Duration(seconds: 3),
+              ),
             );
             setState(() {
               isLoading = false;
@@ -614,7 +647,21 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       print(formData);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$currentTabName submitted successfully!')),
+        SnackBar(
+          content: Text(
+            "✅ $currentTabName submitted successfully!",
+            style: TextStyle(color: Colors.black),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Colors.black),
+          ),
+          margin: EdgeInsets.all(16),
+          elevation: 3,
+          duration: Duration(seconds: 3),
+        ),
       );
       _clearForm();
       setState(() {
@@ -666,15 +713,18 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffF1EFEC),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Color(0xffF1EFEC),
-        title: Text('Manage Faculty Content'),
+        backgroundColor: Colors.white,
+        title: Text(
+          'Manage Faculty Content',
+          style: TextStyle(fontSize: 18),
+        ),
         bottom: TabBar(
           controller: _tabController,
           indicator: UnderlineTabIndicator(
             borderSide: BorderSide(
-              color: Color(0xff347928),
+              color: Colors.black,
               width: 3.0,
             ),
             insets: EdgeInsets.symmetric(
@@ -687,7 +737,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             Tab(icon: Icon(Icons.schedule), text: "Lecture"),
             Tab(icon: Icon(Icons.schedule), text: "Academic"),
           ],
-          labelStyle: TextStyle(color: Color(0xff347928)),
+          labelStyle: TextStyle(color: Colors.black),
         ),
       ),
       body: TabBarView(
@@ -766,14 +816,12 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               }),
             if (allowLevel) SizedBox(height: 5),
             if (allowCourseCode)
-              Text(
-                'Course Code',
-                style:
-                    TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-              ),
-            if (allowCourseCode)
-              SizedBox(
-                height: 5,
+              Padding(
+                padding: const EdgeInsets.only(top: 5.0),
+                child: Text(
+                  'Course Code',
+                  style: TextStyle(color: Colors.black),
+                ),
               ),
             if (allowCourseCode)
               buildTextFormField(
@@ -844,8 +892,12 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             ElevatedButton(
               onPressed: _submitForm,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xff347928),
+                backgroundColor: Colors.black,
                 minimumSize: Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(5), // Add border radius here
+                ),
               ),
               child: isLoading
                   ? const SizedBox(
@@ -870,6 +922,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     return Padding(
       padding: const EdgeInsets.only(top: 10.0),
       child: TextFormField(
+        cursorColor: Colors.black,
         controller: controller,
         maxLines: null,
         // ✅ Allows multi-line input
@@ -879,9 +932,9 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         // ✅ Prevents submission on Enter
         decoration: InputDecoration(
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(5),
             borderSide: BorderSide(
-              color: Color(0xff347928),
+              color: Colors.black,
               width: 1.5,
             ),
           ),
@@ -938,19 +991,20 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   Widget buildDropdown(String label, List<String> items, String? selectedItem,
       ValueChanged<String?> onChanged) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.only(left: .0, top: 5),
-            child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(label),
           ),
           SizedBox(height: 5),
           DropdownButtonFormField<String>(
             borderRadius: BorderRadius.all(Radius.circular(5.0)),
             value: selectedItem,
             decoration: InputDecoration(
+              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 5),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
               focusedBorder: OutlineInputBorder(
@@ -995,15 +1049,14 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             width: double.infinity,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(5),
               color: Colors.grey[200],
             ),
             child: _imagePost != null
                 ? Image.file(_imagePost!, fit: BoxFit.cover)
                 : Icon(Icons.camera_alt, size: 50, color: Colors.grey),
           ),
-        ),
-        SizedBox(height: 16),
+        )
       ],
     );
   }
@@ -1021,7 +1074,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             width: double.infinity,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(5),
               color: Colors.grey[200],
             ),
             child: _imageLecture != null
@@ -1029,7 +1082,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                 : Icon(Icons.camera_alt, size: 50, color: Colors.grey),
           ),
         ),
-        SizedBox(height: 16),
       ],
     );
   }
@@ -1047,7 +1099,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             width: double.infinity,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(5),
               color: Colors.grey[200],
             ),
             child: _imageExam != null
@@ -1055,33 +1107,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                 : Icon(Icons.camera_alt, size: 50, color: Colors.grey),
           ),
         ),
-        SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Widget _buildImageEventUpload() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Upload Image"),
-        SizedBox(height: 8),
-        GestureDetector(
-          onTap: _pickImageEvent,
-          child: Container(
-            height: 150,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(10),
-              color: Colors.grey[200],
-            ),
-            child: _imageEvent != null
-                ? Image.file(_imageEvent!, fit: BoxFit.cover)
-                : Icon(Icons.camera_alt, size: 50, color: Colors.grey),
-          ),
-        ),
-        SizedBox(height: 16),
       ],
     );
   }
@@ -1091,8 +1116,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Upload Document"),
-        SizedBox(height: 8),
+        SizedBox(height: 5),
         ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5), // Add border radius here
+            ),
+          ),
           onPressed: _pickDocument,
           icon: Icon(
             Icons.upload_file,
@@ -1104,7 +1134,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           ),
         ),
         if (_document != null) Text("File selected: ${_document!.path}"),
-        SizedBox(height: 16),
       ],
     );
   }
@@ -1114,8 +1143,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Upload Document"),
-        SizedBox(height: 8),
+        SizedBox(height: 5),
         ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5), // Add border radius here
+            ),
+          ),
           onPressed: _pickAcademicDocument,
           icon: Icon(
             Icons.upload_file,
@@ -1128,7 +1162,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         ),
         if (_documentAcademic != null)
           Text("File selected: ${_documentAcademic!.path}"),
-        SizedBox(height: 16),
       ],
     );
   }
@@ -1138,8 +1171,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Select Start Date"),
-        SizedBox(height: 8),
+        SizedBox(height: 5),
         ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5), // Add border radius here
+            ),
+          ),
           onPressed: _pickDate,
           icon: Icon(
             Icons.calendar_today,
@@ -1152,7 +1190,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             style: TextStyle(color: Colors.black),
           ),
         ),
-        SizedBox(height: 16),
       ],
     );
   }
@@ -1162,8 +1199,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Select End Date"),
-        SizedBox(height: 8),
+        SizedBox(height: 5),
         ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5), // Add border radius here
+            ),
+          ),
           onPressed: _pickDateEnd,
           icon: Icon(
             Icons.calendar_today,
@@ -1176,7 +1218,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             style: TextStyle(color: Colors.black),
           ),
         ),
-        SizedBox(height: 16),
       ],
     );
   }
