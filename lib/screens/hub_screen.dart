@@ -100,7 +100,7 @@ class _HubScreenState extends State<HubScreen> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 25,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1.2,
+                  childAspectRatio: 1.15,
                 ),
                 itemCount: items.length,
                 itemBuilder: (context, index) {

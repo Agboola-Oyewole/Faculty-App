@@ -36,6 +36,7 @@ class _CourseScreenState extends State<CourseScreen> {
         setState(() {
           courseData = data;
         });
+        print(courseData);
       } else {
         print("No cached data");
       }
@@ -93,9 +94,9 @@ class _CourseScreenState extends State<CourseScreen> {
                       padding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(5),
-                      ),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: Colors.black, width: .5)),
                       child: Row(children: [
                         Expanded(
                           child: Row(
@@ -157,8 +158,12 @@ class _CourseScreenState extends State<CourseScreen> {
                           itemBuilder: (context, index) {
                             String courseCode =
                                 courseData!.keys.elementAt(index);
-                            int fileCount = courseData![courseCode]!['count'];
-                            double totalSize = courseData![courseCode]!['size'];
+                            int unit = courseData![courseCode]!['unit'];
+                            List<dynamic> department =
+                                courseData![courseCode]!['department'];
+                            String level = courseData![courseCode]!['level'];
+                            String semester =
+                                courseData![courseCode]!['semester'];
 
                             return GestureDetector(
                               onTap: () {
@@ -173,8 +178,10 @@ class _CourseScreenState extends State<CourseScreen> {
                               },
                               child: FolderCard(
                                 courseCode: courseCode,
-                                fileCount: fileCount,
-                                totalSize: totalSize,
+                                unit: unit,
+                                department: department,
+                                level: level,
+                                semester: semester,
                               ),
                             );
                           },

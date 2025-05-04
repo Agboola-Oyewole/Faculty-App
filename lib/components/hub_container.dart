@@ -16,14 +16,14 @@ class HubContainer extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10.0),
       child: Material(
-        elevation: 1,
+        elevation: 2,
         borderRadius: BorderRadius.circular(5),
         child: Container(
           padding: EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.all(Radius.circular(5)),
-          ),
+              color: Colors.white,
+              borderRadius: BorderRadius.all(Radius.circular(5)),
+              border: Border.all(color: Colors.black, width: .5)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

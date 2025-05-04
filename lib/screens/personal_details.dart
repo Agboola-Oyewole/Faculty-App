@@ -30,6 +30,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       required String dateOfBirth,
       required String faculty,
       required String gender,
+      required int matricNo,
       required String semester}) async {
     // Get the current logged-in user
     User? user = FirebaseAuth.instance.currentUser;
@@ -47,6 +48,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           'department': department,
           'level': level,
           'date_of_birth': dateOfBirth,
+          'matricNo': matricNo,
+          'semester': semester,
           'faculty': faculty,
           'gender': gender,
           'updated_at': FieldValue.serverTimestamp(), // Track last update
@@ -95,6 +98,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   ];
 
   final List<String> genders = ["Male", "Female"];
+  String matricNo = "";
 
   // Function to show date picker
   Future<void> _selectDate(BuildContext context) async {
@@ -189,10 +193,26 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                   setState(() => _selectedGender = newValue);
                 }),
                 const SizedBox(height: 12),
-                _buildDropdown("Level", semester, _selectedSemester,
+                _buildDropdown("Semester", semester, _selectedSemester,
                     (newValue) {
                   setState(() => _selectedSemester = newValue);
                 }),
+                SizedBox(
+                  height: 12,
+                ),
+                TextField(
+                  autofocus: true,
+                  onChanged: (val) => matricNo = val,
+                  cursorColor: Colors.black,
+                  decoration: InputDecoration(
+                    labelText: "Matric Number",
+                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Colors.black),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 30),
 
                 // Continue Button
@@ -210,6 +230,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       await updateUserDetails(
                         // Await the function if it's async
                         department: _selectedDepartment!,
+                        matricNo: int.parse(matricNo),
                         semester: _selectedDepartment!,
                         level: _selectedLevel!,
                         dateOfBirth: dobController.text,

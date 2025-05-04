@@ -168,7 +168,7 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
               padding: const EdgeInsets.only(top: 15.0),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xff347928),
+                  backgroundColor: Colors.black,
                   elevation: 3,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -270,6 +270,7 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
     setState(() {
       isLoading = true;
     });
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -290,20 +291,43 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
         // Ensure the selected day exists as a list
         List<dynamic> eventsForDay = List.from(schedule[day] ?? []);
 
+        // ✅ Check if day already has 3 courses
+        if (eventsForDay.length >= 3) {
+          setState(() => isLoading = false);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "⚠️ Maximum of 3 courses allowed per day!",
+                style: TextStyle(color: Colors.black),
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: Colors.black),
+              ),
+              margin: EdgeInsets.all(16),
+              elevation: 3,
+              duration: Duration(seconds: 5),
+            ),
+          );
+          return;
+        }
+
         // Add the new event
         eventsForDay.add({
           "name": _selectedCourseCode,
           "startTime": Timestamp.fromDate(DateTime.parse(
               convertToTimestamp(context, startTime.format(context)))),
           "endTime": Timestamp.fromDate(DateTime.parse(
-              convertToTimestamp(context, endTime!.format(context))))
+              convertToTimestamp(context, endTime!.format(context)))),
         });
 
         // Update Firestore
         await docRef.update({
-          "schedule.$day": eventsForDay, // Only updates the selected day
+          "schedule.$day": eventsForDay,
         });
-        print("I'm here now, this worked then.");
       }
     } catch (e) {
       print(e);

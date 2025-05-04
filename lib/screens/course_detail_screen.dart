@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:faculty_app/screens/course_material_screen.dart';
 import 'package:flutter/material.dart';
 
 class CourseDetailScreen extends StatefulWidget {
@@ -185,7 +186,25 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                               itemCount: items.length,
                               itemBuilder: (context, index) {
                                 return GestureDetector(
-                                  onTap: () {},
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            CourseMaterialScreen(
+                                                courseId: widget.courseId,
+                                                courseUnit:
+                                                    courseDetails['unit'],
+                                                link: courseDetails[
+                                                        'drive_link'] ??
+                                                    'https://www.google.com/',
+                                                type: items[index]['title'] ==
+                                                        'Course Material'
+                                                    ? 'Lecture Notes'
+                                                    : 'Past Questions'),
+                                      ),
+                                    );
+                                  },
                                   child: courseDetailCard(
                                       icons[index],
                                       items[index]['title'],
@@ -208,14 +227,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10.0),
       child: Material(
-        elevation: 3,
+        elevation: 2,
         borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Color(0xffDBDBDB),
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-          ),
+              color: Colors.white,
+              borderRadius: BorderRadius.all(Radius.circular(10)),
+              border: Border.all(color: Colors.black, width: .5)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

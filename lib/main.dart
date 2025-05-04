@@ -86,6 +86,7 @@ class AuthCheck extends StatelessWidget {
             builder: (context, userSnapshot) {
               if (userSnapshot.connectionState == ConnectionState.waiting) {
                 return Scaffold(
+                  backgroundColor: Colors.white,
                   body: Center(
                       child: CircularProgressIndicator(color: Colors.black)),
                 );

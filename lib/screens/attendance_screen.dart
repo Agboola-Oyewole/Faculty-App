@@ -1,13 +1,14 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AddClassScreen extends StatefulWidget {
@@ -406,33 +407,44 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   String studentName = "";
   String matricNo = "";
   bool isLoading = false;
+  bool isLoadingUser = false;
   String? deviceId;
+
+  bool _showEmptyMessage = false;
 
   @override
   void initState() {
     super.initState();
     getUserDetails();
     _getCurrentLocation();
-    fetchDeviceId();
+    // fetchDeviceId();
+    // Wait for 3 seconds before showing "no data" message
+    Future.delayed(Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showEmptyMessage = true;
+        });
+      }
+    });
   }
 
-  void fetchDeviceId() async {
-    deviceId = await getDeviceId();
-    print("Device ID: $deviceId");
-  }
+  // void fetchDeviceId() async {
+  //   deviceId = await getDeviceId();
+  //   print("Device ID: $deviceId");
+  // }
 
-  Future<String?> getDeviceId() async {
-    final deviceInfo = DeviceInfoPlugin();
-
-    if (Platform.isAndroid) {
-      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-      return androidInfo.id; // Unique Android device ID
-    } else if (Platform.isIOS) {
-      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-      return iosInfo.identifierForVendor; // Unique iOS device ID
-    }
-    return null;
-  }
+  // Future<String?> getDeviceId() async {
+  //   final deviceInfo = DeviceInfoPlugin();
+  //
+  //   if (Platform.isAndroid) {
+  //     AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+  //     return androidInfo.id; // Unique Android device ID
+  //   } else if (Platform.isIOS) {
+  //     IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+  //     return iosInfo.identifierForVendor; // Unique iOS device ID
+  //   }
+  //   return null;
+  // }
 
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
@@ -486,34 +498,60 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
+  // ✅ Function to get a unique Device ID
+  Future<String> getUniqueDeviceId() async {
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+
+    // Use androidInfo.id which is a unique identifier for the device
+    final rawId = '${androidInfo.id}${androidInfo.model}${androidInfo.device}';
+
+    // Create a SHA-256 hash of the raw ID
+    final bytes = utf8.encode(rawId);
+    final digest = sha256.convert(bytes);
+
+    // Save the unique ID to SharedPreferences to ensure it's persistent across app restarts
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String deviceId = prefs.getString('device_id') ?? digest.toString();
+
+    if (prefs.getString('device_id') == null) {
+      // Save the generated unique ID the first time
+      await prefs.setString('device_id', deviceId);
+    }
+
+    return deviceId;
+  }
+
   Future<void> checkIn(String classId, Map<String, dynamic> venue) async {
     setState(() {
       isLoading = true;
     });
+    deviceId = await getUniqueDeviceId();
+    print(deviceId);
 
     try {
       // ✅ Get Matric ID
-      if (matricNo.isEmpty) {
-        setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "🚫 Input your Matric Number.",
-              style: TextStyle(color: Colors.black),
-            ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: Colors.black),
-            ),
-            margin: EdgeInsets.all(16),
-            elevation: 3,
-            duration: Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
+      // if (matricNo.isEmpty) {
+      //   setState(() => isLoading = false);
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text(
+      //         "🚫 Input your Matric Number.",
+      //         style: TextStyle(color: Colors.black),
+      //       ),
+      //       behavior: SnackBarBehavior.floating,
+      //       backgroundColor: Colors.white,
+      //       shape: RoundedRectangleBorder(
+      //         borderRadius: BorderRadius.circular(10),
+      //         side: BorderSide(color: Colors.black),
+      //       ),
+      //       margin: EdgeInsets.all(16),
+      //       elevation: 3,
+      //       duration: Duration(seconds: 3),
+      //     ),
+      //   );
+      //   return;
+      // }
 
       // ✅ Get Device ID
       if (deviceId == null) {
@@ -565,7 +603,44 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         return;
       }
 
-      // ✅ Verify GPS Accuracy & Distance
+      // ✅ Define limits
+      const double maxAllowedDistance = 70.0; // meters
+      const double maxAllowedAccuracy = 30.0; // meters
+
+      print({
+        "📍 DEBUG INFO": {
+          "Current Latitude": position.latitude,
+          "Current Longitude": position.longitude,
+          "Venue Latitude": venue['lat'],
+          "Venue Longitude": venue['lng'],
+          "Accuracy": position.accuracy,
+        }
+      });
+      //
+      // // ✅ Check GPS accuracy first
+      // if (position.accuracy > maxAllowedAccuracy) {
+      //   setState(() => isLoading = false);
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text(
+      //         "⚠️ Poor GPS accuracy. Please wait or move to an open area.",
+      //         style: TextStyle(color: Colors.black),
+      //       ),
+      //       behavior: SnackBarBehavior.floating,
+      //       backgroundColor: Colors.white,
+      //       shape: RoundedRectangleBorder(
+      //         borderRadius: BorderRadius.circular(10),
+      //         side: BorderSide(color: Colors.black),
+      //       ),
+      //       margin: EdgeInsets.all(16),
+      //       elevation: 3,
+      //       duration: Duration(seconds: 3),
+      //     ),
+      //   );
+      //   return;
+      // }
+
+      // ✅ Calculate Distance
       double distance = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
@@ -573,12 +648,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         venue['lng'],
       );
 
-      if (distance > 50) {
+      print({
+        "📍 DEBUG INFO": {
+          "Current Latitude": position.latitude,
+          "Current Longitude": position.longitude,
+          "Venue Latitude": venue['lat'],
+          "Venue Longitude": venue['lng'],
+          "Distance": distance,
+          "Accuracy": position.accuracy,
+        }
+      });
+
+      // ✅ Validate Distance
+      double buffer = position.accuracy <= 20 ? 15 : 40;
+      if (distance > buffer) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "❌ You are not present at the class venue!",
+              "❌ You are too far from the venue to check in.\nDistance: ${distance.toStringAsFixed(1)}m",
               style: TextStyle(color: Colors.black),
             ),
             behavior: SnackBarBehavior.floating,
@@ -633,7 +721,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "⚠️ You have already checked in.",
+              "⚠️ This matric number is already registered.",
               style: TextStyle(color: Colors.black),
             ),
             behavior: SnackBarBehavior.floating,
@@ -731,12 +819,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Map<String, dynamic>? userData;
 
   Future<void> getUserDetails() async {
+    setState(() {
+      isLoadingUser = true;
+    });
     Map<String, dynamic>? fetchedData = await fetchCurrentUserDetails();
     if (fetchedData != null) {
       setState(() {
         userData = fetchedData;
       });
     }
+    setState(() {
+      matricNo = userData!['matricNo'].toString();
+      isLoadingUser = false;
+    });
   }
 
   Future<Map<String, dynamic>?> fetchCurrentUserDetails() async {
@@ -895,205 +990,225 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             "Class Attendance",
             style: TextStyle(fontSize: 18),
           )),
-      body: Column(
-        children: [
-          // Student Info Input
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 15),
-            child: Column(
+      body: isLoadingUser
+          ? Center(child: CircularProgressIndicator(color: Colors.black))
+          : Column(
               children: [
-                TextField(
-                  onChanged: (val) => studentName = val,
-                  cursorColor: Colors.black,
-                  decoration: InputDecoration(
-                    labelText: "Full Name",
-                    border: OutlineInputBorder(),
-                    labelStyle: TextStyle(color: Colors.black),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                  ),
-                  controller: TextEditingController(
-                      text: FirebaseAuth.instance.currentUser?.displayName
-                              .toString() ??
-                          "Fetching name..."),
-                  enabled: false,
-                ),
-                SizedBox(
-                  height: 15,
-                ),
-                TextField(
-                  autofocus: true,
-                  onChanged: (val) => matricNo = val,
-                  cursorColor: Colors.black,
-                  decoration: InputDecoration(
-                    labelText: "Matric Number",
-                    border: OutlineInputBorder(),
-                    labelStyle: TextStyle(color: Colors.black),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('attendance')
-                  .where('metadata.level',
-                      isEqualTo: userData?['level']) // 🔹 Filter by level
-                  .where('metadata.department',
-                      isEqualTo:
-                          userData?['department']) // 🔹 Filter by department
-                  .orderBy('metadata.timestamp',
-                      descending:
-                          true) // 🔹 Order by createdAt field in descending order (most recent first)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Center(
-                      child: Text(
-                        "No classes available for your level & department.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                // Student Info Input
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 15.0, horizontal: 15),
+                  child: Column(
+                    children: [
+                      TextField(
+                        onChanged: (val) => studentName = val,
+                        cursorColor: Colors.black,
+                        decoration: InputDecoration(
+                          labelText: "Full Name",
+                          border: OutlineInputBorder(),
+                          labelStyle: TextStyle(color: Colors.black),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.black),
+                          ),
+                        ),
+                        controller: TextEditingController(
+                            text: FirebaseAuth.instance.currentUser?.displayName
+                                    .toString() ??
+                                "Fetching name..."),
+                        enabled: false,
                       ),
-                    ),
-                  );
-                }
+                      SizedBox(
+                        height: 15,
+                      ),
+                      TextField(
+                        onChanged: (val) => studentName = val,
+                        cursorColor: Colors.black,
+                        decoration: InputDecoration(
+                          labelText: "Matric Number",
+                          border: OutlineInputBorder(),
+                          labelStyle: TextStyle(color: Colors.black),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.black),
+                          ),
+                        ),
+                        controller: TextEditingController(
+                            text: userData!['matricNo'].toString()),
+                        enabled: false,
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('attendance')
+                        .where('metadata.level',
+                            isEqualTo: userData?['level']) // 🔹 Filter by level
+                        .where('metadata.department',
+                            isEqualTo: userData?[
+                                'department']) // 🔹 Filter by department
+                        .orderBy('metadata.timestamp',
+                            descending:
+                                true) // 🔹 Order by createdAt field in descending order (most recent first)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      // if (snapshot.connectionState == ConnectionState.waiting) {
+                      //   return Center(child: CircularProgressIndicator());
+                      // }
 
-                var classes = snapshot.data!.docs;
-
-                return Padding(
-                  padding:
-                      const EdgeInsets.only(top: 20.0, left: 10, right: 10),
-                  child: ListView.builder(
-                    itemCount: classes.length,
-                    itemBuilder: (context, index) {
-                      var classData =
-                          classes[index].data() as Map<String, dynamic>;
-                      String classId = classes[index].id;
-                      var metadata = classData['metadata'];
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 15.0),
-                        child: GestureDetector(
-                          onLongPress: () {
-                            userData?['role'] == 'student'
-                                ? null
-                                : showDeleteBottomSheet(
-                                    context, metadata['classId']);
-                          },
-                          child: Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                              side: BorderSide(color: Colors.black, width: 0.5),
-                            ),
-                            color: Colors.white,
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 15.0),
-                              child: ListTile(
-                                title: Text(
-                                    "Lecturer: ${metadata['lecturer_name']}"),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 15.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                          "Course Code: ${metadata['courseCode']}"),
-                                      SizedBox(height: 5),
-                                      Text("Date: ${metadata['date']}"),
-                                      SizedBox(height: 5),
-                                      Text(
-                                          "Department: ${metadata['department']}"),
-                                      SizedBox(height: 5),
-                                      Text("Level: ${metadata['level']}"),
-                                      SizedBox(height: 15),
-                                      Text(
-                                        "Google Sheets Link: ",
-                                        style: TextStyle(color: Colors.black),
-                                      ),
-                                      SizedBox(height: 8),
-                                      GestureDetector(
-                                        onTap: () {
-                                          final Uri url =
-                                              Uri.parse(metadata['sheetUrl']);
-                                          openGoogleSheetLink(url);
-                                        },
-                                        child: Text(
-                                          "${metadata['sheetUrl'] ?? 'No link generated.'}",
-                                          style: TextStyle(color: Colors.blue),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                trailing: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                    backgroundColor: Colors.black,
-                                  ),
-                                  onPressed: metadata['completed']
-                                      ? null
-                                      : () async {
-                                          setState(() {
-                                            _loadingStates[classId] =
-                                                true; // Only this button loads
-                                          });
-
-                                          await checkIn(
-                                              classId, metadata['venue']);
-
-                                          setState(() {
-                                            _loadingStates[classId] = false;
-                                          });
-                                        },
-                                  child: _loadingStates[classId] == true
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            color:
-                                                Colors.white, // Customize color
-                                            strokeWidth: 4,
-                                          ),
-                                        )
-                                      : Text(
-                                          metadata['completed']
-                                              ? 'Ended'
-                                              : "Check In",
-                                          style: TextStyle(
-                                              color: metadata['completed']
-                                                  ? Colors.white
-                                                  : Colors.white),
-                                        ),
-                                ),
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        if (!_showEmptyMessage) {
+                          return Center(
+                              child: CircularProgressIndicator(
+                            color: Colors.black,
+                          ));
+                        } else {
+                          return Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: Center(
+                              child: Text(
+                                "No classes available for your level & department.",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
                               ),
                             ),
-                          ),
+                          );
+                        }
+                      }
+
+                      var classes = snapshot.data!.docs;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(
+                            top: 20.0, left: 10, right: 10),
+                        child: ListView.builder(
+                          itemCount: classes.length,
+                          itemBuilder: (context, index) {
+                            var classData =
+                                classes[index].data() as Map<String, dynamic>;
+                            String classId = classes[index].id;
+                            var metadata = classData['metadata'];
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 15.0),
+                              child: GestureDetector(
+                                onLongPress: () {
+                                  userData?['role'] == 'student'
+                                      ? null
+                                      : showDeleteBottomSheet(
+                                          context, metadata['classId']);
+                                },
+                                child: Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(5),
+                                    side: BorderSide(
+                                        color: Colors.black, width: 0.5),
+                                  ),
+                                  color: Colors.white,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 15.0),
+                                    child: ListTile(
+                                      title: Text(
+                                          "Lecturer: ${metadata['lecturer_name']}"),
+                                      subtitle: Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 15.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                                "Course Code: ${metadata['courseCode']}"),
+                                            SizedBox(height: 5),
+                                            Text("Date: ${metadata['date']}"),
+                                            SizedBox(height: 5),
+                                            Text(
+                                                "Department: ${metadata['department']}"),
+                                            SizedBox(height: 5),
+                                            Text("Level: ${metadata['level']}"),
+                                            SizedBox(height: 15),
+                                            Text(
+                                              "Google Sheets Link: ",
+                                              style: TextStyle(
+                                                  color: Colors.black),
+                                            ),
+                                            SizedBox(height: 8),
+                                            GestureDetector(
+                                              onTap: () {
+                                                final Uri url = Uri.parse(
+                                                    metadata['sheetUrl']);
+                                                openGoogleSheetLink(url);
+                                              },
+                                              child: Text(
+                                                "${metadata['sheetUrl'] ?? 'No link generated.'}",
+                                                style: TextStyle(
+                                                    color: Colors.blue),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      trailing: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(5),
+                                          ),
+                                          backgroundColor: Colors.black,
+                                        ),
+                                        onPressed: metadata['completed']
+                                            ? null
+                                            : () async {
+                                                setState(() {
+                                                  _loadingStates[classId] =
+                                                      true; // Only this button loads
+                                                });
+
+                                                await checkIn(
+                                                    classId, metadata['venue']);
+
+                                                setState(() {
+                                                  _loadingStates[classId] =
+                                                      false;
+                                                });
+                                              },
+                                        child: _loadingStates[classId] == true
+                                            ? const SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  color: Colors
+                                                      .white, // Customize color
+                                                  strokeWidth: 4,
+                                                ),
+                                              )
+                                            : Text(
+                                                metadata['completed']
+                                                    ? 'Ended'
+                                                    : "Check In",
+                                                style: TextStyle(
+                                                    color: metadata['completed']
+                                                        ? Colors.white
+                                                        : Colors.white),
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       );
                     },
                   ),
-                );
-              },
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

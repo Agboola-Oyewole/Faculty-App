@@ -240,9 +240,9 @@ class ProfileScreen extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(5),
-                ),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: Colors.black, width: .5)),
                 child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -437,7 +437,14 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 : AssetImage('assets/images/user.png')
                                     as ImageProvider,
                           ),
-                          SizedBox(height: 15),
+                          SizedBox(
+                            height: 8,
+                          ),
+                          Text(
+                            FirebaseAuth.instance.currentUser?.email ??
+                                'Loading....',
+                            style: TextStyle(color: Colors.black, fontSize: 14),
+                          ),
                         ],
                       ),
                     ),
@@ -446,12 +453,19 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
+                            SizedBox(
+                              height: 15,
+                            ),
                             _buildTextField("First Name",
                                 userData?['first_name'] ?? "Not provided"),
                             _buildTextField("Last Name",
                                 userData?['last_name'] ?? "Not provided"),
                             _buildTextField("Date of Birth",
                                 userData?['date_of_birth'] ?? "Not provided"),
+                            _buildTextField(
+                                "Matric Number",
+                                userData?['matricNo'].toString() ??
+                                    "Not provided"),
                             _buildTextField("Department",
                                 userData?['department'] ?? "Not provided"),
                             _buildTextField("Faculty",

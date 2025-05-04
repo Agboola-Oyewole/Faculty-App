@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 
 class FolderCard extends StatelessWidget {
   final String courseCode;
-  final int fileCount;
-  final double totalSize; // Size in MB
+  final String level;
+  final List<dynamic> department;
+  final String semester;
+  final int unit;
 
   const FolderCard({
     super.key,
     required this.courseCode,
-    required this.fileCount,
-    required this.totalSize,
+    required this.unit,
+    required this.level,
+    required this.department,
+    required this.semester,
   });
 
   @override
@@ -22,9 +26,9 @@ class FolderCard extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.all(Radius.circular(5)),
-          ),
+              color: Colors.white,
+              borderRadius: BorderRadius.all(Radius.circular(5)),
+              border: Border.all(color: Colors.black, width: .5)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,9 +46,11 @@ class FolderCard extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 5),
-              Text(
-                '$fileCount ${fileCount > 1 ? 'Files' : 'File'}   •   ${totalSize.toStringAsFixed(2)}MB',
-                style: TextStyle(color: Colors.grey[600], fontSize: 10),
+              Expanded(
+                child: Text(
+                  '$unit ${unit > 1 ? 'Units' : 'Unit'}   •   ${department.join(", ")}   •   $level   •   $semester',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 10),
+                ),
               ),
             ],
           ),

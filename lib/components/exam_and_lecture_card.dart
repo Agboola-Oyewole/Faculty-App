@@ -7,8 +7,11 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
+import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:photo_view/photo_view.dart';
 
 import '../main.dart';
 import '../screens/content_create_screen.dart';
@@ -205,7 +208,7 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
     await flutterLocalNotificationsPlugin.show(
       notificationId, // Notification ID
       'FES Connect Hub',
-      'Download Complete. Document has been saved to Downloads 📂',
+      '✅ "$fileName" downloaded to your Downloads folder.',
       platformChannelSpecifics,
     );
   }
@@ -363,6 +366,54 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
     }
   }
 
+  Future<void> openFileFromUrl(BuildContext context, String url) async {
+    try {
+      final fileName = url.split('/').last.split('?').first;
+
+      // Get temp directory
+      final dir = await getTemporaryDirectory();
+      final filePath = "${dir.path}/$fileName";
+
+      // Download file
+      await Dio().download(url, filePath);
+
+      // Check if it's an image
+      if (fileName.endsWith('.png') ||
+          fileName.endsWith('.jpg') ||
+          fileName.endsWith('.jpeg') ||
+          fileName.endsWith('.gif') ||
+          fileName.endsWith('.webp')) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ImageViewerScreen(imagePath: filePath),
+          ),
+        );
+      } else {
+        // Open document using installed apps
+        await OpenFilex.open(filePath);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "❌ An error occurred.",
+            style: TextStyle(color: Colors.black),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Colors.black),
+          ),
+          margin: EdgeInsets.all(16),
+          elevation: 3,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -419,6 +470,13 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                 itemBuilder: (context, index) {
                   var schedule = schedules[index];
                   return GestureDetector(
+                      onTap: () {
+                        final url = widget.firebaseCollection == 'academic'
+                            ? schedule['document']
+                            : schedule['image'];
+
+                        openFileFromUrl(context, url);
+                      },
                       onLongPress: () {
                         if (schedule['userId'] == currentUser) {
                           showDeleteBottomSheet(
@@ -541,7 +599,21 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                   await downloadFile(fileUrl, schedule['title']);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("No file available to download")),
+                    SnackBar(
+                      content: Text(
+                        "❌ No file available to download.",
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(color: Colors.black),
+                      ),
+                      margin: EdgeInsets.all(16),
+                      elevation: 3,
+                      duration: Duration(seconds: 3),
+                    ),
                   );
                 }
               },
@@ -553,17 +625,25 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                       border: Border.all(color: Colors.black, width: 1)),
                   padding: const EdgeInsets.all(5.0),
                   child: isLoading
-                      ? SizedBox(
-                          width: 15, // Adjust the size as needed
-                          height: 15, // Adjust the size as needed
-                          child: CircularProgressIndicator(
-                            color: Colors.black,
-                            value: 0.3, // Progress value (0.0 - 1.0)
-                            strokeWidth: 3, // Thickness of the indicator
-                          ),
-                        )
+                      ? Icon(Icons.more_horiz, color: Colors.black, size: 15)
                       : Icon(Icons.download, color: Colors.black, size: 15))),
         ]),
+      ),
+    );
+  }
+}
+
+class ImageViewerScreen extends StatelessWidget {
+  final String imagePath;
+
+  const ImageViewerScreen({super.key, required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Image Preview")),
+      body: Center(
+        child: PhotoView(imageProvider: FileImage(File(imagePath))),
       ),
     );
   }

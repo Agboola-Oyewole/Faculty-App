@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../components/exam_and_lecture_card.dart';
+import '../utilities/utils.dart';
 
 class CreateContentScreen extends StatefulWidget {
   const CreateContentScreen({super.key, required this.tabIndex});
@@ -26,30 +27,27 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
   // Separate GlobalKey for each tab to prevent duplicate errors
   final List<GlobalKey<FormState>> _formKeys =
-      List.generate(5, (index) => GlobalKey<FormState>());
+      List.generate(6, (index) => GlobalKey<FormState>());
 
   // Controllers for text inputs
   final List<TextEditingController> _titleControllers =
-      List.generate(5, (index) => TextEditingController());
+      List.generate(6, (index) => TextEditingController());
 
   final TextEditingController ticketController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
   final TextEditingController courseCodeController = TextEditingController();
   bool isLoading = false; // Track loading state
-  List<String> selectedTags = [];
-
+  List<String> selectedDepartments = [];
   File? _imagePost;
-  File? _imageEvent;
   File? _imageLecture;
   File? _imageExam;
   File? _document;
   File? _documentAcademic;
-  DateTime? _selectedDate;
-  DateTime? _selectedDateEnd;
   String? selectedType;
   String? selectedSession;
   String? selectedDepartment;
+  String? selectedUnit;
   String? selectedLevel;
   String? selectedSemester;
 
@@ -64,6 +62,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     "2031/2032",
     "2032/2033",
     "2033/2034",
+  ];
+  final List<String> units = [
+    '0 Unit',
+    '1 Unit',
+    '2 Units',
+    '3 Units',
+    '4 Units',
   ];
 
   final List<String> departments = [
@@ -80,60 +85,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     "Past Questions",
   ];
 
-  List<String> eventTags = [
-    "Event",
-    "HappeningSoon",
-    "SaveTheDate",
-    "JoinUs",
-    "Networking",
-    "Workshop",
-    "Seminar",
-    "Webinar",
-    "Conference",
-    "Meetup",
-    "TechEvent",
-    "Hackathon",
-    "CareerFair",
-    "StartupEvent",
-    "Tech",
-    "Business",
-    "Finance",
-    "Marketing",
-    "Design",
-    "Health",
-    "Education",
-    "Engineering",
-    "RealEstate",
-    "CampusEvent",
-    "UniLife",
-    "StudentMeetup",
-    "CareerTalk",
-    "ExamPrep",
-    "AcademicEvent",
-    "StudyGroup",
-    "FreshersWeek",
-    "LagosEvents",
-    "UnilagEvent",
-    "NigeriaTech",
-    "LocalMeetup",
-    "Concert",
-    "Festival",
-    "GameNight",
-    "MovieNight",
-    "Hangout",
-    "AfterParty",
-    "FunTimes",
-    "SelfGrowth",
-    "Inspiration",
-    "SkillUp",
-    "MindsetMatters",
-    "LevelUp",
-    "VirtualEvent",
-    "LiveStream",
-    "HybridConference",
-    "OnlineWorkshop"
-  ];
-
   final List<String> semester = ["First Semester", "Second Semester"];
   final List<String> levels = [
     "100 Level",
@@ -147,76 +98,14 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     "Resources",
     "Exam",
     "Lecture",
-    "Academic"
+    "Academic",
+    "Courses"
   ];
-
-  void _showMultiSelectDialog(List<String> items, List<String> selectedItems,
-      Function(List<String>) onChanged) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text("Select Tags (Max 3)"),
-              content: SingleChildScrollView(
-                child: Column(
-                  children: items.map((tag) {
-                    bool isSelected = selectedItems.contains(tag);
-                    return CheckboxListTile(
-                      title: Text(tag),
-                      value: isSelected,
-                      onChanged: (bool? value) {
-                        if (value == true) {
-                          if (selectedItems.length < 3) {
-                            setState(() => selectedItems.add(tag));
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  "🚫 You can only select up to 3 tags!",
-                                  style: TextStyle(color: Colors.black),
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                                backgroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  side: BorderSide(color: Colors.black),
-                                ),
-                                margin: EdgeInsets.all(16),
-                                elevation: 3,
-                                duration: Duration(seconds: 3),
-                              ),
-                            );
-                          }
-                        } else {
-                          setState(() => selectedItems.remove(tag));
-                        }
-                      },
-                    );
-                  }).toList(),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    onChanged(List.from(selectedItems));
-                    Navigator.pop(context);
-                  },
-                  child: Text("Done"),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.index = widget.tabIndex;
   }
 
@@ -232,17 +121,14 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
     setState(() {
       _imagePost = null;
-      _imageEvent = null;
       _imageLecture = null;
       _imageExam = null;
       _document = null;
       _documentAcademic = null;
-      _selectedDate = null;
-      _selectedDateEnd = null;
       selectedType = null;
       selectedDepartment = null;
       selectedLevel = null;
-      selectedTags = [];
+      selectedDepartments = [];
       selectedSemester = null;
     });
 
@@ -279,16 +165,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     }
   }
 
-  Future<void> _pickImageEvent() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _imageEvent = File(pickedFile.path);
-      });
-    }
-  }
-
   Future<void> _pickDocument() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -317,39 +193,8 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     }
   }
 
-  Future<void> _pickDate() async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2024),
-      lastDate: DateTime(2030),
-    );
-
-    if (pickedDate != null) {
-      setState(() {
-        _selectedDate = pickedDate;
-      });
-    }
-  }
-
-  Future<void> _pickDateEnd() async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2024),
-      lastDate: DateTime(2030),
-    );
-
-    if (pickedDate != null) {
-      setState(() {
-        _selectedDateEnd = pickedDate;
-      });
-    }
-  }
-
   void _submitForm() async {
     int activeTab = _tabController.index;
-    print(activeTab);
     String currentTabName = activeTabNames[activeTab];
     setState(() {
       isLoading = true; // Start loading
@@ -491,38 +336,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         };
 
         await postsRef.doc(postId).set(formData);
-      } else if (currentTabName == 'Events') {
-        String? imageUrl = await uploadFile(_imageEvent, "events");
-        if (!validateFields(context, {
-          "Title": title,
-          "Image": imageUrl,
-          "Start Date": _selectedDate?.toIso8601String(),
-          "End Date": _selectedDateEnd?.toIso8601String(),
-          "Location": locationController.text,
-          "Ticket Price": ticketController.text,
-          "Description": descriptionController.text,
-          "Tags": selectedTags.isEmpty ? null : selectedTags,
-        })) {
-          return;
-        }
-        CollectionReference eventsRef =
-            FirebaseFirestore.instance.collection('events');
-
-        // Step 1: Generate a unique postId before writing to Firestore
-        String eventId = eventsRef.doc().id;
-        formData = {
-          "userId": userId,
-          "title": title,
-          "image": imageUrl ?? "",
-          "eventId": eventId,
-          "date_start": _selectedDate?.toIso8601String(),
-          "date_end": _selectedDateEnd?.toIso8601String(),
-          "location": locationController.text,
-          "ticket_price": ticketController.text,
-          'description': descriptionController.text,
-          "tag": selectedTags,
-        };
-        await eventsRef.doc(eventId).set(formData);
       } else if (currentTabName == 'Resources') {
         String? documentUrl = await uploadFile(_document, "resources");
 
@@ -641,10 +454,25 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           "session": selectedSession,
         };
         await academicRef.doc(academicId).set(formData);
+      } else if (currentTabName == 'Courses') {
+        if (!validateFields(context, {
+          "Title": title,
+          "Department": selectedDepartments,
+          "Level": selectedLevel,
+          "Semester": selectedSemester,
+          "Course Code": courseCodeController.text,
+        })) {
+          return;
+        }
+        String courseCode = courseCodeController.text;
+        await addCourseToResources(
+            courseCode,
+            int.parse(selectedUnit!.split(' ')[0]),
+            descriptionController.text,
+            title,
+            userId);
+        await refreshResources(); // if you don’t need to use the result directly
       }
-
-      print("✅ Data Uploaded for Tab: $currentTabName");
-      print(formData);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -691,22 +519,51 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                       title: 'Current Academic Calendar',
                       firebaseCollection: 'academic',
                     )));
-      } else {
-        Navigator.pushReplacement(
+      } else if (currentTabName == 'Courses') {
+        Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (context) => BottomNavBar(
-                      initialIndex: currentTabName == 'Posts'
-                          ? 0
-                          : currentTabName == 'Events'
-                              ? 1
-                              : 0,
+                      initialIndex: 1,
                     )));
+      } else {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => BottomNavBar()));
       }
     } else {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> addCourseToResources(String courseCode, int unit, String link,
+      String title, String userId) async {
+    final courseRef = FirebaseFirestore.instance
+        .collection('resources')
+        .doc(courseCode.trim());
+
+    try {
+      final docSnapshot = await courseRef.get();
+
+      if (!docSnapshot.exists) {
+        // Create the course document
+        await courseRef.set({
+          'created_at': FieldValue.serverTimestamp(),
+          'full_name': title,
+          'unit': unit,
+          'drive_link': link,
+          "department": selectedDepartments,
+          "level": selectedLevel,
+          "semester": selectedSemester,
+        });
+
+        print("✅ Course $courseCode added.");
+      } else {
+        print("⚠️ Course $courseCode already exists.");
+      }
+    } catch (e) {
+      print("❌ Failed to add course: $e");
     }
   }
 
@@ -734,8 +591,9 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             Tab(icon: Icon(Icons.article), text: "Posts"),
             Tab(icon: Icon(Icons.book), text: "Resources"),
             Tab(icon: Icon(Icons.schedule), text: "Exam"),
-            Tab(icon: Icon(Icons.schedule), text: "Lecture"),
+            Tab(icon: Icon(Icons.menu_book_outlined), text: "Lecture"),
             Tab(icon: Icon(Icons.schedule), text: "Academic"),
+            Tab(icon: Icon(Icons.lightbulb), text: "Course"),
           ],
           labelStyle: TextStyle(color: Colors.black),
         ),
@@ -746,13 +604,28 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           _buildForm(0, "Post Title", true, false, false, false, false, false,
               false, false, false, false, false, false),
           _buildForm(1, "Resource Title", false, true, true, false, false, true,
-              true, false, true, false, true, false),
+              true, true, true, false, false, false),
           _buildForm(2, "Exam Schedule Title", true, false, false, false, false,
-              true, true, false, true, false, false, false),
+              true, true, true, false, false, false, false),
           _buildForm(3, "Lecture Schedule Title", true, false, false, false,
-              false, true, true, false, true, false, false, false),
+              false, true, true, true, false, false, false, false),
           _buildForm(4, "Academic Calender Title", false, true, false, false,
-              false, false, false, false, false, false, false, true),
+              false, false, false, false, false, true, false, false),
+          _buildForm(
+              5,
+              "Course Description (e.g General African Studies)",
+              false,
+              true,
+              false,
+              false,
+              true,
+              false,
+              true,
+              true,
+              true,
+              false,
+              true,
+              true),
         ],
       ),
     );
@@ -768,11 +641,11 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       bool allowTicket,
       bool allowDepartment,
       bool allowLevel,
-      bool allowTags,
       bool allowSemester,
-      bool allowLocation,
       bool allowCourseCode,
-      bool allowSession) {
+      bool allowSession,
+      bool allowUnit,
+      bool allowMultipleDept) {
     return Padding(
       padding: EdgeInsets.all(16.0),
       child: Form(
@@ -782,8 +655,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             buildTextFormField(_titleControllers[index], true,
                 titleHint == 'Post Title' ? 'Caption' : titleHint),
             SizedBox(height: 10),
-            // if (allowImage && titleHint == 'Event Title')
-            //   _buildImageEventUpload(),
             if (allowImage && titleHint == 'Post Title')
               _buildImagePostUpload(),
             if (allowImage && titleHint == 'Exam Schedule Title')
@@ -794,22 +665,19 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               _buildDocumentUpload(),
             if (allowDocument && titleHint == 'Academic Calender Title')
               _buildAcademicDocumentUpload(),
-            if (allowDate) _buildDatePicker(),
-            if (allowDate) _buildDatePickerEnd(),
-            if (allowTags) SizedBox(height: 5),
-            if (allowTags)
-              buildMultiSelectDropdown("Tags", eventTags, selectedTags,
-                  (newTags) {
-                setState(() {
-                  selectedTags = newTags;
-                });
-              }),
             if (allowDepartment)
               buildDropdown("Department", departments, selectedDepartment,
                   (val) {
                 setState(() => selectedDepartment = val);
               }),
             if (allowDepartment) SizedBox(height: 5),
+            if (allowMultipleDept)
+              buildMultiSelectDropdown(
+                  'Department', departments.sublist(1), selectedDepartments,
+                  (val) {
+                setState(() => selectedDepartments = val);
+              }),
+            if (allowMultipleDept) SizedBox(height: 5),
             if (allowLevel)
               buildDropdown("Level", levels, selectedLevel, (val) {
                 setState(() => selectedLevel = val);
@@ -830,6 +698,11 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                 'e.g BLD 234',
               ),
             if (allowDocument) SizedBox(height: 5),
+            if (allowUnit)
+              buildDropdown("Units", units, selectedUnit, (val) {
+                setState(() => selectedUnit = val);
+              }),
+            if (allowUnit) SizedBox(height: 5),
             if (allowSemester)
               buildDropdown("Semester", semester, selectedSemester, (val) {
                 setState(() => selectedSemester = val);
@@ -840,47 +713,16 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                 setState(() => selectedSession = val);
               }),
             if (allowSession) SizedBox(height: 5),
-            if (allowTicket)
-              Text(
-                'Event Description',
-                style:
-                    TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-              ),
-            if (allowTicket)
-              SizedBox(
-                height: 5,
-              ),
-            if (allowTicket)
-              buildTextFormField(descriptionController, true, ''),
             if (allowTicket) SizedBox(height: 10),
             if (allowTicket)
               Text(
-                'Event Ticket Price',
-                style:
-                    TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                'Google Drive Link',
+                style: TextStyle(color: Colors.black),
               ),
             if (allowTicket)
-              SizedBox(
-                height: 5,
-              ),
-            if (allowTicket)
-              buildTextFormField(ticketController, true, '30,000'),
-            if (allowTicket) SizedBox(height: 5),
+              buildTextFormField(descriptionController, true, 'https://'),
+            if (allowTicket) SizedBox(height: 10),
             SizedBox(height: 10),
-            if (allowLocation)
-              Text(
-                'Location',
-                style:
-                    TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-              ),
-            if (allowLocation)
-              SizedBox(
-                height: 5,
-              ),
-            if (allowLocation)
-              buildTextFormField(
-                  locationController, true, 'Lagoon Front, Unilag'),
-            if (allowLocation) SizedBox(height: 10),
             if (allowDocumentType)
               buildDropdown("Document Type", documentTypes, selectedType,
                   (val) {
@@ -939,7 +781,12 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             ),
           ),
           labelText: titleHint,
-          labelStyle: TextStyle(color: Colors.black),
+          labelStyle: TextStyle(
+              color: Colors.black,
+              fontSize: titleHint ==
+                      'Course Description (e.g General African Studies)'
+                  ? 13
+                  : 16),
           border: OutlineInputBorder(),
         ),
         validator: isNotPresale
@@ -954,37 +801,107 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     );
   }
 
-  Widget buildMultiSelectDropdown(String label, List<String> items,
-      List<String> selectedItems, Function(List<String>) onChanged) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: .0, top: 5),
-            child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          SizedBox(height: 5),
-          GestureDetector(
-            onTap: () =>
-                _showMultiSelectDialog(items, selectedItems, onChanged),
+  Widget buildMultiSelectDropdown(String label, List<String> options,
+      List<String> selectedItems, ValueChanged<List<String>> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label),
+        SizedBox(height: 5),
+        Container(
+          width: double.infinity, // Set to full width
+          child: GestureDetector(
+            onTap: () async {
+              final result = await showDialog<List<String>>(
+                context: context,
+                builder: (context) {
+                  List<String> tempSelected = [...selectedItems];
+                  return AlertDialog(
+                    title: Center(
+                      child: Text(
+                        "Select up to 3 Departments",
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    content: SingleChildScrollView(
+                      child: Column(
+                        children: options.map((dept) {
+                          return CheckboxListTile(
+                            value: tempSelected.contains(dept),
+                            title: Text(
+                              dept,
+                              style: TextStyle(fontSize: 15),
+                            ),
+                            onChanged: (isChecked) {
+                              if (isChecked == true &&
+                                  tempSelected.length < 3) {
+                                tempSelected.add(dept);
+                              } else {
+                                tempSelected.remove(dept);
+                              }
+                              // force rebuild
+                              (context as Element).markNeedsBuild();
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, null),
+                        child: Text(
+                          "Cancel",
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, tempSelected),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                        child: Text(
+                          "OK",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+              if (result != null) {
+                onChanged(result);
+              }
+            },
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey),
                 borderRadius: BorderRadius.circular(5),
               ),
-              child: Text(
-                selectedItems.isEmpty
-                    ? "Select Tags"
-                    : selectedItems.join(", "),
-                style: TextStyle(color: Colors.black),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    selectedItems.isEmpty
+                        ? "Select Departments"
+                        : selectedItems.join(', '),
+                    overflow:
+                        TextOverflow.ellipsis, // Ensures text doesn't overflow
+                  ),
+                  Icon(Icons.arrow_drop_down)
+                ],
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1004,13 +921,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             borderRadius: BorderRadius.all(Radius.circular(5.0)),
             value: selectedItem,
             decoration: InputDecoration(
-              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 5),
+              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 10),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(5),
                 borderSide: BorderSide(
-                  color: Color(0xff347928),
+                  color: Colors.black,
                   width: 1.5,
                 ),
               ),
@@ -1162,62 +1079,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         ),
         if (_documentAcademic != null)
           Text("File selected: ${_documentAcademic!.path}"),
-      ],
-    );
-  }
-
-  Widget _buildDatePicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Select Start Date"),
-        SizedBox(height: 5),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5), // Add border radius here
-            ),
-          ),
-          onPressed: _pickDate,
-          icon: Icon(
-            Icons.calendar_today,
-            color: Colors.black,
-          ),
-          label: Text(
-            _selectedDate == null
-                ? "Pick a Date"
-                : "${_selectedDate!.day}-${_selectedDate!.month}-${_selectedDate!.year}",
-            style: TextStyle(color: Colors.black),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDatePickerEnd() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Select End Date"),
-        SizedBox(height: 5),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5), // Add border radius here
-            ),
-          ),
-          onPressed: _pickDateEnd,
-          icon: Icon(
-            Icons.calendar_today,
-            color: Colors.black,
-          ),
-          label: Text(
-            _selectedDateEnd == null
-                ? "Pick a Date"
-                : "${_selectedDateEnd!.day}-${_selectedDateEnd!.month}-${_selectedDateEnd!.year}",
-            style: TextStyle(color: Colors.black),
-          ),
-        ),
       ],
     );
   }

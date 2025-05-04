@@ -45,7 +45,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
     _currentIndex =
         widget.initialIndex; // Set the initial index to the optional parameter
     getUserDetails();
-    print('ABJDHFUFKKG');
     initCourseData(); // loads from cache or fetches
   }
 
@@ -53,62 +52,58 @@ class _BottomNavBarState extends State<BottomNavBar> {
     setState(() {
       isLoading = true;
     });
+
     try {
-      User? user = FirebaseAuth.instance.currentUser;
+      final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
-          .instance
+      final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
-      if (!doc.exists) return;
 
-      String userLevel = doc.data()?['level'] ?? '';
-      String userDepartment = doc.data()?['department'] ?? '';
-      String userSemester = doc.data()?['semester'] ?? '';
+      if (!userDoc.exists) return;
 
-      QuerySnapshot filesSnapshot =
-          await FirebaseFirestore.instance.collectionGroup("files").get();
+      final userData = userDoc.data()!;
+      final userLevel = userData['level'];
+      final userDepartment = userData['department'];
+      final userSemester = userData['semester'];
 
-      Map<String, Map<String, dynamic>> tempData = {};
+      final coursesSnapshot =
+          await FirebaseFirestore.instance.collection('resources').get();
 
-      for (var fileDoc in filesSnapshot.docs) {
-        Map<String, dynamic> data = fileDoc.data() as Map<String, dynamic>;
+      Map<String, dynamic> filteredCourses = {};
+      for (var doc in coursesSnapshot.docs) {
+        final courseData = doc.data();
+        final courseCode = doc.id;
 
-        if (!data.containsKey('document') || !data.containsKey('course_code')) {
-          continue;
-        }
+        final courseLevel = courseData['level'];
+        final courseDepartments = List<String>.from(courseData['department']);
+        final courseSemester = courseData['semester'];
 
-        String courseCode = data['course_code'] ?? 'Unknown';
-        String fileUrl = data['document'];
-        String resourceLevel = data['level'] ?? '';
-        String resourceDepartment = data['department'] ?? '';
-        String resourceSemester = data['semester'] ?? '';
+        final levelMatch = courseLevel == userLevel;
+        final semesterMatch = courseSemester == userSemester;
 
-        bool levelMatch = (resourceLevel == userLevel);
-        bool departmentMatch = (resourceDepartment == userDepartment ||
-            resourceDepartment == "All");
-        bool semesterMatch = (resourceSemester == userSemester);
+        // Department match logic
+        final departmentMatch = courseDepartments.contains("All") ||
+            courseDepartments.contains(userDepartment);
 
         if (levelMatch && departmentMatch && semesterMatch) {
-          double fileSizeMB = await getFileSize(fileUrl); // your own function
+          final modifiedData = Map<String, dynamic>.from(courseData);
+          modifiedData.updateAll((key, value) {
+            if (value is Timestamp) return value.toDate().toIso8601String();
+            return value;
+          });
 
-          if (!tempData.containsKey(courseCode)) {
-            tempData[courseCode] = {'count': 0, 'size': 0.0};
-          }
-
-          tempData[courseCode]!['count'] += 1;
-          tempData[courseCode]!['size'] += fileSizeMB;
+          filteredCourses[courseCode] = modifiedData;
         }
       }
 
-      // Save to SharedPreferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      String encoded = jsonEncode(tempData);
-      await prefs.setString("courseData_${user.uid}", encoded);
+      await prefs.setString(
+          "courseData_${user.uid}", jsonEncode(filteredCourses));
+      print('✅ Resources saved to local storage: $filteredCourses');
 
-      // Update UI
       if (mounted) {
         setState(() {
           isLoading = false;
