@@ -1,6 +1,6 @@
 import 'package:faculty_app/components/hub_container.dart';
 import 'package:faculty_app/screens/attendance_screen.dart';
-import 'package:faculty_app/screens/excos_page.dart';
+import 'package:faculty_app/screens/cgpa_screen.dart';
 import 'package:faculty_app/screens/schedule_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -129,7 +129,7 @@ class _HubScreenState extends State<HubScreen> {
                                             )
                                           : items[index]['title'] ==
                                                   "CGPA Calculator"
-                                              ? ExcosPage()
+                                              ? CgpaCalculator()
                                               : items[index]['title'] ==
                                                       "Lecture Schedule (Beta)"
                                                   ? WeeklyScheduleScreen()

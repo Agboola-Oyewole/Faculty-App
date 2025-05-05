@@ -51,7 +51,9 @@ Future<void> refreshResources() async {
 
       // Department match logic
       final departmentMatch = courseDepartments.contains("All") ||
-          courseDepartments.contains(userDepartment);
+          (userDepartment is List
+              ? userDepartment.any((dept) => courseDepartments.contains(dept))
+              : courseDepartments.contains(userDepartment));
 
       if (levelMatch && departmentMatch && semesterMatch) {
         final modifiedData = Map<String, dynamic>.from(courseData);

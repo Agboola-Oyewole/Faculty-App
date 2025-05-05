@@ -73,6 +73,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
           await FirebaseFirestore.instance.collection('resources').get();
 
       Map<String, dynamic> filteredCourses = {};
+
       for (var doc in coursesSnapshot.docs) {
         final courseData = doc.data();
         final courseCode = doc.id;
@@ -83,8 +84,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
         final levelMatch = courseLevel == userLevel;
         final semesterMatch = courseSemester == userSemester;
-
-        // Department match logic
         final departmentMatch = courseDepartments.contains("All") ||
             courseDepartments.contains(userDepartment);
 

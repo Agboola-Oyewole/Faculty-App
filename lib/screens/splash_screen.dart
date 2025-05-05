@@ -24,20 +24,20 @@ class _OnboardingPage1State extends State<OnboardingPage1> {
           description:
               'Get real-time updates on lectures, events, and deadlines with the faculty noticeboard.',
           imageUrl: 'assets/images/Learning-rafiki.png',
-          bgColor: Color(0xff347928), // Deep Green
+          bgColor: Colors.black, // Deep Green
         ),
         OnboardingPageModel(
           title: 'Find Lecturers & Offices Easily',
           description:
               'A simple directory to search for lecturers, office locations, and contacts.',
           imageUrl: 'assets/images/Teaching-amico.png',
-          bgColor: Color(0xffAAB99A), // Soft Off-White
+          bgColor: Colors.black, // Soft Off-White
         ),
         OnboardingPageModel(
           title: 'Never Miss a Class',
           description: 'Access lecture timetables and exam schedules easily.',
           imageUrl: 'assets/images/Learning-cuate.png',
-          bgColor: Color(0xffB3D8A8), // Navy Blue
+          bgColor: Colors.black, // Navy Blue
         ),
       ]),
     );
@@ -195,7 +195,16 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
     return Scaffold(
       body: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        color: widget.pages[_currentPage].bgColor,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              widget.pages[_currentPage].bgColor,
+            ],
+          ),
+        ),
         child: SafeArea(
           child: Column(
             children: [
@@ -229,7 +238,7 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                                 'Welcome to FES Connect!',
                                 style: TextStyle(
                                     fontWeight: FontWeight.w900,
-                                    fontSize: 24,
+                                    fontSize: 20,
                                     color: Colors.white),
                               ),
                         SizedBox(
@@ -245,9 +254,9 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                                         .textTheme
                                         .titleLarge
                                         ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: item.textColor,
-                                        )),
+                                            fontWeight: FontWeight.bold,
+                                            color: item.textColor,
+                                            fontSize: 18)),
                               ),
                               Container(
                                 constraints:
@@ -260,8 +269,8 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                          color: item.textColor,
-                                        )),
+                                            color: item.textColor,
+                                            fontSize: 15)),
                               )
                             ]))
                       ],
@@ -289,118 +298,131 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
               ),
 
               // Bottom buttons
-              // _currentPage != widget.pages.length - 1
-              //     ? Padding(
-              //         padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              //         child: SizedBox(
-              //           height: 100,
-              //           child: Row(
-              //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //             children: [
-              //               TextButton(
-              //                   style: TextButton.styleFrom(
-              //                       visualDensity: VisualDensity.comfortable,
-              //                       foregroundColor:
-              //                           _currentPage == widget.pages.length - 1
-              //                               ? Colors.black
-              //                               : Colors.white,
-              //                       textStyle: const TextStyle(
-              //                           fontSize: 16,
-              //                           fontWeight: FontWeight.bold)),
-              //                   onPressed: () {
-              //                     widget.onSkip?.call();
-              //                   },
-              //                   child: const Text("Skip")),
-              //               TextButton(
-              //                 style: TextButton.styleFrom(
-              //                     visualDensity: VisualDensity.comfortable,
-              //                     foregroundColor:
-              //                         _currentPage == widget.pages.length - 1
-              //                             ? Colors.black
-              //                             : Colors.white,
-              //                     textStyle: const TextStyle(
-              //                         fontSize: 16,
-              //                         fontWeight: FontWeight.bold)),
-              //                 onPressed: () {
-              //                   if (_currentPage == widget.pages.length - 1) {
-              //                     widget.onFinish?.call();
-              //                   } else {
-              //                     _pageController.animateToPage(
-              //                         _currentPage + 1,
-              //                         curve: Curves.easeInOutCubic,
-              //                         duration:
-              //                             const Duration(milliseconds: 250));
-              //                   }
-              //                 },
-              //                 child: Row(
-              //                   children: [
-              //                     Text(
-              //                       _currentPage == widget.pages.length - 1
-              //                           ? "Finish"
-              //                           : "Next",
-              //                     ),
-              //                     const SizedBox(width: 8),
-              //                     Icon(
-              //                       _currentPage == widget.pages.length - 1
-              //                           ? Icons.done
-              //                           : Icons.arrow_forward,
-              //                       color:
-              //                           _currentPage == widget.pages.length - 1
-              //                               ? Colors.black
-              //                               : Colors.white,
-              //                     ),
-              //                   ],
-              //                 ),
-              //               ),
-              //             ],
-              //           ),
-              //         ),
-              //       )
-              //     :
-              Padding(
-                padding: const EdgeInsets.only(bottom: 40, top: 80),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  // Adjust the radius as needed
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 12, horizontal: 20),
-                    ),
-                    onPressed: isLoading ? null : signInWithGoogle,
-                    // Disable button when loading
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(
-                          "assets/images/search.png",
-                          // Use a Google logo asset
-                          height: 24,
-                        ),
-                        isLoading
-                            ? const SizedBox(
-                                width: 50,
-                              )
-                            : const SizedBox(width: 15),
-                        isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.black, // Customize color
-                                  strokeWidth: 4,
-                                ),
-                              )
-                            : const Text(
-                                "Sign in with Google",
-                                style: TextStyle(color: Colors.black),
+              _currentPage != widget.pages.length - 1
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: SizedBox(
+                        height: 100,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            TextButton(
+                                style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.comfortable,
+                                    foregroundColor:
+                                        _currentPage == widget.pages.length - 1
+                                            ? Colors.black
+                                            : Colors.white,
+                                    textStyle: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold)),
+                                onPressed: () {
+                                  if (_currentPage == widget.pages.length - 1) {
+                                    widget.onSkip?.call();
+                                  } else {
+                                    _pageController.animateToPage(3,
+                                        curve: Curves.easeInOutCubic,
+                                        duration:
+                                            const Duration(milliseconds: 250));
+                                  }
+                                },
+                                child: const Text(
+                                  "Skip",
+                                  style: TextStyle(color: Colors.white),
+                                )),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                  visualDensity: VisualDensity.comfortable,
+                                  foregroundColor:
+                                      _currentPage == widget.pages.length - 1
+                                          ? Colors.black
+                                          : Colors.white,
+                                  textStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold)),
+                              onPressed: () {
+                                if (_currentPage == widget.pages.length - 1) {
+                                  widget.onFinish?.call();
+                                } else {
+                                  _pageController.animateToPage(
+                                      _currentPage + 1,
+                                      curve: Curves.easeInOutCubic,
+                                      duration:
+                                          const Duration(milliseconds: 250));
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  Text(
+                                    _currentPage == widget.pages.length - 1
+                                        ? "Finish"
+                                        : "Next",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    _currentPage == widget.pages.length - 1
+                                        ? Icons.done
+                                        : Icons.arrow_forward,
+                                    color:
+                                        _currentPage == widget.pages.length - 1
+                                            ? Colors.black
+                                            : Colors.white,
+                                  ),
+                                ],
                               ),
-                      ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 40, top: 80),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        // Adjust the radius as needed
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 20),
+                          ),
+                          onPressed: isLoading ? null : signInWithGoogle,
+                          // Disable button when loading
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                "assets/images/search.png",
+                                // Use a Google logo asset
+                                height: 24,
+                              ),
+                              isLoading
+                                  ? const SizedBox(
+                                      width: 50,
+                                    )
+                                  : const SizedBox(width: 15),
+                              isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.black, // Customize color
+                                        strokeWidth: 4,
+                                      ),
+                                    )
+                                  : const Text(
+                                      "Sign in with Google",
+                                      style: TextStyle(color: Colors.black),
+                                    ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),

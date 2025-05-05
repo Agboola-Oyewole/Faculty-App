@@ -401,10 +401,12 @@ class _PostsState extends State<Posts> {
                                           fontWeight: FontWeight.bold,
                                           fontSize: 10),
                                     ),
-                                    SizedBox(width: 6),
-                                    if (widget.isVerified)
-                                      Icon(Icons.verified,
-                                          color: Colors.blue, size: 13),
+                                    SizedBox(width: 4),
+                                    Icon(Icons.verified,
+                                        color: widget.isVerified
+                                            ? Colors.brown
+                                            : Colors.blue,
+                                        size: 13),
                                   ],
                                 ),
                               ],
