@@ -9,16 +9,39 @@ import '../utilities/utils.dart';
 import 'excos_page.dart';
 
 // Profile Screen
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    Future<void> signOut() async {
-      await FirebaseAuth.instance.signOut();
-      await GoogleSignIn().signOut();
-    }
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
 
+class _ProfileScreenState extends State<ProfileScreen> {
+  Map<String, dynamic>? userData;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getUserDetails();
+  }
+
+  Future<void> getUserDetails() async {
+    Map<String, dynamic>? fetchedData = await fetchCurrentUserDetails();
+    if (fetchedData != null) {
+      setState(() {
+        userData = fetchedData;
+      });
+    }
+  }
+
+  Future<void> signOut() async {
+    await FirebaseAuth.instance.signOut();
+    await GoogleSignIn().signOut();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return PopScope(
       canPop: false, // Prevent default back button behavior
       onPopInvokedWithResult: (didPop, result) async {
@@ -28,106 +51,114 @@ class ProfileScreen extends StatelessWidget {
               context, MaterialPageRoute(builder: (context) => BottomNavBar()));
         }
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(
-                  top: 30.0, left: 15.0, right: 15.0, bottom: 0.0),
-              child: ListView(
-                children: [
-                  _buildSectionTitle("Account Settings"),
-                  _buildMenuItem(
-                    context,
-                    title: "Personal Information",
-                    icon: Icons.person,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => PersonalInfoScreen()),
+      child: userData == null
+          ? Center(
+              child: CircularProgressIndicator(
+              color: Colors.black,
+            )) // Show loading until data loads
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                        top: 30.0, left: 15.0, right: 15.0, bottom: 0.0),
+                    child: ListView(
+                      children: [
+                        _buildSectionTitle("Account Settings"),
+                        _buildMenuItem(
+                          context,
+                          title: "Personal Information",
+                          icon: Icons.person,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => PersonalInfoScreen()),
+                          ),
+                        ),
+                        // _buildMenuItem(
+                        //   context,
+                        //   title: "Password & Security",
+                        //   icon: Icons.lock,
+                        //   onTap: () => Navigator.push(
+                        //     context,
+                        //     MaterialPageRoute(builder: (_) => SecurityScreen()),
+                        //   ),
+                        // ),
+                        // _buildMenuItem(
+                        //   context,
+                        //   title: "Notifications Preferences",
+                        //   icon: Icons.notifications,
+                        //   onTap: () {
+                        //     Navigator.push(
+                        //         context,
+                        //         MaterialPageRoute(
+                        //             builder: (context) =>
+                        //                 NotificationSettingsScreen()));
+                        //   },
+                        // ),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        _buildSectionTitle("Community Settings"),
+                        _buildMenuItem(
+                          context,
+                          title: "Meet the Excos",
+                          icon: Icons.people,
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => ExcosPage()));
+                          },
+                        ),
+                        // _buildMenuItem(
+                        //   context,
+                        //   title: "Friends & Social",
+                        //   icon: Icons.people,
+                        //   onTap: () {},
+                        // ),
+                        // _buildMenuItem(
+                        //   context,
+                        //   title: "Following List",
+                        //   icon: Icons.list,
+                        //   onTap: () {},
+                        // ),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        _buildSectionTitle("Other"),
+                        _buildMenuItem(
+                          context,
+                          title: "FAQ",
+                          icon: Icons.help,
+                          onTap: () {},
+                        ),
+                        _buildMenuItem(
+                          context,
+                          title: "Help Center",
+                          icon: Icons.support_agent,
+                          onTap: () {},
+                        ),
+                        _buildMenuItem(
+                          context,
+                          title: "Logout",
+                          icon: Icons.logout,
+                          onTap: () {
+                            signOut();
+                            Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => OnboardingPage1()));
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                  // _buildMenuItem(
-                  //   context,
-                  //   title: "Password & Security",
-                  //   icon: Icons.lock,
-                  //   onTap: () => Navigator.push(
-                  //     context,
-                  //     MaterialPageRoute(builder: (_) => SecurityScreen()),
-                  //   ),
-                  // ),
-                  // _buildMenuItem(
-                  //   context,
-                  //   title: "Notifications Preferences",
-                  //   icon: Icons.notifications,
-                  //   onTap: () {
-                  //     Navigator.push(
-                  //         context,
-                  //         MaterialPageRoute(
-                  //             builder: (context) =>
-                  //                 NotificationSettingsScreen()));
-                  //   },
-                  // ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  _buildSectionTitle("Community Settings"),
-                  _buildMenuItem(
-                    context,
-                    title: "Meet the Excos",
-                    icon: Icons.people,
-                    onTap: () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (context) => ExcosPage()));
-                    },
-                  ),
-                  // _buildMenuItem(
-                  //   context,
-                  //   title: "Friends & Social",
-                  //   icon: Icons.people,
-                  //   onTap: () {},
-                  // ),
-                  // _buildMenuItem(
-                  //   context,
-                  //   title: "Following List",
-                  //   icon: Icons.list,
-                  //   onTap: () {},
-                  // ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  _buildSectionTitle("Other"),
-                  _buildMenuItem(
-                    context,
-                    title: "FAQ",
-                    icon: Icons.help,
-                    onTap: () {},
-                  ),
-                  _buildMenuItem(
-                    context,
-                    title: "Help Center",
-                    icon: Icons.support_agent,
-                    onTap: () {},
-                  ),
-                  _buildMenuItem(
-                    context,
-                    title: "Logout",
-                    icon: Icons.logout,
-                    onTap: () {
-                      signOut();
-                      Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => OnboardingPage1()));
-                    },
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -182,7 +213,7 @@ class ProfileScreen extends StatelessWidget {
                       width: 5,
                     ),
                     Text(
-                      'Building Department',
+                      '${userData!['department']} Department',
                       style: TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                   ],
@@ -201,7 +232,7 @@ class ProfileScreen extends StatelessWidget {
                       width: 5,
                     ),
                     Text(
-                      "1st Semester",
+                      "${userData!['semester']}",
                       style: TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                   ],
@@ -395,6 +426,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         print("❌ Error updating user details: $e");
       } finally {
         // Stop loading after the process completes
+        getUserDetails();
         if (mounted) {
           setState(() {
             isLoading = false;
@@ -408,148 +440,167 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: Text(
-          "Personal Information",
-          style: TextStyle(fontSize: 18),
+    return PopScope(
+      canPop: false, // Prevent default back button behavior
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          // Exit the app
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => BottomNavBar(
+                        initialIndex: 3,
+                      )));
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          title: Text(
+            "Personal Information",
+            style: TextStyle(fontSize: 18),
+          ),
         ),
-      ),
-      body: Padding(
-          padding: EdgeInsets.all(15.0),
-          child: userData == null
-              ? Center(
-                  child:
-                      CircularProgressIndicator()) // Show loading until data loads
-              : Column(
-                  children: [
-                    Center(
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 40,
-                            backgroundImage: userData!['profile_pic'] != null &&
-                                    userData!['profile_pic'].isNotEmpty
-                                ? NetworkImage(userData!['profile_pic'])
-                                : AssetImage('assets/images/user.png')
-                                    as ImageProvider,
-                          ),
-                          SizedBox(
-                            height: 8,
-                          ),
-                          Text(
-                            FirebaseAuth.instance.currentUser?.email ??
-                                'Loading....',
-                            style: TextStyle(color: Colors.black, fontSize: 14),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Expanded(
-                      child: SingleChildScrollView(
+        body: Padding(
+            padding: EdgeInsets.all(15.0),
+            child: userData == null
+                ? Center(
+                    child: CircularProgressIndicator(
+                    color: Colors.black,
+                  )) // Show loading until data loads
+                : Column(
+                    children: [
+                      Center(
                         child: Column(
                           children: [
-                            SizedBox(
-                              height: 15,
+                            CircleAvatar(
+                              backgroundColor: Colors.white,
+                              radius: 40,
+                              backgroundImage:
+                                  userData!['profile_pic'] != null &&
+                                          userData!['profile_pic'].isNotEmpty
+                                      ? NetworkImage(userData!['profile_pic'])
+                                      : AssetImage('assets/images/user.png')
+                                          as ImageProvider,
                             ),
-                            _buildTextField("First Name",
-                                userData?['first_name'] ?? "Not provided"),
-                            _buildTextField("Last Name",
-                                userData?['last_name'] ?? "Not provided"),
-                            _buildTextField("Date of Birth",
-                                userData?['date_of_birth'] ?? "Not provided"),
-                            _buildTextField(
-                                "Matric Number",
-                                userData?['matricNo'].toString() ??
-                                    "Not provided"),
-                            _buildTextField("Department",
-                                userData?['department'] ?? "Not provided"),
-                            _buildTextField("Faculty",
-                                userData?['faculty'] ?? "Not provided"),
-                            _buildDropdown(userData?['level'], 'Level', levels,
-                                _selectedLevel, (newValue) {
-                              setState(() => _selectedLevel = newValue);
-                            }),
-                            _buildDropdown(userData?['semester'], 'Semester',
-                                semester, _selectedSemester, (newValue) {
-                              setState(() => _selectedSemester = newValue);
-                            }),
-                            _buildTextField("Gender",
-                                userData?['gender'] ?? "Not provided"),
+                            SizedBox(
+                              height: 8,
+                            ),
+                            Text(
+                              FirebaseAuth.instance.currentUser?.email ??
+                                  'Loading....',
+                              style:
+                                  TextStyle(color: Colors.black, fontSize: 14),
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                    SizedBox(height: 10),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5),
+                      SizedBox(height: 20),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              SizedBox(
+                                height: 15,
+                              ),
+                              _buildTextField("First Name",
+                                  userData?['first_name'] ?? "Not provided"),
+                              _buildTextField("Last Name",
+                                  userData?['last_name'] ?? "Not provided"),
+                              _buildTextField("Date of Birth",
+                                  userData?['date_of_birth'] ?? "Not provided"),
+                              _buildTextField(
+                                  "Matric Number",
+                                  userData?['matricNo'].toString() ??
+                                      "Not provided"),
+                              _buildTextField("Department",
+                                  userData?['department'] ?? "Not provided"),
+                              _buildTextField("Faculty",
+                                  userData?['faculty'] ?? "Not provided"),
+                              _buildDropdown(userData?['level'], 'Level',
+                                  levels, _selectedLevel, (newValue) {
+                                setState(() => _selectedLevel = newValue);
+                              }),
+                              _buildDropdown(userData?['semester'], 'Semester',
+                                  semester, _selectedSemester, (newValue) {
+                                setState(() => _selectedSemester = newValue);
+                              }),
+                              _buildTextField("Gender",
+                                  userData?['gender'] ?? "Not provided"),
+                            ],
+                          ),
                         ),
-                        minimumSize: Size(double.infinity, 50),
                       ),
-                      onPressed: () {
-                        // Check if values have actually changed
-                        if (userData != null &&
-                            userData!['level'] == _selectedLevel &&
-                            userData!['semester'] == _selectedSemester) {
-                          print('⚠️ No changes detected. Skipping update.');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                "⚠️ No changes made.",
-                                style: TextStyle(color: Colors.black),
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: BorderSide(color: Colors.black),
-                              ),
-                              margin: EdgeInsets.all(16),
-                              elevation: 3,
-                              duration: Duration(seconds: 3),
-                            ),
-                          );
-                          return; // Do nothing if no changes
-                        }
-                        updateUserDetails(
-                            level: _selectedLevel, semester: _selectedSemester);
-                      },
-                      child: isLoading
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Please Wait',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900),
+                      SizedBox(height: 10),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          minimumSize: Size(double.infinity, 50),
+                        ),
+                        onPressed: () {
+                          // Check if values have actually changed
+                          if (userData != null &&
+                              userData!['level'] == _selectedLevel &&
+                              userData!['semester'] == _selectedSemester) {
+                            print('⚠️ No changes detected. Skipping update.');
+                            print({_selectedLevel, _selectedSemester});
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "⚠️ No changes made.",
+                                  style: TextStyle(color: Colors.black),
                                 ),
-                                SizedBox(
-                                  width: 15,
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: BorderSide(color: Colors.black),
                                 ),
-                                SizedBox(
-                                    height: 21,
-                                    width: 21,
-                                    child: CircularProgressIndicator(
-                                        color: Colors.white)),
-                              ],
-                            )
-                          : Text("Save",
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900)),
-                    ),
-                    SizedBox(height: 15),
-                  ],
-                )),
+                                margin: EdgeInsets.all(16),
+                                elevation: 3,
+                                duration: Duration(seconds: 3),
+                              ),
+                            );
+                            return; // Do nothing if no changes
+                          }
+                          updateUserDetails(
+                              level: _selectedLevel,
+                              semester: _selectedSemester);
+                        },
+                        child: isLoading
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Please Wait',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900),
+                                  ),
+                                  SizedBox(
+                                    width: 15,
+                                  ),
+                                  SizedBox(
+                                      height: 21,
+                                      width: 21,
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white)),
+                                ],
+                              )
+                            : Text("Save",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900)),
+                      ),
+                      SizedBox(height: 15),
+                    ],
+                  )),
+      ),
     );
   }
 

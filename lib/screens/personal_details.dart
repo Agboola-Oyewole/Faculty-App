@@ -152,124 +152,121 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         //   elevation: 0,
         //   backgroundColor: Colors.transparent,
         // ),
-        body: Padding(
-          padding:
-              const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 85),
-          child: Form(
-            key: _formKey, // Assign form key
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Enter your personal Information",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "Please fill in the form below to make it easier for us to get to know you",
-                  style: TextStyle(color: Colors.black54, fontSize: 14),
-                ),
-                const SizedBox(height: 30),
+        body: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Padding(
+            padding:
+                const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 85),
+            child: Form(
+              key: _formKey, // Assign form key
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Enter your personal Information",
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Please fill in the form below to make it easier for us to get to know you",
+                    style: TextStyle(color: Colors.black54, fontSize: 14),
+                  ),
+                  const SizedBox(height: 30),
 
-                // Date of Birth
-                _buildDatePickerField("Date of Birth", dobController),
-                const SizedBox(height: 20),
+                  // Date of Birth
+                  _buildDatePickerField("Date of Birth", dobController),
+                  const SizedBox(height: 20),
 
-                // Department Dropdown
-                _buildDropdown("Department", departments, _selectedDepartment,
-                    (newValue) {
-                  setState(() => _selectedDepartment = newValue);
-                }),
-                const SizedBox(height: 12),
+                  // Department Dropdown
+                  _buildDropdown("Department", departments, _selectedDepartment,
+                      (newValue) {
+                    setState(() => _selectedDepartment = newValue);
+                  }),
+                  const SizedBox(height: 12),
 
-                // Level Dropdown
-                _buildDropdown("Level", levels, _selectedLevel, (newValue) {
-                  setState(() => _selectedLevel = newValue);
-                }),
-                const SizedBox(height: 12),
+                  // Level Dropdown
+                  _buildDropdown("Level", levels, _selectedLevel, (newValue) {
+                    setState(() => _selectedLevel = newValue);
+                  }),
+                  const SizedBox(height: 12),
 
-                // Gender Dropdown
-                _buildDropdown("Gender", genders, _selectedGender, (newValue) {
-                  setState(() => _selectedGender = newValue);
-                }),
-                const SizedBox(height: 12),
-                _buildDropdown("Semester", semester, _selectedSemester,
-                    (newValue) {
-                  setState(() => _selectedSemester = newValue);
-                }),
-                SizedBox(
-                  height: 12,
-                ),
-                TextField(
-                  autofocus: true,
-                  onChanged: (val) => matricNo = val,
-                  cursorColor: Colors.black,
-                  decoration: InputDecoration(
-                    labelText: "Matric Number",
-                    border: OutlineInputBorder(),
-                    labelStyle: TextStyle(color: Colors.black),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
+                  // Gender Dropdown
+                  _buildDropdown("Gender", genders, _selectedGender,
+                      (newValue) {
+                    setState(() => _selectedGender = newValue);
+                  }),
+                  const SizedBox(height: 12),
+                  _buildDropdown("Semester", semester, _selectedSemester,
+                      (newValue) {
+                    setState(() => _selectedSemester = newValue);
+                  }),
+                  SizedBox(
+                    height: 12,
+                  ),
+                  TextField(
+                    onChanged: (val) => matricNo = val,
+                    cursorColor: Colors.black,
+                    decoration: InputDecoration(
+                      labelText: "Matric Number",
+                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(color: Colors.black),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
-                // Continue Button
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      // Form is valid, proceed
-                      print("✅ Form submitted successfully");
-                      print([
-                        _selectedDepartment,
-                        _selectedGender,
-                        _selectedLevel,
-                        dobController.text
-                      ]);
-                      await updateUserDetails(
-                        // Await the function if it's async
-                        department: _selectedDepartment!,
-                        matricNo: int.parse(matricNo),
-                        semester: _selectedDepartment!,
-                        level: _selectedLevel!,
-                        dateOfBirth: dobController.text,
-                        faculty: 'Environmental Sciences',
-                        gender: _selectedGender!,
-                      );
-
-                      // Move to the next screen AFTER updating the details
-                      if (mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => BottomNavBar()),
+                  // Continue Button
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (_formKey.currentState!.validate()) {
+                        // Form is valid, proceed
+                        await updateUserDetails(
+                          // Await the function if it's async
+                          department: _selectedDepartment!,
+                          matricNo: int.parse(matricNo),
+                          semester: _selectedSemester!,
+                          level: _selectedLevel!,
+                          dateOfBirth: dobController.text,
+                          faculty: 'Environmental Sciences',
+                          gender: _selectedGender!,
                         );
+
+                        // Move to the next screen AFTER updating the details
+                        if (mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => BottomNavBar()),
+                          );
+                        }
                       }
-                    }
-                    print("✅ Form not submitted successfully");
-                    // // Implement validation or navigation here
-                    // signOut();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      print("✅ Form not submitted successfully");
+                      // // Implement validation or navigation here
+                      // signOut();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white, // Customize color
+                              strokeWidth: 4,
+                            ),
+                          )
+                        : Text('Proceed',
+                            style: TextStyle(color: Colors.white)),
                   ),
-                  child: isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white, // Customize color
-                            strokeWidth: 4,
-                          ),
-                        )
-                      : Text('Proceed', style: TextStyle(color: Colors.white)),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -283,6 +280,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       readOnly: true,
       // Prevent manual input
       decoration: InputDecoration(
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(5),
+          borderSide: BorderSide(
+            color: Colors.black,
+            width: 1.5,
+          ),
+        ),
         hintText: hint,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         contentPadding:
@@ -309,6 +313,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           .toList(),
       onChanged: onChanged,
       decoration: InputDecoration(
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(5),
+          borderSide: BorderSide(
+            color: Colors.black,
+            width: 1.5,
+          ),
+        ),
         hintText: hint,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         contentPadding:

@@ -375,17 +375,17 @@ class _PostsState extends State<Posts> {
                                 ? Image.asset(
                                     widget.profilePic,
                                     fit: BoxFit.cover,
-                                    width: 32,
-                                    height: 32,
+                                    width: 34,
+                                    height: 34,
                                   )
                                 : Image.network(
                                     widget.profilePic,
                                     fit: BoxFit.cover,
-                                    width: 32,
-                                    height: 32,
+                                    width: 34,
+                                    height: 34,
                                   )),
                       ),
-                      SizedBox(width: 9),
+                      SizedBox(width: 7),
                       Expanded(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,

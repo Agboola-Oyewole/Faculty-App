@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/screens/course_material_screen.dart';
 import 'package:flutter/material.dart';
 
+import '../bottom_nav_bar.dart';
+
 class CourseDetailScreen extends StatefulWidget {
   final String courseId;
 
@@ -74,152 +76,166 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: isLoading ? Colors.white : Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        iconTheme:
-            IconThemeData(color: isLoading ? Colors.black : Colors.white),
-        // 👈 back button color
-        title: Text(
-          'Course Details',
-          style: TextStyle(
-              color: isLoading ? Colors.black : Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 18),
+    return PopScope(
+      canPop: false, // Prevent default back button behavior
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          // Exit the app
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => BottomNavBar(
+                        initialIndex: 1,
+                      )));
+        }
+      },
+      child: Scaffold(
+        backgroundColor: isLoading ? Colors.white : Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          iconTheme:
+              IconThemeData(color: isLoading ? Colors.black : Colors.white),
+          // 👈 back button color
+          title: Text(
+            'Course Details',
+            style: TextStyle(
+                color: isLoading ? Colors.black : Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 18),
+          ),
         ),
-      ),
-      body: isLoading
-          ? Expanded(
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.black, // Customize color
-                  strokeWidth: 4,
+        body: isLoading
+            ? Expanded(
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.black, // Customize color
+                    strokeWidth: 4,
+                  ),
                 ),
-              ),
-            )
-          : Column(
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Text(
-                      courseDetails['full_name'],
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 15),
-                    ),
-                    SizedBox(
-                      height: 15,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.menu_book_outlined,
-                              color: Colors.white,
-                              size: 13,
-                            ),
-                            SizedBox(
-                              width: 5,
-                            ),
-                            Text(
-                              '${widget.courseId}    ',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                        Text('|    ',
-                            style:
-                                TextStyle(color: Colors.white, fontSize: 12)),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.lightbulb,
-                              color: Colors.white,
-                              size: 15,
-                            ),
-                            SizedBox(
-                              width: 5,
-                            ),
-                            Text('${courseDetails['unit']} Units',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 12)),
-                          ],
-                        ),
-                      ],
-                    )
-                  ],
-                ),
-                SizedBox(
-                  height: 30,
-                ),
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(15),
-                            topRight: Radius.circular(15))),
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                          top: 40.0, left: 20.0, right: 20.0, bottom: 0.0),
-                      child: Column(
+              )
+            : Column(
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        height: 20,
+                      ),
+                      Text(
+                        courseDetails['full_name'],
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15),
+                      ),
+                      SizedBox(
+                        height: 15,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Expanded(
-                            child: GridView.builder(
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: 1.2,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.menu_book_outlined,
+                                color: Colors.white,
+                                size: 13,
                               ),
-                              itemCount: items.length,
-                              itemBuilder: (context, index) {
-                                return GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            CourseMaterialScreen(
-                                                courseId: widget.courseId,
-                                                courseUnit:
-                                                    courseDetails['unit'],
-                                                link: courseDetails[
-                                                        'drive_link'] ??
-                                                    'https://www.google.com/',
-                                                type: items[index]['title'] ==
-                                                        'Course Material'
-                                                    ? 'Lecture Notes'
-                                                    : 'Past Questions'),
-                                      ),
-                                    );
-                                  },
-                                  child: courseDetailCard(
-                                      icons[index],
-                                      items[index]['title'],
-                                      items[index]['description']),
-                                );
-                              },
-                            ),
-                          )
+                              SizedBox(
+                                width: 5,
+                              ),
+                              Text(
+                                '${widget.courseId}    ',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                          Text('|    ',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 12)),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.lightbulb,
+                                color: Colors.white,
+                                size: 15,
+                              ),
+                              SizedBox(
+                                width: 5,
+                              ),
+                              Text('${courseDetails['unit']} Units',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 12)),
+                            ],
+                          ),
                         ],
+                      )
+                    ],
+                  ),
+                  SizedBox(
+                    height: 30,
+                  ),
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(15),
+                              topRight: Radius.circular(15))),
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                            top: 40.0, left: 20.0, right: 20.0, bottom: 0.0),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: GridView.builder(
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 1.2,
+                                ),
+                                itemCount: items.length,
+                                itemBuilder: (context, index) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              CourseMaterialScreen(
+                                                  courseId: widget.courseId,
+                                                  courseUnit:
+                                                      courseDetails['unit'],
+                                                  link: courseDetails[
+                                                          'drive_link'] ??
+                                                      'https://www.google.com/',
+                                                  type: items[index]['title'] ==
+                                                          'Course Material'
+                                                      ? 'Lecture Notes'
+                                                      : 'Past Questions'),
+                                        ),
+                                      );
+                                    },
+                                    child: courseDetailCard(
+                                        icons[index],
+                                        items[index]['title'],
+                                        items[index]['description']),
+                                  );
+                                },
+                              ),
+                            )
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                )
-              ],
-            ),
+                  )
+                ],
+              ),
+      ),
     );
   }
 

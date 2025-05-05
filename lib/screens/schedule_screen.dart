@@ -47,50 +47,59 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
 
   Future<void> fetchUserCourseCodes() async {
     try {
-      User? user = FirebaseAuth.instance.currentUser;
+      setState(() {
+        isLoading = true;
+      });
+
+      final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
-          .instance
+      final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
-      if (!doc.exists) return;
 
-      String userLevel = doc.data()?['level'] ?? '';
-      String userDepartment = doc.data()?['department'] ?? '';
-      String userSemester = doc.data()?['semester'] ?? '';
+      if (!userDoc.exists) return;
 
-      QuerySnapshot filesSnapshot =
-          await FirebaseFirestore.instance.collectionGroup("files").get();
+      final userData = userDoc.data()!;
+      final userLevel = userData['level'];
+      final userDepartment = userData['department'];
+      final userSemester = userData['semester'];
 
-      Set<String> tempCourseCodes = {};
+      final coursesSnapshot =
+          await FirebaseFirestore.instance.collection('resources').get();
 
-      for (var fileDoc in filesSnapshot.docs) {
-        Map<String, dynamic> data = fileDoc.data() as Map<String, dynamic>;
+      Set<String> filteredCourseCodes = {};
 
-        if (!data.containsKey('course_code')) continue;
+      for (var doc in coursesSnapshot.docs) {
+        final courseData = doc.data();
 
-        String courseCode = data['course_code'] ?? 'Unknown';
-        String resourceLevel = data['level'] ?? '';
-        String resourceDepartment = data['department'] ?? '';
-        String resourceSemester = data['semester'] ?? '';
+        final courseLevel = courseData['level'];
+        final courseDepartments = List<String>.from(courseData['department']);
+        final courseSemester = courseData['semester'];
 
-        bool levelMatch = (resourceLevel == userLevel);
-        bool departmentMatch = (resourceDepartment == userDepartment ||
-            resourceDepartment == "All");
-        bool semesterMatch = (resourceSemester == userSemester);
+        final levelMatch = courseLevel == userLevel;
+        final semesterMatch = courseSemester == userSemester;
+
+        final departmentMatch = courseDepartments.contains("All") ||
+            (userDepartment is List
+                ? userDepartment.any((dept) => courseDepartments.contains(dept))
+                : courseDepartments.contains(userDepartment));
 
         if (levelMatch && departmentMatch && semesterMatch) {
-          tempCourseCodes.add(courseCode);
+          filteredCourseCodes.add(doc.id); // doc.id is courseCode
         }
       }
 
       setState(() {
-        courseCodes = tempCourseCodes.toList();
+        courseCodes = filteredCourseCodes.toList();
       });
     } catch (e) {
       print('❌ Error fetching course codes: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -362,6 +371,13 @@ class _WeeklyScheduleScreenState extends State<WeeklyScheduleScreen> {
           .toList(),
       onChanged: onChanged,
       decoration: InputDecoration(
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(5),
+          borderSide: BorderSide(
+            color: Colors.black,
+            width: 1.5,
+          ),
+        ),
         hintText: hint,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
         contentPadding:
