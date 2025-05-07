@@ -105,12 +105,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
           ),
         ),
         body: isLoading
-            ? Expanded(
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.black, // Customize color
-                    strokeWidth: 4,
-                  ),
+            ? Center(
+                child: CircularProgressIndicator(
+                  color: Colors.black, // Customize color
+                  strokeWidth: 4,
                 ),
               )
             : Column(
@@ -212,7 +210,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                                       courseDetails['unit'],
                                                   link: courseDetails[
                                                           'drive_link'] ??
-                                                      'https://www.google.com/',
+                                                      'null',
+                                                  link2: courseDetails[
+                                                          'drive_link_2'] ??
+                                                      'null',
                                                   type: items[index]['title'] ==
                                                           'Course Material'
                                                       ? 'Lecture Notes'

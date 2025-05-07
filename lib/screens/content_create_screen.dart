@@ -35,6 +35,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
   final TextEditingController ticketController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController description2Controller = TextEditingController();
   final TextEditingController locationController = TextEditingController();
   final TextEditingController courseCodeController = TextEditingController();
   bool isLoading = false; // Track loading state
@@ -116,6 +117,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
     ticketController.clear();
     descriptionController.clear();
+    description2Controller.clear();
     locationController.clear();
     courseCodeController.clear();
 
@@ -469,6 +471,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             courseCode,
             int.parse(selectedUnit!.split(' ')[0]),
             descriptionController.text,
+            description2Controller.text,
             title,
             userId);
         await refreshResources(); // if you don’t need to use the result directly
@@ -538,7 +541,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   }
 
   Future<void> addCourseToResources(String courseCode, int unit, String link,
-      String title, String userId) async {
+      String link2, String title, String userId) async {
     final courseRef = FirebaseFirestore.instance
         .collection('resources')
         .doc(courseCode.trim());
@@ -553,6 +556,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           'full_name': title,
           'unit': unit,
           'drive_link': link,
+          'drive_link_2': link2,
           "department": selectedDepartments,
           "level": selectedLevel,
           "semester": selectedSemester,
@@ -722,6 +726,14 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             if (allowTicket)
               buildTextFormField(descriptionController, true, 'https://'),
             if (allowTicket) SizedBox(height: 10),
+            if (allowTicket)
+              Text(
+                'Google Drive Link 2 (Optional)',
+                style: TextStyle(color: Colors.black),
+              ),
+            if (allowTicket)
+              buildTextFormField(description2Controller, false, 'https://'),
+            if (allowTicket) SizedBox(height: 10),
             SizedBox(height: 10),
             if (allowDocumentType)
               buildDropdown("Document Type", documentTypes, selectedType,
@@ -816,61 +828,66 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                 context: context,
                 builder: (context) {
                   List<String> tempSelected = [...selectedItems];
-                  return AlertDialog(
-                    title: Center(
-                      child: Text(
-                        "Select up to 3 Departments",
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    content: SingleChildScrollView(
-                      child: Column(
-                        children: options.map((dept) {
-                          return CheckboxListTile(
-                            value: tempSelected.contains(dept),
-                            title: Text(
-                              dept,
-                              style: TextStyle(fontSize: 15),
-                            ),
-                            onChanged: (isChecked) {
-                              if (isChecked == true &&
-                                  tempSelected.length < 3) {
-                                tempSelected.add(dept);
-                              } else {
-                                tempSelected.remove(dept);
-                              }
-                              // force rebuild
-                              (context as Element).markNeedsBuild();
-                            },
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, null),
-                        child: Text(
-                          "Cancel",
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context, tempSelected),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5),
+                  return StatefulBuilder(
+                    builder: (context, setState) {
+                      return AlertDialog(
+                        title: Center(
+                          child: Text(
+                            "Select up to 3 Departments",
+                            style: TextStyle(fontSize: 18),
                           ),
                         ),
-                        child: Text(
-                          "OK",
-                          style: TextStyle(color: Colors.white),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5),
                         ),
-                      ),
-                    ],
+                        content: SingleChildScrollView(
+                          child: Column(
+                            children: options.map((dept) {
+                              return CheckboxListTile(
+                                checkColor: Colors.white,
+                                activeColor: Colors.black,
+                                value: tempSelected.contains(dept),
+                                title: Text(
+                                  dept,
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                onChanged: (isChecked) {
+                                  setState(() {
+                                    if (isChecked == true &&
+                                        !tempSelected.contains(dept)) {
+                                      if (tempSelected.length < 3) {
+                                        tempSelected.add(dept);
+                                      }
+                                    } else {
+                                      tempSelected.remove(dept);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, null),
+                            child: Text("Cancel",
+                                style: TextStyle(color: Colors.black)),
+                          ),
+                          ElevatedButton(
+                            onPressed: () =>
+                                Navigator.pop(context, tempSelected),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                            child: Text("OK",
+                                style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      );
+                    },
                   );
                 },
               );

@@ -27,6 +27,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   Future<void> updateUserDetails(
       {required String department,
       required String level,
+      required String username,
       required String dateOfBirth,
       required String faculty,
       required String gender,
@@ -49,6 +50,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           'level': level,
           'date_of_birth': dateOfBirth,
           'matricNo': matricNo,
+          'username': username,
           'semester': semester,
           'faculty': faculty,
           'gender': gender,
@@ -99,6 +101,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   final List<String> genders = ["Male", "Female"];
   String matricNo = "";
+  String username = "";
 
   // Function to show date picker
   Future<void> _selectDate(BuildContext context) async {
@@ -173,6 +176,34 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                   ),
                   const SizedBox(height: 30),
 
+                  TextField(
+                    onChanged: (val) => username = val,
+                    cursorColor: Colors.black,
+                    decoration: InputDecoration(
+                      labelText: "Username",
+                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(color: Colors.black),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                    ),
+                  ),
+                  TextField(
+                    onChanged: (val) => matricNo = val,
+                    cursorColor: Colors.black,
+                    decoration: InputDecoration(
+                      labelText: "Matric Number",
+                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(color: Colors.black),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 12,
+                  ),
+
                   // Date of Birth
                   _buildDatePickerField("Date of Birth", dobController),
                   const SizedBox(height: 20),
@@ -200,21 +231,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       (newValue) {
                     setState(() => _selectedSemester = newValue);
                   }),
-                  SizedBox(
-                    height: 12,
-                  ),
-                  TextField(
-                    onChanged: (val) => matricNo = val,
-                    cursorColor: Colors.black,
-                    decoration: InputDecoration(
-                      labelText: "Matric Number",
-                      border: OutlineInputBorder(),
-                      labelStyle: TextStyle(color: Colors.black),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black),
-                      ),
-                    ),
-                  ),
+
                   const SizedBox(height: 30),
 
                   // Continue Button
@@ -226,6 +243,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           // Await the function if it's async
                           department: _selectedDepartment!,
                           matricNo: int.parse(matricNo),
+                          username: username,
                           semester: _selectedSemester!,
                           level: _selectedLevel!,
                           dateOfBirth: dobController.text,

@@ -29,9 +29,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> getUserDetails() async {
     Map<String, dynamic>? fetchedData = await fetchCurrentUserDetails();
     if (fetchedData != null) {
-      setState(() {
-        userData = fetchedData;
-      });
+      if (mounted) {
+        setState(() {
+          userData = fetchedData;
+        });
+      }
     }
   }
 
@@ -174,73 +176,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderRadius: BorderRadius.only(
               bottomLeft: Radius.circular(25),
               bottomRight: Radius.circular(25))),
-      child: Expanded(
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundImage: NetworkImage(userDisplayPic!),
-            ),
-            SizedBox(height: 20),
-            Text(
-              userDisplayName!,
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold),
-            ),
-            SizedBox(
-              height: 8,
-            ),
-            Text(
-              userEmail!,
-              style: TextStyle(color: Colors.white54, fontSize: 12),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.hive_outlined,
-                      size: 15,
-                      color: Colors.white,
-                    ),
-                    SizedBox(
-                      width: 5,
-                    ),
-                    Text(
-                      '${userData!['department']} Department',
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ],
-                ),
-                SizedBox(
-                  width: 10,
-                ),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.book,
-                      size: 15,
-                      color: Colors.white,
-                    ),
-                    SizedBox(
-                      width: 5,
-                    ),
-                    Text(
-                      "${userData!['semester']}",
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundImage: NetworkImage(userDisplayPic!),
+          ),
+          SizedBox(height: 20),
+          Text(
+            userDisplayName!,
+            style: TextStyle(
+                color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(
+            height: 8,
+          ),
+          Text(
+            userEmail!,
+            style: TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.hive_outlined,
+                    size: 15,
+                    color: Colors.white,
+                  ),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  Text(
+                    '${userData!['department']} Department',
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(
+                width: 10,
+              ),
+              Row(
+                children: [
+                  Icon(
+                    Icons.book,
+                    size: 15,
+                    color: Colors.white,
+                  ),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  Text(
+                    "${userData!['semester']}",
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -332,6 +330,8 @@ class PersonalInfoScreen extends StatefulWidget {
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   String? _selectedLevel;
   String? _selectedSemester;
+  String? _username;
+  final TextEditingController _usernameController = TextEditingController();
 
   final List<String> levels = [
     "100 Level",
@@ -364,11 +364,14 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         userData = fetchedData;
         _selectedSemester = userData?['semester'];
         _selectedLevel = userData?['level'];
+        _username = userData?['username'];
+        _usernameController.text = userData?['username'] ?? 'Not Provided';
       });
     }
   }
 
-  Future<void> updateUserDetails({String? level, String? semester}) async {
+  Future<void> updateUserDetails(
+      {String? level, String? semester, String? username}) async {
     // Get the current logged-in user
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -395,10 +398,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         // Use existing values if new ones are null
         String updatedLevel = level ?? userData['level'];
         String updatedSemester = semester ?? userData['semester'];
+        String updatedUsername = username ?? userData['username'];
 
         await userRef.update({
           'level': updatedLevel,
           'semester': updatedSemester,
+          'username': updatedUsername,
           'updated_at': FieldValue.serverTimestamp(), // Track last update
         });
 
@@ -504,20 +509,48 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                               SizedBox(
                                 height: 15,
                               ),
-                              _buildTextField("First Name",
-                                  userData?['first_name'] ?? "Not provided"),
-                              _buildTextField("Last Name",
-                                  userData?['last_name'] ?? "Not provided"),
-                              _buildTextField("Date of Birth",
-                                  userData?['date_of_birth'] ?? "Not provided"),
+                              _buildTextField(
+                                  "First Name",
+                                  userData?['first_name'] ?? "Not provided",
+                                  false),
+                              _buildTextField(
+                                  "Last Name",
+                                  userData?['last_name'] ?? "Not provided",
+                                  false),
+                              TextField(
+                                controller: _usernameController,
+                                cursorColor: Colors.black,
+                                decoration: InputDecoration(
+                                  labelText: "Username",
+                                  border: OutlineInputBorder(),
+                                  labelStyle: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(color: Colors.black),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(
+                                height: 12,
+                              ),
+                              _buildTextField(
+                                  "Date of Birth",
+                                  userData?['date_of_birth'] ?? "Not provided",
+                                  false),
                               _buildTextField(
                                   "Matric Number",
                                   userData?['matricNo'].toString() ??
-                                      "Not provided"),
-                              _buildTextField("Department",
-                                  userData?['department'] ?? "Not provided"),
-                              _buildTextField("Faculty",
-                                  userData?['faculty'] ?? "Not provided"),
+                                      "Not provided",
+                                  false),
+                              _buildTextField(
+                                  "Department",
+                                  userData?['department'] ?? "Not provided",
+                                  false),
+                              _buildTextField(
+                                  "Faculty",
+                                  userData?['faculty'] ?? "Not provided",
+                                  false),
                               _buildDropdown(userData?['level'], 'Level',
                                   levels, _selectedLevel, (newValue) {
                                 setState(() => _selectedLevel = newValue);
@@ -527,7 +560,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 setState(() => _selectedSemester = newValue);
                               }),
                               _buildTextField("Gender",
-                                  userData?['gender'] ?? "Not provided"),
+                                  userData?['gender'] ?? "Not provided", false),
                             ],
                           ),
                         ),
@@ -546,9 +579,15 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           // Check if values have actually changed
                           if (userData != null &&
                               userData!['level'] == _selectedLevel &&
-                              userData!['semester'] == _selectedSemester) {
+                              userData!['semester'] == _selectedSemester &&
+                              userData!['username'] ==
+                                  _usernameController.text) {
                             print('⚠️ No changes detected. Skipping update.');
-                            print({_selectedLevel, _selectedSemester});
+                            print({
+                              _selectedLevel,
+                              _selectedSemester,
+                              _usernameController.text
+                            });
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -569,8 +608,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             return; // Do nothing if no changes
                           }
                           updateUserDetails(
-                              level: _selectedLevel,
-                              semester: _selectedSemester);
+                            level: _selectedLevel,
+                            semester: _selectedSemester,
+                            username: _usernameController.text,
+                          );
                         },
                         child: isLoading
                             ? Row(
@@ -604,7 +645,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
-  Widget _buildTextField(String label, String value) {
+  Widget _buildTextField(String label, String value, bool enabled) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: TextField(
@@ -614,10 +655,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
           border: OutlineInputBorder(),
           filled: true,
-          fillColor: Colors.grey.shade200,
+          fillColor: enabled ? Colors.white : Colors.grey.shade200,
         ),
         controller: TextEditingController(text: value),
-        enabled: false,
+        enabled: enabled,
       ),
     );
   }

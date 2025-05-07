@@ -166,12 +166,10 @@ class _CgpaCalculatorState extends State<CgpaCalculator> {
         ),
       ),
       body: isLoading
-          ? Expanded(
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.black, // Customize color
-                  strokeWidth: 4,
-                ),
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Colors.black, // Customize color
+                strokeWidth: 4,
               ),
             )
           : Padding(

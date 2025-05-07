@@ -64,9 +64,11 @@ class _HomeScreenState extends State<HomeScreen> {
             .get();
 
         if (userSnapshot.exists) {
-          setState(() {
-            _userCache[userId] = userSnapshot.data() as Map<String, dynamic>;
-          });
+          if (mounted) {
+            setState(() {
+              _userCache[userId] = userSnapshot.data() as Map<String, dynamic>;
+            });
+          }
         }
       }
     }
@@ -217,8 +219,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 return Column(
                                   children: [
                                     Posts(
-                                      userName:
-                                          userData['first_name'] ?? 'Unknown',
+                                      userName: userData['username'] ??
+                                          userData['first_name'] ??
+                                          'Unknown',
                                       profilePic: userData['profile_pic'] ??
                                           'assets/images/user.png',
                                       caption: postData['title'] ?? '',

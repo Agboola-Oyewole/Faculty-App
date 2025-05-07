@@ -17,6 +17,7 @@ import '../main.dart';
 class CourseMaterialScreen extends StatefulWidget {
   final String courseId;
   final String link;
+  final String link2;
   final String type;
   final int courseUnit;
 
@@ -25,6 +26,7 @@ class CourseMaterialScreen extends StatefulWidget {
       required this.courseId,
       required this.courseUnit,
       required this.type,
+      required this.link2,
       required this.link});
 
   @override
@@ -410,8 +412,29 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                               ),
                               GestureDetector(
                                 onTap: () {
-                                  final Uri url = Uri.parse(widget.link);
-                                  openDriveLink(url);
+                                  if (widget.link == 'null') {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          "No current google drive link for this course.",
+                                          style: TextStyle(color: Colors.black),
+                                        ),
+                                        behavior: SnackBarBehavior.floating,
+                                        backgroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          side: BorderSide(color: Colors.black),
+                                        ),
+                                        margin: EdgeInsets.all(16),
+                                        elevation: 3,
+                                        duration: Duration(seconds: 3),
+                                      ),
+                                    );
+                                  } else {
+                                    final Uri url = Uri.parse(widget.link);
+                                    openDriveLink(url);
+                                  }
                                 },
                                 child: Text(
                                   "Google Drive Link",
@@ -423,6 +446,38 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                               ),
                             ],
                           ),
+                          SizedBox(
+                            height: 10,
+                          ),
+                          widget.link2 == 'null'
+                              ? Container()
+                              : Row(
+                                  children: [
+                                    Text(
+                                      "Link 2:",
+                                      style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(
+                                      width: 8,
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        final Uri url = Uri.parse(widget.link2);
+                                        openDriveLink(url);
+                                      },
+                                      child: Text(
+                                        "Google Drive Link",
+                                        style: TextStyle(
+                                            color: Colors.blue,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                           SizedBox(
                             height: 20,
                           ),

@@ -145,6 +145,7 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
         'faculty': "", // Ask user to provide this
         'gender': "", // Ask user to provide this
         'matricNo': "",
+        'username': "",
         'role': "student", // Default role
         'created_at': FieldValue.serverTimestamp(),
       });
