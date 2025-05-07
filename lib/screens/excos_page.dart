@@ -21,6 +21,14 @@ class _ExcosPageState extends State<ExcosPage> {
   final TextEditingController nameController = TextEditingController();
   String? selectedRole;
   String? selectedSession;
+  String? _selectedDepartment;
+  final List<String> departments = [
+    "Architecture",
+    "Building",
+    "Estate Management",
+    "Urban & Regional Planning",
+    "Quantity Surveying",
+  ];
 
   List<String> academicSessions = [
     "2024/2025",
@@ -38,6 +46,10 @@ class _ExcosPageState extends State<ExcosPage> {
   final List<String> roles = [
     'Faculty President',
     "Faculty Vice President",
+    'Sports Secretary',
+    'Public Relations Officer',
+    'Class Rep',
+    'Assistant Class Rep'
   ];
 
   void _clearForm() {
@@ -108,6 +120,11 @@ class _ExcosPageState extends State<ExcosPage> {
                   buildDropdown("Role", roles, selectedRole, (val) {
                     setModalState(
                         () => selectedRole = val); // 👈 Use setModalState
+                  }),
+                  buildDropdown("Department", departments, _selectedDepartment,
+                      (val) {
+                    setModalState(() =>
+                        _selectedDepartment = val); // 👈 Use setModalState
                   }),
                   buildDropdown("Session", academicSessions, selectedSession,
                       (val) {
@@ -194,6 +211,39 @@ class _ExcosPageState extends State<ExcosPage> {
     Map<String, dynamic> formData = {};
     String userId = FirebaseAuth.instance.currentUser!.uid;
 
+    // 🔹 Fetch the user's role from Firestore
+    DocumentSnapshot userSnapshot =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+
+    String userRole = userSnapshot['role'] ?? ''; // Default to empty if null
+
+    // 🔹 Check if user is a "student" and restrict certain tabs
+    if (userRole == 'student') {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "🚫 Only class representatives or elected student posts can add excos!",
+            style: TextStyle(color: Colors.black),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Colors.black),
+          ),
+          margin: EdgeInsets.all(16),
+          elevation: 3,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      _clearForm();
+      setState(() {
+        isLoading = false;
+      });
+      return; // Stop execution
+    }
+
     // 🔹 File Upload Function
     Future<String?> uploadFile(File? file, String folder) async {
       if (file == null) return null;
@@ -232,8 +282,63 @@ class _ExcosPageState extends State<ExcosPage> {
         "excosId": excosId,
         "image": imageUrl,
         "role": selectedRole,
+        'department': _selectedDepartment,
         "session": selectedSession,
       };
+      // 🔍 Query Firestore for potential conflicts
+      QuerySnapshot existingExcos =
+          await excosRef.where('session', isEqualTo: selectedSession).get();
+
+      bool conflict = false;
+
+      for (var doc in existingExcos.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final existingRole = data['role'];
+        final existingDept = data['department'];
+
+        // Case 1: Unique combo of role + department + session
+        if (existingRole == selectedRole &&
+            existingDept == _selectedDepartment) {
+          conflict = true;
+          break;
+        }
+
+        // Case 2: These roles must be globally unique for a session
+        final uniqueRoles = [
+          'Faculty President',
+          'Faculty Vice President',
+          'Sports Secretary'
+        ];
+
+        if (uniqueRoles.contains(selectedRole) &&
+            existingRole == selectedRole) {
+          conflict = true;
+          break;
+        }
+      }
+
+      if (conflict) {
+        setModalState(() => isLoading = false);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "🚫 Conflict: This role is already assigned for the selected session.",
+              style: TextStyle(color: Colors.black),
+            ),
+            backgroundColor: Colors.white,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.black),
+            ),
+            margin: EdgeInsets.all(16),
+            elevation: 3,
+          ),
+        );
+        return;
+      }
+
       await excosRef.doc(excosId).set(formData);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -293,6 +398,42 @@ class _ExcosPageState extends State<ExcosPage> {
 
     try {
       // Reference to the post document
+      String userId = FirebaseAuth.instance.currentUser!.uid;
+
+      // 🔹 Fetch the user's role from Firestore
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      String userRole = userSnapshot['role'] ?? ''; // Default to empty if null
+
+      // 🔹 Check if user is a "student" and restrict certain tabs
+      if (userRole == 'student') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "🚫 Only class representatives or elected student posts can delete excos!",
+              style: TextStyle(color: Colors.black),
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.black),
+            ),
+            margin: EdgeInsets.all(16),
+            elevation: 3,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        _clearForm();
+        setState(() {
+          isLoading = false;
+        });
+        return; // Stop execution
+      }
+
       DocumentReference excosRef =
           FirebaseFirestore.instance.collection('excos').doc(excosId);
 
@@ -422,6 +563,7 @@ class _ExcosPageState extends State<ExcosPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: Text(
@@ -645,6 +787,19 @@ class ProfileCard extends StatelessWidget {
               child: Text(
                 textAlign: TextAlign.center,
                 profile['role'],
+                style: TextStyle(
+                  color: Colors.black.withOpacity(0.7),
+                  fontSize: 11,
+                ),
+                softWrap: true,
+              ),
+            ),
+            SizedBox(height: 5),
+            SizedBox(
+              width: 150,
+              child: Text(
+                textAlign: TextAlign.center,
+                profile['department'] ?? 'Building',
                 style: TextStyle(
                   color: Colors.black.withOpacity(0.7),
                   fontSize: 11,
