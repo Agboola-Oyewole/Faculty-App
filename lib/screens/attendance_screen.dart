@@ -20,7 +20,6 @@ class AddClassScreen extends StatefulWidget {
 
 class _AddClassScreenState extends State<AddClassScreen> {
   final TextEditingController _lecturerNameController = TextEditingController();
-  final TextEditingController _courseCodeController = TextEditingController();
   double? latitude;
   double? longitude;
   bool isLoading = true;
@@ -43,10 +42,73 @@ class _AddClassScreenState extends State<AddClassScreen> {
     "500 Level"
   ];
 
+  String? _selectedCourseCode;
+
+  List<String> courseCodes = [];
+
+  Future<void> fetchUserCourseCodes() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!userDoc.exists) return;
+
+      final userData = userDoc.data()!;
+      final userLevel = userData['level'];
+      final userDepartment = userData['department'];
+      final userSemester = userData['semester'];
+
+      final coursesSnapshot =
+          await FirebaseFirestore.instance.collection('resources').get();
+
+      Set<String> filteredCourseCodes = {};
+
+      for (var doc in coursesSnapshot.docs) {
+        final courseData = doc.data();
+
+        final courseLevel = courseData['level'];
+        final courseDepartments = List<String>.from(courseData['department']);
+        final courseSemester = courseData['semester'];
+
+        final levelMatch = courseLevel == userLevel;
+        final semesterMatch = courseSemester == userSemester;
+
+        final departmentMatch = courseDepartments.contains("All") ||
+            (userDepartment is List
+                ? userDepartment.any((dept) => courseDepartments.contains(dept))
+                : courseDepartments.contains(userDepartment));
+
+        if (levelMatch && departmentMatch && semesterMatch) {
+          filteredCourseCodes.add(doc.id); // doc.id is courseCode
+        }
+      }
+
+      setState(() {
+        courseCodes = filteredCourseCodes.toList();
+      });
+    } catch (e) {
+      print('❌ Error fetching course codes: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
+    fetchUserCourseCodes();
   }
 
   Future<void> _getCurrentLocation() async {
@@ -118,10 +180,10 @@ class _AddClassScreenState extends State<AddClassScreen> {
     });
 
     if (_lecturerNameController.text.isEmpty ||
-        _courseCodeController.text.isEmpty ||
+        _selectedCourseCode!.isEmpty ||
         _selectedLevel == null ||
         _selectedDepartment == null ||
-        _courseCodeController.text.isEmpty ||
+        _selectedCourseCode!.isEmpty ||
         latitude == null ||
         longitude == null) {
       if (mounted) {
@@ -157,7 +219,7 @@ class _AddClassScreenState extends State<AddClassScreen> {
         'metadata': {
           'lecturer_name': _lecturerNameController.text,
           // Changed from lecturer_name
-          'courseCode': _courseCodeController.text,
+          'courseCode': _selectedCourseCode,
           'classId': classRef.id,
           'level': _selectedLevel,
           'department': _selectedDepartment,
@@ -192,7 +254,7 @@ class _AddClassScreenState extends State<AddClassScreen> {
       }
 
       _lecturerNameController.clear();
-      _courseCodeController.clear();
+      _selectedCourseCode = null;
 
       if (mounted) {
         setState(() {
@@ -259,17 +321,10 @@ class _AddClassScreenState extends State<AddClassScreen> {
                 ),
               ),
               SizedBox(height: 15),
-              TextField(
-                controller: _courseCodeController,
-                decoration: InputDecoration(
-                  labelText: "Course Code",
-                  border: OutlineInputBorder(),
-                  labelStyle: TextStyle(color: Colors.black, fontSize: 14),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.black),
-                  ),
-                ),
-              ),
+              _buildDropdown("Course Code", courseCodes, _selectedCourseCode,
+                  (newValue) {
+                setState(() => _selectedCourseCode = newValue);
+              }),
               SizedBox(height: 15),
               TextField(
                 decoration: InputDecoration(
@@ -381,6 +436,13 @@ class _AddClassScreenState extends State<AddClassScreen> {
           .toList(),
       onChanged: onChanged,
       decoration: InputDecoration(
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(5),
+          borderSide: BorderSide(
+            color: Colors.black,
+            width: 1.5,
+          ),
+        ),
         hintText: hint,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
         contentPadding:
@@ -530,29 +592,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     print(deviceId);
 
     try {
-      // ✅ Get Matric ID
-      // if (matricNo.isEmpty) {
-      //   setState(() => isLoading = false);
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     SnackBar(
-      //       content: Text(
-      //         "🚫 Input your Matric Number.",
-      //         style: TextStyle(color: Colors.black),
-      //       ),
-      //       behavior: SnackBarBehavior.floating,
-      //       backgroundColor: Colors.white,
-      //       shape: RoundedRectangleBorder(
-      //         borderRadius: BorderRadius.circular(10),
-      //         side: BorderSide(color: Colors.black),
-      //       ),
-      //       margin: EdgeInsets.all(16),
-      //       elevation: 3,
-      //       duration: Duration(seconds: 3),
-      //     ),
-      //   );
-      //   return;
-      // }
-
       // ✅ Get Device ID
       if (deviceId == null) {
         setState(() => isLoading = false);
@@ -576,9 +615,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         return;
       }
 
+      Future<Position> getPrecisePosition() async {
+        LocationSettings locationSettings = const LocationSettings(
+          accuracy: LocationAccuracy.bestForNavigation, // ⬅️ best GPS accuracy
+          distanceFilter: 0,
+        );
+
+        return await Geolocator.getCurrentPosition(
+            locationSettings: locationSettings);
+      }
+
       // ✅ Get User's Location
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+      Position position = await getPrecisePosition();
 
       // ✅ Detect Mock Location (Fake GPS)
       if (position.isMocked) {
@@ -605,7 +653,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
       // ✅ Define limits
       const double maxAllowedDistance = 70.0; // meters
-      const double maxAllowedAccuracy = 30.0; // meters
+      const double maxAllowedAccuracy = 100.0; // meters
 
       print({
         "📍 DEBUG INFO": {
@@ -617,28 +665,28 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         }
       });
       //
-      // // ✅ Check GPS accuracy first
-      // if (position.accuracy > maxAllowedAccuracy) {
-      //   setState(() => isLoading = false);
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     SnackBar(
-      //       content: Text(
-      //         "⚠️ Poor GPS accuracy. Please wait or move to an open area.",
-      //         style: TextStyle(color: Colors.black),
-      //       ),
-      //       behavior: SnackBarBehavior.floating,
-      //       backgroundColor: Colors.white,
-      //       shape: RoundedRectangleBorder(
-      //         borderRadius: BorderRadius.circular(10),
-      //         side: BorderSide(color: Colors.black),
-      //       ),
-      //       margin: EdgeInsets.all(16),
-      //       elevation: 3,
-      //       duration: Duration(seconds: 3),
-      //     ),
-      //   );
-      //   return;
-      // }
+      // ✅ Check GPS accuracy first
+      if (position.accuracy > maxAllowedAccuracy) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "⚠️ Poor GPS accuracy. Please wait or move to an open area.",
+              style: TextStyle(color: Colors.black),
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.black),
+            ),
+            margin: EdgeInsets.all(16),
+            elevation: 3,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
 
       // ✅ Calculate Distance
       double distance = Geolocator.distanceBetween(
@@ -660,13 +708,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       });
 
       // ✅ Validate Distance
-      double buffer = position.accuracy <= 20 ? 15 : 40;
+      double buffer = position.accuracy <= 20 ? 15 : 70;
       if (distance > buffer) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "❌ You are too far from the venue to check in.\nDistance: ${distance.toStringAsFixed(1)}m",
+              "❌ You are too far from the venue to check in. ${distance.toStringAsFixed(1)}m",
               style: TextStyle(color: Colors.black),
             ),
             behavior: SnackBarBehavior.floating,
@@ -770,6 +818,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         "matric_no": matricNo,
         "timestamp": FieldValue.serverTimestamp(),
         "status": "present",
+        'department': userData!['department'],
         "latitude": position.latitude,
         "longitude": position.longitude,
         "deviceId": deviceId, // Ensure Device ID is stored

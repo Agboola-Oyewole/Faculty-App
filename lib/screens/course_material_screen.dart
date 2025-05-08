@@ -12,6 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../bottom_nav_bar.dart';
 import '../main.dart';
 
 class CourseMaterialScreen extends StatefulWidget {
@@ -44,6 +45,8 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
     super.initState();
     getFiles();
     _filesFuture = searchCourseFilesFromFirebase(widget.courseId, widget.type);
+    nameController.text = widget.link;
+    nameController2.text = widget.link2;
   }
 
   Future<void> getFiles() async {
@@ -51,6 +54,9 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
         await searchCourseFilesFromFirebase(widget.courseId, widget.type);
     print(files);
   }
+
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController nameController2 = TextEditingController();
 
   Future<List<Map<String, dynamic>>> searchCourseFilesFromFirebase(
       String input, String type) async {
@@ -304,6 +310,284 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
     }
   }
 
+  // Future<void> _submitForm(Function setModalState) async {
+  //   setModalState(() => isLoading = true); // Show loading spinner
+  //
+  //   Map<String, dynamic> formData = {};
+  //   String userId = FirebaseAuth.instance.currentUser!.uid;
+  //
+  //   // 🔹 Fetch the user's role from Firestore
+  //   DocumentSnapshot userSnapshot =
+  //   await FirebaseFirestore.instance.collection('users').doc(userId).get();
+  //
+  //   String userRole = userSnapshot['role'] ?? ''; // Default to empty if null
+  //
+  //   // 🔹 Check if user is a "student" and restrict certain tabs
+  //   if (userRole == 'student') {
+  //     Navigator.pop(context);
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text(
+  //           "🚫 Only class representatives or elected student posts can add excos!",
+  //           style: TextStyle(color: Colors.black),
+  //         ),
+  //         behavior: SnackBarBehavior.floating,
+  //         backgroundColor: Colors.white,
+  //         shape: RoundedRectangleBorder(
+  //           borderRadius: BorderRadius.circular(10),
+  //           side: BorderSide(color: Colors.black),
+  //         ),
+  //         margin: EdgeInsets.all(16),
+  //         elevation: 3,
+  //         duration: Duration(seconds: 3),
+  //       ),
+  //     );
+  //
+  //     setState(() {
+  //       isLoading = false;
+  //       nameController.clear();
+  //     });
+  //     return; // Stop execution
+  //   }
+  //
+  //
+  //   try {
+  //     if (!validateFields(context, {
+  //       "Full Name": nameController.text,
+  //       "Image": imageUrl,
+  //       "Role": selectedRole,
+  //       "Session": selectedSession,
+  //     })) {
+  //       setModalState(() => isLoading = false);
+  //       return;
+  //     }
+  //
+  //     CollectionReference excosRef =
+  //     FirebaseFirestore.instance.collection('excos');
+  //
+  //     String excosId = excosRef.doc().id;
+  //     formData = {
+  //       "userId": userId,
+  //       "full_Name": nameController.text,
+  //       "excosId": excosId,
+  //       "image": imageUrl,
+  //       "role": selectedRole,
+  //       'department': _selectedDepartment,
+  //       "session": selectedSession,
+  //     };
+  //     // 🔍 Query Firestore for potential conflicts
+  //     QuerySnapshot existingExcos =
+  //     await excosRef.where('session', isEqualTo: selectedSession).get();
+  //
+  //     bool conflict = false;
+  //
+  //     for (var doc in existingExcos.docs) {
+  //       final data = doc.data() as Map<String, dynamic>;
+  //       final existingRole = data['role'];
+  //       final existingDept = data['department'];
+  //
+  //       // Case 1: Unique combo of role + department + session
+  //       if (existingRole == selectedRole &&
+  //           existingDept == _selectedDepartment) {
+  //         conflict = true;
+  //         break;
+  //       }
+  //
+  //       // Case 2: These roles must be globally unique for a session
+  //       final uniqueRoles = [
+  //         'Faculty President',
+  //         'Faculty Vice President',
+  //         'Sports Secretary'
+  //       ];
+  //
+  //       if (uniqueRoles.contains(selectedRole) &&
+  //           existingRole == selectedRole) {
+  //         conflict = true;
+  //         break;
+  //       }
+  //     }
+  //
+  //     if (conflict) {
+  //       setModalState(() => isLoading = false);
+  //       Navigator.pop(context);
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text(
+  //             "🚫 Conflict: This role is already assigned for the selected session.",
+  //             style: TextStyle(color: Colors.black),
+  //           ),
+  //           backgroundColor: Colors.white,
+  //           behavior: SnackBarBehavior.floating,
+  //           shape: RoundedRectangleBorder(
+  //             borderRadius: BorderRadius.circular(10),
+  //             side: BorderSide(color: Colors.black),
+  //           ),
+  //           margin: EdgeInsets.all(16),
+  //           elevation: 3,
+  //         ),
+  //       );
+  //       return;
+  //     }
+  //
+  //     await excosRef.doc(excosId).set(formData);
+  //
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text(
+  //           "✅ Data submitted successfully!.",
+  //           style: TextStyle(color: Colors.black),
+  //         ),
+  //         behavior: SnackBarBehavior.floating,
+  //         backgroundColor: Colors.white,
+  //         shape: RoundedRectangleBorder(
+  //           borderRadius: BorderRadius.circular(10),
+  //           side: BorderSide(color: Colors.black),
+  //         ),
+  //         margin: EdgeInsets.all(16),
+  //         elevation: 3,
+  //         duration: Duration(seconds: 3),
+  //       ),
+  //     );
+  //
+  //     _clearForm();
+  //     setModalState(() => isLoading = false);
+  //     Navigator.pop(context); // Close modal
+  //     Navigator.pushReplacement(
+  //         context, MaterialPageRoute(builder: (context) => ExcosPage()));
+  //   } catch (e) {
+  //     print("❌ Error submitting data: $e");
+  //     setModalState(() => isLoading = false);
+  //   }
+  // }
+
+  Future<void> updateDriveLinksForCourse({
+    required String courseCode,
+    required String link,
+    required String link2,
+    required void Function(void Function()) setModalState,
+  }) async {
+    final courseRef = FirebaseFirestore.instance
+        .collection('resources')
+        .doc(courseCode.trim());
+
+    try {
+      setModalState(() => {}); // 👈 optional: show a loading spinner
+      await courseRef.update({
+        'drive_link': link,
+        'drive_link_2': link2,
+      });
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+            builder: (context) => BottomNavBar(
+                  initialIndex: 1,
+                )),
+      );
+
+      print("✅ Drive links updated for $courseCode.");
+    } catch (e) {
+      print("❌ Failed to update drive links: $e");
+    } finally {
+      setModalState(() => {}); // 👈 optional: remove loading spinner
+    }
+  }
+
+  void showAddRoleBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Allows keyboard to push content up
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            // 👈 Create local state inside modal
+            return Padding(
+              padding: MediaQuery.of(context).viewInsets,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 15.0, vertical: 20),
+                  child: Wrap(
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 60,
+                          height: 5,
+                          margin: EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.grey,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 25.0, top: 5),
+                        child: Center(
+                            child: Text(
+                          'UPDATE DRIVE LINK FOR ${widget.courseId}',
+                          style: TextStyle(
+                              color: Colors.black, fontWeight: FontWeight.bold),
+                        )),
+                      ),
+                      buildTextFormField(nameController, 'Drive Link 1'),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      buildTextFormField(nameController2, 'Drive Link 2'),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 20.0),
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            setModalState(() =>
+                                isLoading = true); // Start loading spinner
+                            await updateDriveLinksForCourse(
+                              courseCode: widget.courseId,
+                              link: nameController.text.trim(),
+                              link2: nameController2.text.trim(),
+                              setModalState: setModalState,
+                            );
+                            // Pass setModalState to update UI
+                            setModalState(() =>
+                                isLoading = false); // Stop loading spinner
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                  5), // Add border radius here
+                            ),
+                            minimumSize: Size(double.infinity, 50),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 4,
+                                  ),
+                                )
+                              : Text("Submit",
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -452,28 +736,50 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                           widget.link2 == 'null'
                               ? Container()
                               : Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      "Link 2:",
-                                      style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    SizedBox(
-                                      width: 8,
+                                    Row(
+                                      children: [
+                                        Text(
+                                          "Link 2:",
+                                          style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        SizedBox(
+                                          width: 8,
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            final Uri url =
+                                                Uri.parse(widget.link2);
+                                            openDriveLink(url);
+                                          },
+                                          child: Text(
+                                            "Google Drive Link",
+                                            style: TextStyle(
+                                                color: Colors.blue,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     GestureDetector(
-                                      onTap: () {
-                                        final Uri url = Uri.parse(widget.link2);
-                                        openDriveLink(url);
-                                      },
-                                      child: Text(
-                                        "Google Drive Link",
-                                        style: TextStyle(
-                                            color: Colors.blue,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold),
+                                      onTap: () =>
+                                          showAddRoleBottomSheet(context),
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 10.0),
+                                        child: Text(
+                                          "Update Links",
+                                          style: TextStyle(
+                                              color: Colors.blueAccent,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -629,6 +935,27 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                         ? Icon(Icons.more_horiz, color: Colors.black, size: 15)
                         : Icon(Icons.download, color: Colors.black, size: 15))),
           ]),
+        ),
+      ),
+    );
+  }
+
+  Widget buildTextFormField(controller, titleHint) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15.0),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(5),
+            borderSide: BorderSide(
+              color: Colors.black,
+              width: 1.5,
+            ),
+          ),
+          labelText: titleHint,
+          labelStyle: TextStyle(color: Colors.black),
+          border: OutlineInputBorder(),
         ),
       ),
     );

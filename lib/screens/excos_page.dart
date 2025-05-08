@@ -640,7 +640,7 @@ class _ExcosPageState extends State<ExcosPage> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(5),
                 borderSide: BorderSide(
-                  color: Color(0xff347928),
+                  color: Colors.black,
                   width: 1.5,
                 ),
               ),
@@ -675,7 +675,7 @@ class _ExcosPageState extends State<ExcosPage> {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(5),
             borderSide: BorderSide(
-              color: Color(0xff347928),
+              color: Colors.black,
               width: 1.5,
             ),
           ),

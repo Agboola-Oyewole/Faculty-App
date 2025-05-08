@@ -124,7 +124,7 @@ exports.createClassSheet = onDocumentCreated("attendance/{classId}", async (even
       range: "Attendance!A1:F1",
       valueInputOption: "RAW",
       requestBody: {
-        values: [["Class ID", "Name", "Matric No", "Timestamp", "Status"]],
+        values: [["Name", "Matric No", "Timestamp", "Status", "Department"]],
       },
     });
 
@@ -153,9 +153,22 @@ exports.syncAttendanceToSheet = onDocumentWritten("attendance/{classId}/students
 
     const spreadsheetId = classData.metadata.sheetId;
 
+    const options = {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    };
+
+    const formattedDate = new Date().toLocaleString('en-US', options);
+    // e.g., "14 March 2025, 12:00 AM"
+
     const values = [
-      [classId, studentData.name, studentData.matric_no, new Date().toISOString(), studentData.status],
+      [studentData.name, studentData.matric_no, formattedDate, studentData.status, studentData.department],
     ];
+
 
     await sheets.spreadsheets.values.append({
       spreadsheetId,
@@ -164,6 +177,31 @@ exports.syncAttendanceToSheet = onDocumentWritten("attendance/{classId}/students
       insertDataOption: "INSERT_ROWS",
       requestBody: { values },
     });
+
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            sortRange: {
+              range: {
+                sheetId: 0, // Assuming the first (Attendance) sheet is at index 0
+                startRowIndex: 1, // Skip headers
+                startColumnIndex: 0,
+                endColumnIndex: 5,
+              },
+              sortSpecs: [
+                {
+                  dimensionIndex: 1, // Matric No column (B = index 1)
+                  sortOrder: "ASCENDING",
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
 
     console.log(`✅ Attendance synced for ${studentData.name}.`);
   } catch (error) {

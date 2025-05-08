@@ -188,6 +188,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       ),
                     ),
                   ),
+                  SizedBox(
+                    height: 12,
+                  ),
                   TextField(
                     onChanged: (val) => matricNo = val,
                     cursorColor: Colors.black,

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/bottom_nav_bar.dart';
+import 'package:faculty_app/screens/bookmark_screen.dart';
 import 'package:faculty_app/screens/splash_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -115,12 +116,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     builder: (context) => ExcosPage()));
                           },
                         ),
-                        // _buildMenuItem(
-                        //   context,
-                        //   title: "Friends & Social",
-                        //   icon: Icons.people,
-                        //   onTap: () {},
-                        // ),
+                        _buildMenuItem(
+                          context,
+                          title: "Bookmarks",
+                          icon: Icons.bookmark_added,
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => BookmarkScreen()));
+                          },
+                        ),
                         // _buildMenuItem(
                         //   context,
                         //   title: "Following List",

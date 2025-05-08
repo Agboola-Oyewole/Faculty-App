@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
 import '../bottom_nav_bar.dart';
+import '../screens/bookmark_screen.dart';
 
 class Posts extends StatefulWidget {
   final String postId;
@@ -18,6 +19,7 @@ class Posts extends StatefulWidget {
   final String postTime;
   final double imageAspect;
   final bool isVerified;
+  final bool isBookmarkedPage;
   final String currentUserId;
 
   const Posts({
@@ -33,6 +35,7 @@ class Posts extends StatefulWidget {
     required this.initialBookmarks,
     required this.postTime,
     required this.isVerified,
+    required this.isBookmarkedPage,
     required this.currentUserId,
     required this.imageAspect,
   });
@@ -52,6 +55,7 @@ class _PostsState extends State<Posts> {
   @override
   void initState() {
     super.initState();
+    setState(() {});
     isLiked = ValueNotifier(widget.initialLikes.contains(widget.currentUserId));
     isBookmarked =
         ValueNotifier(widget.initialBookmarks.contains(widget.currentUserId));
@@ -344,6 +348,10 @@ class _PostsState extends State<Posts> {
             : FieldValue.arrayRemove([widget.currentUserId]),
       });
     });
+    if (widget.isBookmarkedPage) {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => BookmarkScreen()));
+    }
   }
 
   @override
@@ -514,43 +522,47 @@ class _PostsState extends State<Posts> {
                           SizedBox(width: 8),
                           GestureDetector(
                             onTap: () => showCommentsBottomSheet(context),
-                            child: Image.asset(
-                                'assets/images/comment--removebg-preview.png',
-                                width: 21,
-                                height: 21),
+                            child: Row(
+                              children: [
+                                Image.asset(
+                                    'assets/images/comment--removebg-preview.png',
+                                    width: 21,
+                                    height: 21),
+                                SizedBox(width: 5),
+                                Text(widget.commentCount,
+                                    style: TextStyle(fontSize: 13)),
+                              ],
+                            ),
                           ),
-                          SizedBox(width: 5),
-                          Text(widget.commentCount,
-                              style: TextStyle(fontSize: 13)),
                         ],
                       ),
-                      Row(
-                        children: [
-                          ValueListenableBuilder<bool>(
-                            valueListenable: isBookmarked,
-                            builder: (context, bookmarked, _) {
-                              return GestureDetector(
-                                onTap: toggleBookmark,
-                                child: Image.asset(
+                      GestureDetector(
+                        onTap: toggleBookmark,
+                        child: Row(
+                          children: [
+                            ValueListenableBuilder<bool>(
+                              valueListenable: isBookmarked,
+                              builder: (context, bookmarked, _) {
+                                return Image.asset(
                                     bookmarked
                                         ? 'assets/images/ribbon-blue-removebg-preview.png'
                                         : 'assets/images/ribbon-removebg-preview.png',
                                     width: 19,
-                                    height: 19),
-                              );
-                            },
-                          ),
-                          SizedBox(
-                            width: 4,
-                          ),
-                          ValueListenableBuilder<int>(
-                            valueListenable: bookmarkCount,
-                            builder: (context, count, _) {
-                              return Text("$count",
-                                  style: TextStyle(fontSize: 13));
-                            },
-                          )
-                        ],
+                                    height: 19);
+                              },
+                            ),
+                            SizedBox(
+                              width: 4,
+                            ),
+                            ValueListenableBuilder<int>(
+                              valueListenable: bookmarkCount,
+                              builder: (context, count, _) {
+                                return Text("$count",
+                                    style: TextStyle(fontSize: 13));
+                              },
+                            )
+                          ],
+                        ),
                       ),
                     ],
                   ),

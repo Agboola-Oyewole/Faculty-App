@@ -219,6 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 return Column(
                                   children: [
                                     Posts(
+                                      isBookmarkedPage: false,
                                       userName: userData['username'] ??
                                           userData['first_name'] ??
                                           'Unknown',

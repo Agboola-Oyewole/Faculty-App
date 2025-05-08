@@ -100,7 +100,8 @@ class _HubScreenState extends State<HubScreen> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 25,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1.15,
+                  childAspectRatio: MediaQuery.of(context).size.width /
+                      (MediaQuery.of(context).size.height / 2.3),
                 ),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
