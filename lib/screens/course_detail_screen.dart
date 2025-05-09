@@ -211,6 +211,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                                   courseId: widget.courseId,
                                                   courseUnit:
                                                       courseDetails['unit'],
+                                                  courseDept: courseDetails[
+                                                      'department'],
                                                   link: courseDetails[
                                                           'drive_link'] ??
                                                       'null',

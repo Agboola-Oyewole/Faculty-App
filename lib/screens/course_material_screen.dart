@@ -19,6 +19,7 @@ import '../utilities/utils.dart';
 class CourseMaterialScreen extends StatefulWidget {
   final String courseId;
   final String link;
+  final List<dynamic> courseDept;
   final String link2;
   final String type;
   final int courseUnit;
@@ -28,6 +29,7 @@ class CourseMaterialScreen extends StatefulWidget {
       required this.courseId,
       required this.courseUnit,
       required this.type,
+      required this.courseDept,
       required this.link2,
       required this.link});
 
@@ -39,6 +41,16 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
   bool isLoading = false;
   Map<String, bool> isDownloadLoading = {};
   late Future<List<Map<String, dynamic>>> _filesFuture;
+  List<dynamic> selectedDepartments = [];
+
+  final List<String> departments = [
+    'All',
+    "Architecture",
+    "Building",
+    "Urban & Regional Planning",
+    "Estate Management",
+    "Quantity Surveying"
+  ];
 
   @override
   void initState() {
@@ -48,7 +60,10 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
     getUserDetails();
     _filesFuture = searchCourseFilesFromFirebase(widget.courseId, widget.type);
     nameController.text = widget.link;
+    selectedDepartments = widget.courseDept;
     nameController2.text = widget.link2;
+    selectedUnit =
+        "${widget.courseUnit} ${widget.courseUnit > 1 ? "Units" : "Unit"}";
   }
 
   Map<String, dynamic>? userData;
@@ -78,6 +93,17 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController nameController2 = TextEditingController();
+  final TextEditingController unitController = TextEditingController();
+
+  String? selectedUnit;
+
+  final List<String> units = [
+    '0 Unit',
+    '1 Unit',
+    '2 Units',
+    '3 Units',
+    '4 Units',
+  ];
 
   Future<List<Map<String, dynamic>>> searchCourseFilesFromFirebase(
       String input, String type) async {
@@ -329,6 +355,8 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
     required String courseCode,
     required String link,
     required String link2,
+    required List<dynamic> department,
+    required int unit,
     required void Function(void Function()) setModalState,
   }) async {
     final courseRef = FirebaseFirestore.instance
@@ -340,7 +368,10 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
       await courseRef.update({
         'drive_link': link,
         'drive_link_2': link2,
+        'department': department,
+        'unit': unit,
       });
+      await refreshResources();
 
       Navigator.pushReplacement(
         context,
@@ -393,10 +424,23 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                         padding: const EdgeInsets.only(bottom: 25.0, top: 5),
                         child: Center(
                             child: Text(
-                          'UPDATE DRIVE LINK FOR ${widget.courseId}',
+                          'UPDATE DETAILS FOR ${widget.courseId}',
                           style: TextStyle(
                               color: Colors.black, fontWeight: FontWeight.bold),
                         )),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: buildMultiSelectDropdown('Department',
+                            departments.sublist(1), selectedDepartments, (val) {
+                          setModalState(() => selectedDepartments = val);
+                        }),
+                      ),
+                      buildDropdown("Units", units, selectedUnit, (val) {
+                        setModalState(() => selectedUnit = val);
+                      }),
+                      SizedBox(
+                        height: 10,
                       ),
                       buildTextFormField(nameController, 'Drive Link 1'),
                       SizedBox(
@@ -412,6 +456,8 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                             await updateDriveLinksForCourse(
                               courseCode: widget.courseId,
                               link: nameController.text.trim(),
+                              department: selectedDepartments,
+                              unit: int.parse(selectedUnit!.split(' ')[0]),
                               link2: nameController2.text.trim(),
                               setModalState: setModalState,
                             );
@@ -637,9 +683,9 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                                         padding:
                                             const EdgeInsets.only(right: 10.0),
                                         child: Text(
-                                          "Update Links",
+                                          "Update",
                                           style: TextStyle(
-                                              color: Colors.blueAccent,
+                                              color: Colors.blue,
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold),
                                         ),
@@ -697,6 +743,54 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                 )
               ],
             ),
+    );
+  }
+
+  Widget buildDropdown(String label, List<String> items, String? selectedItem,
+      ValueChanged<String?> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: .0, top: 0),
+            child: Text(label),
+          ),
+          SizedBox(height: 5),
+          DropdownButtonFormField<String>(
+            borderRadius: BorderRadius.all(Radius.circular(5.0)),
+            value: selectedItem,
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(5),
+                borderSide: BorderSide(
+                  color: Colors.black,
+                  width: 1.5,
+                ),
+              ),
+            ),
+            isExpanded: false,
+            // validator: (value) {
+            //   if (value == null || value.isEmpty) {
+            //     return "This field is required"; // Show validation message
+            //   }
+            //   return null;
+            // },
+            items: items
+                .map((e) => DropdownMenuItem(
+                    value: e,
+                    child: Text(
+                      e,
+                    )))
+                .toList(),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
     );
   }
 
@@ -801,6 +895,115 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
           ]),
         ),
       ),
+    );
+  }
+
+  Widget buildMultiSelectDropdown(String label, List<String> options,
+      List<dynamic> selectedItems, ValueChanged<List<dynamic>> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label),
+        SizedBox(height: 5),
+        Container(
+          width: double.infinity, // Set to full width
+          child: GestureDetector(
+            onTap: () async {
+              final result = await showDialog<List<String>>(
+                context: context,
+                builder: (context) {
+                  List<String> tempSelected = [...selectedItems];
+                  return StatefulBuilder(
+                    builder: (context, setState) {
+                      return AlertDialog(
+                        title: Center(
+                          child: Text(
+                            "Select up to 3 Departments",
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        content: SingleChildScrollView(
+                          child: Column(
+                            children: options.map((dept) {
+                              return CheckboxListTile(
+                                checkColor: Colors.white,
+                                activeColor: Colors.black,
+                                value: tempSelected.contains(dept),
+                                title: Text(
+                                  dept,
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                onChanged: (isChecked) {
+                                  setState(() {
+                                    if (isChecked == true &&
+                                        !tempSelected.contains(dept)) {
+                                      if (tempSelected.length < 3) {
+                                        tempSelected.add(dept);
+                                      }
+                                    } else {
+                                      tempSelected.remove(dept);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, null),
+                            child: Text("Cancel",
+                                style: TextStyle(color: Colors.black)),
+                          ),
+                          ElevatedButton(
+                            onPressed: () =>
+                                Navigator.pop(context, tempSelected),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                            child: Text("OK",
+                                style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              );
+
+              if (result != null) {
+                onChanged(result);
+              }
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    selectedItems.isEmpty
+                        ? "Select Departments"
+                        : selectedItems.join(', '),
+                    overflow:
+                        TextOverflow.ellipsis, // Ensures text doesn't overflow
+                  ),
+                  Icon(Icons.arrow_drop_down)
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
