@@ -194,7 +194,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                   crossAxisCount: 2,
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
-                                  childAspectRatio: 1.2,
+                                  childAspectRatio:
+                                      MediaQuery.of(context).size.width /
+                                          (MediaQuery.of(context).size.height /
+                                              2.3),
                                 ),
                                 itemCount: items.length,
                                 itemBuilder: (context, index) {

@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../bottom_nav_bar.dart';
 import '../main.dart';
+import '../utilities/utils.dart';
 
 class CourseMaterialScreen extends StatefulWidget {
   final String courseId;
@@ -44,9 +45,29 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
     // TODO: implement initState
     super.initState();
     getFiles();
+    getUserDetails();
     _filesFuture = searchCourseFilesFromFirebase(widget.courseId, widget.type);
     nameController.text = widget.link;
     nameController2.text = widget.link2;
+  }
+
+  Map<String, dynamic>? userData;
+
+  Future<void> getUserDetails() async {
+    setState(() {
+      isLoading = true;
+    });
+    Map<String, dynamic>? fetchedData = await fetchCurrentUserDetails();
+    if (fetchedData != null) {
+      if (mounted) {
+        setState(() {
+          userData = fetchedData;
+        });
+      }
+    }
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> getFiles() async {
@@ -183,12 +204,6 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
         print("❌ Downloads directory not found!");
         return;
       }
-
-      // // Get the file extension properly
-      // String fileExtension = path.extension(url.split('?').first);
-      // if (fileExtension.isEmpty) {
-      //   fileExtension = ".pdf"; // Default to PDF if no extension found
-      // }
       String fileType = await getFileType(url);
       Map<String, String> fileExtensions = {
         "PDF": ".pdf",
@@ -309,156 +324,6 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
       print('Could not launch $url');
     }
   }
-
-  // Future<void> _submitForm(Function setModalState) async {
-  //   setModalState(() => isLoading = true); // Show loading spinner
-  //
-  //   Map<String, dynamic> formData = {};
-  //   String userId = FirebaseAuth.instance.currentUser!.uid;
-  //
-  //   // 🔹 Fetch the user's role from Firestore
-  //   DocumentSnapshot userSnapshot =
-  //   await FirebaseFirestore.instance.collection('users').doc(userId).get();
-  //
-  //   String userRole = userSnapshot['role'] ?? ''; // Default to empty if null
-  //
-  //   // 🔹 Check if user is a "student" and restrict certain tabs
-  //   if (userRole == 'student') {
-  //     Navigator.pop(context);
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(
-  //         content: Text(
-  //           "🚫 Only class representatives or elected student posts can add excos!",
-  //           style: TextStyle(color: Colors.black),
-  //         ),
-  //         behavior: SnackBarBehavior.floating,
-  //         backgroundColor: Colors.white,
-  //         shape: RoundedRectangleBorder(
-  //           borderRadius: BorderRadius.circular(10),
-  //           side: BorderSide(color: Colors.black),
-  //         ),
-  //         margin: EdgeInsets.all(16),
-  //         elevation: 3,
-  //         duration: Duration(seconds: 3),
-  //       ),
-  //     );
-  //
-  //     setState(() {
-  //       isLoading = false;
-  //       nameController.clear();
-  //     });
-  //     return; // Stop execution
-  //   }
-  //
-  //
-  //   try {
-  //     if (!validateFields(context, {
-  //       "Full Name": nameController.text,
-  //       "Image": imageUrl,
-  //       "Role": selectedRole,
-  //       "Session": selectedSession,
-  //     })) {
-  //       setModalState(() => isLoading = false);
-  //       return;
-  //     }
-  //
-  //     CollectionReference excosRef =
-  //     FirebaseFirestore.instance.collection('excos');
-  //
-  //     String excosId = excosRef.doc().id;
-  //     formData = {
-  //       "userId": userId,
-  //       "full_Name": nameController.text,
-  //       "excosId": excosId,
-  //       "image": imageUrl,
-  //       "role": selectedRole,
-  //       'department': _selectedDepartment,
-  //       "session": selectedSession,
-  //     };
-  //     // 🔍 Query Firestore for potential conflicts
-  //     QuerySnapshot existingExcos =
-  //     await excosRef.where('session', isEqualTo: selectedSession).get();
-  //
-  //     bool conflict = false;
-  //
-  //     for (var doc in existingExcos.docs) {
-  //       final data = doc.data() as Map<String, dynamic>;
-  //       final existingRole = data['role'];
-  //       final existingDept = data['department'];
-  //
-  //       // Case 1: Unique combo of role + department + session
-  //       if (existingRole == selectedRole &&
-  //           existingDept == _selectedDepartment) {
-  //         conflict = true;
-  //         break;
-  //       }
-  //
-  //       // Case 2: These roles must be globally unique for a session
-  //       final uniqueRoles = [
-  //         'Faculty President',
-  //         'Faculty Vice President',
-  //         'Sports Secretary'
-  //       ];
-  //
-  //       if (uniqueRoles.contains(selectedRole) &&
-  //           existingRole == selectedRole) {
-  //         conflict = true;
-  //         break;
-  //       }
-  //     }
-  //
-  //     if (conflict) {
-  //       setModalState(() => isLoading = false);
-  //       Navigator.pop(context);
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text(
-  //             "🚫 Conflict: This role is already assigned for the selected session.",
-  //             style: TextStyle(color: Colors.black),
-  //           ),
-  //           backgroundColor: Colors.white,
-  //           behavior: SnackBarBehavior.floating,
-  //           shape: RoundedRectangleBorder(
-  //             borderRadius: BorderRadius.circular(10),
-  //             side: BorderSide(color: Colors.black),
-  //           ),
-  //           margin: EdgeInsets.all(16),
-  //           elevation: 3,
-  //         ),
-  //       );
-  //       return;
-  //     }
-  //
-  //     await excosRef.doc(excosId).set(formData);
-  //
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(
-  //         content: Text(
-  //           "✅ Data submitted successfully!.",
-  //           style: TextStyle(color: Colors.black),
-  //         ),
-  //         behavior: SnackBarBehavior.floating,
-  //         backgroundColor: Colors.white,
-  //         shape: RoundedRectangleBorder(
-  //           borderRadius: BorderRadius.circular(10),
-  //           side: BorderSide(color: Colors.black),
-  //         ),
-  //         margin: EdgeInsets.all(16),
-  //         elevation: 3,
-  //         duration: Duration(seconds: 3),
-  //       ),
-  //     );
-  //
-  //     _clearForm();
-  //     setModalState(() => isLoading = false);
-  //     Navigator.pop(context); // Close modal
-  //     Navigator.pushReplacement(
-  //         context, MaterialPageRoute(builder: (context) => ExcosPage()));
-  //   } catch (e) {
-  //     print("❌ Error submitting data: $e");
-  //     setModalState(() => isLoading = false);
-  //   }
-  // }
 
   Future<void> updateDriveLinksForCourse({
     required String courseCode,
@@ -608,12 +473,10 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
         ),
       ),
       body: isLoading
-          ? Expanded(
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.black, // Customize color
-                  strokeWidth: 4,
-                ),
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Colors.black, // Customize color
+                strokeWidth: 4,
               ),
             )
           : Column(
@@ -733,13 +596,12 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                           SizedBox(
                             height: 10,
                           ),
-                          widget.link2 == 'null'
-                              ? Container()
-                              : Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              widget.link2 == 'null'
+                                  ? Container()
+                                  : Row(
                                       children: [
                                         Text(
                                           "Link 2:",
@@ -767,7 +629,8 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                                         ),
                                       ],
                                     ),
-                                    GestureDetector(
+                              userData!['role'] != 'student'
+                                  ? GestureDetector(
                                       onTap: () =>
                                           showAddRoleBottomSheet(context),
                                       child: Padding(
@@ -781,9 +644,10 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                                               fontWeight: FontWeight.bold),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    )
+                                  : Container(),
+                            ],
+                          ),
                           SizedBox(
                             height: 20,
                           ),

@@ -413,7 +413,7 @@ class _ExcosPageState extends State<ExcosPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "🚫 Only class representatives or elected student posts can delete excos!",
+              "🚫 Only class representatives or elected student can delete excos!",
               style: TextStyle(color: Colors.black),
             ),
             behavior: SnackBarBehavior.floating,

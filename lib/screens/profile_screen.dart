@@ -127,12 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     builder: (context) => BookmarkScreen()));
                           },
                         ),
-                        // _buildMenuItem(
-                        //   context,
-                        //   title: "Following List",
-                        //   icon: Icons.list,
-                        //   onTap: () {},
-                        // ),
+
                         SizedBox(
                           height: 10,
                         ),
