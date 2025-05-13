@@ -48,3 +48,5 @@ firebase.json
 cors.json
 web/firebase-messaging-sw.js
 lib/firebase_options.dart
+
+functions/service-account.json
