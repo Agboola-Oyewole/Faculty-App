@@ -125,7 +125,8 @@ class AuthCheck extends StatelessWidget {
               } else {
                 print(
                     "❌ Error retrieving user data, defaulting to Personal Info.");
-                return PersonalInfoScreen();
+                FirebaseAuth.instance.signOut();
+                return OnboardingPage1(); // force them to log in again
               }
             },
           );
