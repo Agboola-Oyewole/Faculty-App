@@ -21,15 +21,13 @@ class _OnboardingPage1State extends State<OnboardingPage1> {
       body: OnboardingPagePresenter(pages: [
         OnboardingPageModel(
           title: 'Stay Informed, Stay Ahead',
-          description:
-              'Get real-time updates on lectures, events, and deadlines with the faculty noticeboard.',
+          description: 'Get real-time updates on lectures.',
           imageUrl: 'assets/images/Learning-rafiki.png',
           bgColor: Colors.black, // Deep Green
         ),
         OnboardingPageModel(
           title: 'Find Lecturers & Offices Easily',
-          description:
-              'A simple directory to search for lecturers, office locations, and contacts.',
+          description: 'A simple directory to search for lecturers.',
           imageUrl: 'assets/images/Teaching-amico.png',
           bgColor: Colors.black, // Soft Off-White
         ),
@@ -139,7 +137,6 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
         'last_name': user.displayName?.split(" ").last ?? "",
         'profile_pic': user.photoURL ?? "",
         'email': user.email,
-        'date_of_birth': "", // Ask user to provide this
         'department': "", // Ask user to provide this
         'level': "", // Ask user to provide this
         'faculty': "", // Ask user to provide this
@@ -249,7 +246,7 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                             flex: 1,
                             child: Column(children: [
                               Padding(
-                                padding: const EdgeInsets.all(16.0),
+                                padding: const EdgeInsets.all(5.0),
                                 child: Text(item.title,
                                     style: Theme.of(context)
                                         .textTheme

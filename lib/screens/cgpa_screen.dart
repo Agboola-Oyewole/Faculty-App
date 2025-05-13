@@ -283,6 +283,9 @@ class _CgpaCalculatorState extends State<CgpaCalculator> {
                                   : Colors.black,
                             ),
                           ),
+                          SizedBox(
+                            height: 50,
+                          ),
                         ],
                       ),
                     ),

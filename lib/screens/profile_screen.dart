@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/bottom_nav_bar.dart';
 import 'package:faculty_app/screens/bookmark_screen.dart';
+import 'package:faculty_app/screens/faqs_screen.dart';
 import 'package:faculty_app/screens/splash_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -136,7 +137,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           context,
                           title: "FAQ",
                           icon: Icons.help,
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => FaqsScreen()));
+                          },
                         ),
                         _buildMenuItem(
                           context,
@@ -535,10 +541,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                               SizedBox(
                                 height: 12,
                               ),
-                              _buildTextField(
-                                  "Date of Birth",
-                                  userData?['date_of_birth'] ?? "Not provided",
-                                  false),
+                              // _buildTextField(
+                              //     "Date of Birth",
+                              //     userData?['date_of_birth'] ?? "Not provided",
+                              //     false),
                               _buildTextField(
                                   "Matric Number",
                                   userData?['matricNo'].toString() ??

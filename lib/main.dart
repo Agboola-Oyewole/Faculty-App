@@ -12,6 +12,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'bottom_nav_bar.dart';
+import 'firebase_options.dart';
 
 // ✅ Global navigator key for notification taps
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -25,7 +26,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // ✅ Initialize Notifications
   await initNotifications();
@@ -45,7 +48,20 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(fontFamily: 'Poppins'),
+      theme: ThemeData(
+          scaffoldBackgroundColor: Colors.white,
+          // Set custom background color here
+          appBarTheme: AppBarTheme(
+            backgroundColor: Colors
+                .white, // Optional: Customize AppBar background for dark mode
+            surfaceTintColor: Colors.white,
+          ),
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: Colors.black,
+            selectionColor: Colors.black.withOpacity(0.5),
+            selectionHandleColor: Colors.black,
+          ),
+          fontFamily: 'Poppins'),
       home: AuthCheck(),
     );
   }
@@ -92,7 +108,6 @@ class AuthCheck extends StatelessWidget {
                 );
               } else if (userSnapshot.hasData && userSnapshot.data != null) {
                 bool hasMissingFields = [
-                  'date_of_birth',
                   'department',
                   'level',
                   'faculty',

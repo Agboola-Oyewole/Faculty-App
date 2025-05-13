@@ -168,7 +168,9 @@ class _CommentSectionState extends State<CommentSection> {
                                   title: Row(
                                     children: [
                                       Text(
-                                        userData['first_name'] ?? "Unknown",
+                                        userData['username'] ??
+                                            userData['first_name'] ??
+                                            "Unknown",
                                         style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold),

@@ -2,6 +2,7 @@ import 'package:faculty_app/components/hub_container.dart';
 import 'package:faculty_app/screens/attendance_screen.dart';
 import 'package:faculty_app/screens/cgpa_screen.dart';
 import 'package:faculty_app/screens/schedule_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../bottom_nav_bar.dart';
@@ -100,8 +101,11 @@ class _HubScreenState extends State<HubScreen> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 25,
                   mainAxisSpacing: 12,
-                  childAspectRatio: MediaQuery.of(context).size.width /
-                      (MediaQuery.of(context).size.height / 2.3),
+                  childAspectRatio: kIsWeb
+                      ? MediaQuery.of(context).size.width /
+                          (MediaQuery.of(context).size.height / 2.0)
+                      : MediaQuery.of(context).size.width /
+                          (MediaQuery.of(context).size.height / 2.05),
                 ),
                 itemCount: items.length,
                 itemBuilder: (context, index) {

@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:intl/intl.dart';
 
 import '../bottom_nav_bar.dart';
 
@@ -15,7 +14,7 @@ class PersonalInfoScreen extends StatefulWidget {
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final _formKey = GlobalKey<FormState>(); // Form key for validation
-  final TextEditingController dobController = TextEditingController();
+  // final TextEditingController dobController = TextEditingController();
   final String? displayName = FirebaseAuth.instance.currentUser?.email;
   bool isLoading = false; // Track loading state
 
@@ -24,52 +23,81 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     await GoogleSignIn().signOut();
   }
 
-  Future<void> updateUserDetails(
-      {required String department,
-      required String level,
-      required String username,
-      required String dateOfBirth,
-      required String faculty,
-      required String gender,
-      required int matricNo,
-      required String semester}) async {
-    // Get the current logged-in user
+  Future<void> updateUserDetails({
+    required String department,
+    required String level,
+    required String username,
+    required String faculty,
+    required String gender,
+    required int matricNo,
+    required String semester,
+  }) async {
     User? user = FirebaseAuth.instance.currentUser;
 
-    if (user != null) {
-      // Reference to Firestore user document
-      final userRef =
-          FirebaseFirestore.instance.collection('users').doc(user.uid);
-      setState(() {
-        isLoading = true; // Start loading
+    if (user == null) {
+      print("⚠️ No user is signed in.");
+      return;
+    }
+
+    final userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // 🔍 Check if another user already has this matricNo
+      final existing = await FirebaseFirestore.instance
+          .collection('users')
+          .where('matricNo', isEqualTo: matricNo)
+          .where(FieldPath.documentId, isNotEqualTo: user.uid) // Exclude self
+          .limit(1)
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "❌ Matric number already exists.",
+                style: TextStyle(color: Colors.black),
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: Colors.black),
+              ),
+              margin: EdgeInsets.all(16),
+              elevation: 3,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      // ✅ Safe to update
+      await userRef.update({
+        'department': department,
+        'level': level,
+        'matricNo': matricNo,
+        'username': username,
+        'semester': semester,
+        'faculty': faculty,
+        'gender': gender,
+        'updated_at': FieldValue.serverTimestamp(),
       });
 
-      try {
-        await userRef.update({
-          'department': department,
-          'level': level,
-          'date_of_birth': dateOfBirth,
-          'matricNo': matricNo,
-          'username': username,
-          'semester': semester,
-          'faculty': faculty,
-          'gender': gender,
-          'updated_at': FieldValue.serverTimestamp(), // Track last update
+      print("✅ User details updated successfully!");
+    } catch (e) {
+      print("❌ Error updating user details: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
         });
-
-        print("✅ User details updated successfully!");
-      } catch (e) {
-        print("❌ Error updating user details: $e");
-      } finally {
-        // Stop loading after the process completes
-        if (mounted) {
-          setState(() {
-            isLoading = false;
-          });
-        }
       }
-    } else {
-      print("⚠️ No user is signed in.");
     }
   }
 
@@ -103,22 +131,22 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   String matricNo = "";
   String username = "";
 
-  // Function to show date picker
-  Future<void> _selectDate(BuildContext context) async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1950),
-      lastDate: DateTime.now(),
-    );
-
-    if (pickedDate != null) {
-      setState(() {
-        dobController.text =
-            DateFormat("MM/dd/yyyy").format(pickedDate); // Format date
-      });
-    }
-  }
+  // // Function to show date picker
+  // Future<void> _selectDate(BuildContext context) async {
+  //   DateTime? pickedDate = await showDatePicker(
+  //     context: context,
+  //     initialDate: DateTime.now(),
+  //     firstDate: DateTime(1950),
+  //     lastDate: DateTime.now(),
+  //   );
+  //
+  //   if (pickedDate != null) {
+  //     setState(() {
+  //       dobController.text =
+  //           DateFormat("MM/dd/yyyy").format(pickedDate); // Format date
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -174,7 +202,25 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     "Please fill in the form below to make it easier for us to get to know you",
                     style: TextStyle(color: Colors.black54, fontSize: 14),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info,
+                        color: Colors.black,
+                      ),
+                      SizedBox(
+                        width: 8,
+                      ),
+                      Expanded(
+                        child: const Text(
+                          "Be sure to input the correct matric number, it can't be changed again.",
+                          style: TextStyle(color: Colors.black, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
 
                   TextField(
                     onChanged: (val) => username = val,
@@ -194,6 +240,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                   TextField(
                     onChanged: (val) => matricNo = val,
                     cursorColor: Colors.black,
+                    keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: "Matric Number",
                       border: OutlineInputBorder(),
@@ -207,9 +254,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     height: 12,
                   ),
 
-                  // Date of Birth
-                  _buildDatePickerField("Date of Birth", dobController),
-                  const SizedBox(height: 20),
+                  // // Date of Birth
+                  // _buildDatePickerField("Date of Birth", dobController),
+                  // const SizedBox(height: 20),
 
                   // Department Dropdown
                   _buildDropdown("Department", departments, _selectedDepartment,
@@ -249,7 +296,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           username: username,
                           semester: _selectedSemester!,
                           level: _selectedLevel!,
-                          dateOfBirth: dobController.text,
                           faculty: 'Environmental Sciences',
                           gender: _selectedGender!,
                         );
@@ -295,35 +341,35 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
-  Widget _buildDatePickerField(String hint, TextEditingController controller) {
-    return TextFormField(
-      controller: controller,
-      readOnly: true,
-      // Prevent manual input
-      decoration: InputDecoration(
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(5),
-          borderSide: BorderSide(
-            color: Colors.black,
-            width: 1.5,
-          ),
-        ),
-        hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        suffixIcon: const Icon(Icons.calendar_today), // Calendar icon
-      ),
-      onTap: () => _selectDate(context),
-      // Show date picker
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return "$hint is required"; // Show validation message
-        }
-        return null;
-      },
-    );
-  }
+  // Widget _buildDatePickerField(String hint, TextEditingController controller) {
+  //   return TextFormField(
+  //     controller: controller,
+  //     readOnly: true,
+  //     // Prevent manual input
+  //     decoration: InputDecoration(
+  //       focusedBorder: OutlineInputBorder(
+  //         borderRadius: BorderRadius.circular(5),
+  //         borderSide: BorderSide(
+  //           color: Colors.black,
+  //           width: 1.5,
+  //         ),
+  //       ),
+  //       hintText: hint,
+  //       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+  //       contentPadding:
+  //           const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  //       suffixIcon: const Icon(Icons.calendar_today), // Calendar icon
+  //     ),
+  //     onTap: () => _selectDate(context),
+  //     // Show date picker
+  //     validator: (value) {
+  //       if (value == null || value.isEmpty) {
+  //         return "$hint is required"; // Show validation message
+  //       }
+  //       return null;
+  //     },
+  //   );
+  // }
 
   Widget _buildDropdown(String hint, List<String> items, String? selectedValue,
       Function(String?) onChanged) {

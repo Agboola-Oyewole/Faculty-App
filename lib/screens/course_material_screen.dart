@@ -1,7 +1,10 @@
+import 'dart:io' as io;
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -13,6 +16,8 @@ import 'package:photo_view/photo_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../bottom_nav_bar.dart';
+import '../components/web_download_helper_stub.dart'
+    if (dart.library.html) '../components/web_download_helper.dart';
 import '../main.dart';
 import '../utilities/utils.dart';
 
@@ -129,6 +134,134 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
     }
   }
 
+  Future<void> deleteCourseFileByResourceId(
+      String courseId, String resourceId) async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      final filesRef = FirebaseFirestore.instance
+          .collection('resources')
+          .doc(courseId.trim())
+          .collection('files');
+
+      final querySnapshot = await filesRef
+          .where('resource_id', isEqualTo: resourceId.trim())
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        final docUrl = doc['document'] ?? '';
+
+        // 🔥 Delete from Firebase Storage if URL is valid
+        if (docUrl.isNotEmpty) {
+          try {
+            final ref = FirebaseStorage.instance.refFromURL(docUrl);
+            await ref.delete();
+            print("✅ Storage file deleted.");
+          } catch (e) {
+            print("⚠️ Error deleting storage file: $e");
+          }
+        }
+
+        // 🗑 Delete Firestore document
+        await doc.reference.delete();
+        print("✅ Firestore doc deleted.");
+        _filesFuture =
+            searchCourseFilesFromFirebase(widget.courseId, widget.type);
+        setState(() {
+          isLoading = false;
+        });
+      } else {
+        print("⚠️ No matching file with resource_id: $resourceId");
+      }
+    } catch (e) {
+      print("❌ Error during deletion: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void confirmDelete(documentId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          "Delete document?",
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black),
+        ),
+        content: Text("Are you sure you want to delete this document?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel",
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+            onPressed: () {
+              deleteCourseFileByResourceId(widget.courseId, documentId);
+              Navigator.pop(context);
+            },
+            child: Text("Delete",
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void showDeleteBottomSheet(BuildContext context, documentId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Allows keyboard to push content up
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
+          child: Wrap(children: [
+            Center(
+              child: Container(
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 15.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  minimumSize: Size(double.infinity, 50),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  confirmDelete(documentId);
+                },
+                child: Text("Delete document",
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w900)),
+              ),
+            ),
+          ]),
+        );
+      },
+    );
+  }
+
   Future<void> showDownloadNotification(String fileName) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
@@ -150,7 +283,7 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
     await flutterLocalNotificationsPlugin.show(
       notificationId, // Notification ID
       'FES Connect Hub',
-      '✅ "$fileName" downloaded to your Downloads folder.',
+      '$fileName downloaded to your Downloads folder.',
       platformChannelSpecifics,
     );
   }
@@ -197,106 +330,120 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
 
   Future<void> downloadFile(String url, String fileName) async {
     try {
-      if (Platform.isAndroid) {
-        if (await Permission.manageExternalStorage.isDenied) {
-          var status = await Permission.manageExternalStorage.request();
-          if (!status.isGranted) {
-            print("❌ Storage permission denied.");
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  "❌ Storage permission denied!",
-                  style: TextStyle(color: Colors.black),
+      if (kIsWeb) {
+        triggerSimpleWebDownload(url, fileName);
+        print("✅ Web download triggered.");
+      } else {
+        if (io.Platform.isAndroid) {
+          if (await Permission.manageExternalStorage.isDenied) {
+            var status = await Permission.manageExternalStorage.request();
+            if (!status.isGranted) {
+              print("❌ Storage permission denied.");
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    "❌ Storage permission denied!",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(color: Colors.black),
+                  ),
+                  margin: EdgeInsets.all(16),
+                  elevation: 3,
+                  duration: Duration(seconds: 3),
                 ),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(color: Colors.black),
-                ),
-                margin: EdgeInsets.all(16),
-                elevation: 3,
-                duration: Duration(seconds: 3),
-              ),
-            );
+              );
+              return;
+            }
+          }
+
+          // Get Downloads folder
+          final downloadsDir = io.Directory('/storage/emulated/0/Download');
+          if (!downloadsDir.existsSync()) {
+            print("❌ Downloads directory not found!");
             return;
           }
+
+          String fileType = await getFileType(url);
+          Map<String, String> fileExtensions = {
+            "PDF": ".pdf",
+            "Word": ".docx",
+            "PowerPoint": ".pptx",
+            "Excel": ".xlsx",
+            "JPG": ".jpg",
+            "PNG": ".png",
+            "WEBP": ".webp",
+            "GIF": ".gif",
+          };
+
+          String fullFileName = "$fileName${fileExtensions[fileType] ?? ''}";
+          String savePath = "${downloadsDir.path}/$fullFileName";
+
+          await Dio().download(url, savePath);
+          print("✅ File downloaded: $savePath");
+
+          // Force media scanner to recognize the new file
+          await io.Process.run('am', [
+            'broadcast',
+            '-a',
+            'android.intent.action.MEDIA_SCANNER_SCAN_FILE',
+            '-d',
+            'file://$savePath'
+          ]);
+
+          await showDownloadNotification(fullFileName);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("✅ Downloaded: $fullFileName",
+                  style: TextStyle(color: Colors.black)),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: Colors.black),
+              ),
+              margin: EdgeInsets.all(16),
+            ),
+          );
         }
       }
-
-      // Get the Downloads directory
-      Directory downloadsDir = Directory('/storage/emulated/0/Download');
-      if (!downloadsDir.existsSync()) {
-        print("❌ Downloads directory not found!");
-        return;
-      }
-      String fileType = await getFileType(url);
-      Map<String, String> fileExtensions = {
-        "PDF": ".pdf",
-        "Word": ".docx",
-        "PowerPoint": ".pptx",
-        "Excel": ".xlsx",
-        "JPG": ".jpg",
-        "PNG": ".png",
-        "WEBP": ".webp",
-        "GIF": ".gif",
-      };
-
-      // Construct the final filename
-      String fullFileName =
-          "$fileName${fileExtensions[fileType]}"; // Example: "Academic Calendar.pdf"
-
-      // Define the save path
-      String savePath = "${downloadsDir.path}/$fullFileName";
-
-      // Download the file
-      Dio dio = Dio();
-      await dio.download(url, savePath);
-
-      print("✅ File downloaded: $savePath");
-      // ✅ Show notification when download completes
-      await showDownloadNotification(fullFileName);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "✅ Downloaded: $fullFileName",
-            style: TextStyle(color: Colors.black),
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: Colors.black),
-          ),
-          margin: EdgeInsets.all(16),
-          elevation: 3,
-          duration: Duration(seconds: 3),
-        ),
-      );
-    } catch (e) {
+    } catch (e, stack) {
       print("❌ Download error: $e");
+      print("🧠 StackTrace: $stack");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "❌ Download Failed",
-            style: TextStyle(color: Colors.black),
-          ),
-          behavior: SnackBarBehavior.floating,
+          content:
+              Text("❌ Download Failed", style: TextStyle(color: Colors.black)),
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: BorderSide(color: Colors.black),
           ),
           margin: EdgeInsets.all(16),
-          elevation: 3,
-          duration: Duration(seconds: 3),
         ),
       );
     }
   }
 
+  Future<void> openFileFromUrlWeb(String url) async {
+    try {
+      triggerFullWebDownload(url);
+    } catch (e) {
+      // Handle error appropriately
+      print("Error: $e");
+    }
+  }
+
   Future<void> openFileFromUrl(BuildContext context, String url) async {
     try {
+      if (kIsWeb) {
+        await openFileFromUrlWeb(url);
+        return;
+      }
+
       final fileName = url.split('/').last.split('?').first;
 
       // Get temp directory
@@ -728,6 +875,12 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
                                           final url = file['document'];
 
                                           openFileFromUrl(context, url);
+                                        },
+                                        onLongPress: () {
+                                          if (userData!['role'] != 'student') {
+                                            showDeleteBottomSheet(
+                                                context, classId);
+                                          }
                                         },
                                         child:
                                             _buildScheduleCard2(file, classId));

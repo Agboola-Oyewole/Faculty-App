@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faculty_app/screens/course_material_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../bottom_nav_bar.dart';
@@ -194,8 +195,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                   crossAxisCount: 2,
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
-                                  childAspectRatio:
-                                      MediaQuery.of(context).size.width /
+                                  childAspectRatio: kIsWeb
+                                      ? MediaQuery.of(context).size.width /
+                                          (MediaQuery.of(context).size.height /
+                                              1.9)
+                                      : MediaQuery.of(context).size.width /
                                           (MediaQuery.of(context).size.height /
                                               2.3),
                                 ),

@@ -1,9 +1,12 @@
+import 'dart:io' as io;
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -15,6 +18,8 @@ import 'package:photo_view/photo_view.dart';
 
 import '../main.dart';
 import '../screens/content_create_screen.dart';
+import 'web_download_helper_stub.dart'
+    if (dart.library.html) 'web_download_helper.dart';
 
 class ExamAndLectureCard extends StatefulWidget {
   final String title;
@@ -43,10 +48,10 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          "Delete Post?",
+          "Delete Schedule?",
           style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black),
         ),
-        content: Text("Are you sure you want to delete this post?"),
+        content: Text("Are you sure you want to delete this schedule?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -107,7 +112,7 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                   Navigator.pop(context);
                   confirmDelete(scheduleId);
                 },
-                child: Text("Delete Post",
+                child: Text("Delete Schedule",
                     style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.w900)),
               ),
@@ -125,19 +130,28 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
 
     try {
       // Reference to the post document
-      DocumentReference postRef =
-          FirebaseFirestore.instance.collection('posts').doc(scheduleId);
+      DocumentReference postRef = FirebaseFirestore.instance
+          .collection(widget.title == 'Current Exam Schedule'
+              ? 'exams'
+              : widget.title == 'Current Lecture Timetable'
+                  ? 'lectures'
+                  : 'academic')
+          .doc(scheduleId);
 
       // Fetch the post data to get the image URL
       DocumentSnapshot postSnapshot = await postRef.get();
       if (!postSnapshot.exists) {
-        print("Post not found.");
+        print("Schedule not found.");
         return;
       }
 
       Map<String, dynamic>? postData =
           postSnapshot.data() as Map<String, dynamic>?;
-      String? imageUrl = postData?['image'];
+      String? imageUrl = postData?[widget.title == 'Current Exam Schedule'
+          ? 'image'
+          : widget.title == 'Current Lecture Timetable'
+              ? 'image'
+              : 'document'];
 
       // Delete the image from Firebase Storage if it exists
       if (imageUrl != null && imageUrl.isNotEmpty) {
@@ -153,12 +167,6 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
         } catch (imageError) {
           print("Error deleting image: $imageError");
         }
-      }
-
-      // Delete all comments associated with the post first
-      var commentsSnapshot = await postRef.collection('comments').get();
-      for (var doc in commentsSnapshot.docs) {
-        await doc.reference.delete();
       }
 
       // Delete the post itself
@@ -208,7 +216,7 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
     await flutterLocalNotificationsPlugin.show(
       notificationId, // Notification ID
       'FES Connect Hub',
-      '✅ "$fileName" downloaded to your Downloads folder.',
+      '$fileName downloaded to your Downloads folder.',
       platformChannelSpecifics,
     );
   }
@@ -254,120 +262,133 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
   }
 
   Future<void> downloadFile(String url, String fileName) async {
-    setState(() {
-      isLoading = true;
-    });
     try {
-      if (Platform.isAndroid) {
-        if (await Permission.manageExternalStorage.isDenied) {
-          var status = await Permission.manageExternalStorage.request();
-          if (!status.isGranted) {
-            print("❌ Storage permission denied.");
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  "❌ Storage permission denied!",
-                  style: TextStyle(color: Colors.black),
+      setState(() {
+        isLoading = true;
+      });
+      if (kIsWeb) {
+        triggerSimpleWebDownload(url, fileName);
+        print("✅ Web download triggered.");
+      } else {
+        if (io.Platform.isAndroid) {
+          if (await Permission.manageExternalStorage.isDenied) {
+            var status = await Permission.manageExternalStorage.request();
+            if (!status.isGranted) {
+              print("❌ Storage permission denied.");
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    "❌ Storage permission denied!",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(color: Colors.black),
+                  ),
+                  margin: EdgeInsets.all(16),
+                  elevation: 3,
+                  duration: Duration(seconds: 3),
                 ),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(color: Colors.black),
-                ),
-                margin: EdgeInsets.all(16),
-                elevation: 3,
-                duration: Duration(seconds: 3),
-              ),
-            );
+              );
+              setState(() {
+                isLoading = false;
+              });
+              return;
+            }
+          }
+
+          // Get Downloads folder
+          final downloadsDir = io.Directory('/storage/emulated/0/Download');
+          if (!downloadsDir.existsSync()) {
+            print("❌ Downloads directory not found!");
             return;
           }
+
+          String fileType = await getFileType(url);
+          Map<String, String> fileExtensions = {
+            "PDF": ".pdf",
+            "Word": ".docx",
+            "PowerPoint": ".pptx",
+            "Excel": ".xlsx",
+            "JPG": ".jpg",
+            "PNG": ".png",
+            "WEBP": ".webp",
+            "GIF": ".gif",
+          };
+
+          String fullFileName = "$fileName${fileExtensions[fileType] ?? ''}";
+          String savePath = "${downloadsDir.path}/$fullFileName";
+
+          await Dio().download(url, savePath);
+          print("✅ File downloaded: $savePath");
+
+          // Force media scanner to recognize the new file
+          await io.Process.run('am', [
+            'broadcast',
+            '-a',
+            'android.intent.action.MEDIA_SCANNER_SCAN_FILE',
+            '-d',
+            'file://$savePath'
+          ]);
+
+          await showDownloadNotification(fullFileName);
+          setState(() {
+            isLoading = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("✅ Downloaded: $fullFileName",
+                  style: TextStyle(color: Colors.black)),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: Colors.black),
+              ),
+              margin: EdgeInsets.all(16),
+            ),
+          );
         }
       }
-
-      // Get the Downloads directory
-      Directory downloadsDir = Directory('/storage/emulated/0/Download');
-      if (!downloadsDir.existsSync()) {
-        print("❌ Downloads directory not found!");
-        return;
-      }
-
-      // // Get the file extension properly
-      // String fileExtension = path.extension(url.split('?').first);
-      // if (fileExtension.isEmpty) {
-      //   fileExtension = ".pdf"; // Default to PDF if no extension found
-      // }
-      String fileType = await getFileType(url);
-      Map<String, String> fileExtensions = {
-        "PDF": ".pdf",
-        "Word": ".docx",
-        "PowerPoint": ".pptx",
-        "Excel": ".xlsx",
-        "JPG": ".jpg",
-        "PNG": ".png",
-        "WEBP": ".webp",
-        "GIF": ".gif",
-      };
-
-      // Construct the final filename
-      String fullFileName =
-          "$fileName${fileExtensions[fileType]}"; // Example: "Academic Calendar.pdf"
-
-      // Define the save path
-      String savePath = "${downloadsDir.path}/$fullFileName";
-
-      // Download the file
-      Dio dio = Dio();
-      await dio.download(url, savePath);
-
-      print("✅ File downloaded: $savePath");
-      // ✅ Show notification when download completes
-      await showDownloadNotification(fullFileName);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "✅ Downloaded: $fullFileName",
-            style: TextStyle(color: Colors.black),
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: Colors.black),
-          ),
-          margin: EdgeInsets.all(16),
-          elevation: 3,
-          duration: Duration(seconds: 3),
-        ),
-      );
-    } catch (e) {
+    } catch (e, stack) {
       print("❌ Download error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "❌ Download Failed",
-            style: TextStyle(color: Colors.black),
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: Colors.black),
-          ),
-          margin: EdgeInsets.all(16),
-          elevation: 3,
-          duration: Duration(seconds: 3),
-        ),
-      );
-    } finally {
+      print("🧠 StackTrace: $stack");
       setState(() {
         isLoading = false;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text("❌ Download Failed", style: TextStyle(color: Colors.black)),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Colors.black),
+          ),
+          margin: EdgeInsets.all(16),
+        ),
+      );
+    }
+  }
+
+  Future<void> openFileFromUrlWeb(String url) async {
+    try {
+      triggerFullWebDownload(url);
+    } catch (e) {
+      // Handle error appropriately
+      print("Error: $e");
     }
   }
 
   Future<void> openFileFromUrl(BuildContext context, String url) async {
     try {
+      if (kIsWeb) {
+        await openFileFromUrlWeb(url);
+        return;
+      }
+
       final fileName = url.split('/').last.split('?').first;
 
       // Get temp directory
@@ -455,7 +476,10 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                     .snapshots(),
             builder: (context, scheduleSnapshot) {
               if (scheduleSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(
+                    child: CircularProgressIndicator(
+                  color: Colors.black,
+                ));
               }
               if (!scheduleSnapshot.hasData ||
                   scheduleSnapshot.data!.docs.isEmpty) {
@@ -478,7 +502,7 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                         openFileFromUrl(context, url);
                       },
                       onLongPress: () {
-                        if (schedule['userId'] == currentUser) {
+                        if (userData['role'] != 'student') {
                           showDeleteBottomSheet(
                               context,
                               schedule[widget.title == 'Current Exam Schedule'
@@ -530,104 +554,108 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
   }
 
   Widget _buildScheduleCard2(QueryDocumentSnapshot schedule) {
-    return Material(
-      borderRadius: BorderRadius.circular(5),
-      elevation: 1,
-      child: Container(
-        padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child:
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Color(0xffDBDBDB).withOpacity(0.5),
-                    borderRadius: const BorderRadius.all(Radius.circular(5.0)),
-                  ),
-                  padding: const EdgeInsets.all(12.0),
-                  child: Image.asset(
-                    'assets/images/file.png',
-                    width: 20,
-                    height: 20,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "${schedule['title']}",
-                        // Lecture title
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                      SizedBox(
-                        height: 5,
-                      ),
-                      widget.firebaseCollection == 'academic'
-                          ? Text(
-                              "Session: ${schedule['session']}",
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 12),
-                            )
-                          : Text(
-                              "${schedule['department']}  |  ${schedule['semester']}  |  ${schedule['level']}",
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 10),
-                            ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10.0),
+      child: Material(
+        borderRadius: BorderRadius.circular(5),
+        elevation: 1,
+        child: Container(
+          padding: EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(5),
           ),
-          GestureDetector(
-              onTap: () async {
-                String? fileUrl = widget.firebaseCollection == 'academic'
-                    ? schedule['document']
-                    : schedule['image'];
-                if (fileUrl != null && fileUrl.isNotEmpty) {
-                  await downloadFile(fileUrl, schedule['title']);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        "❌ No file available to download.",
-                        style: TextStyle(color: Colors.black),
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(color: Colors.black),
-                      ),
-                      margin: EdgeInsets.all(16),
-                      elevation: 3,
-                      duration: Duration(seconds: 3),
-                    ),
-                  );
-                }
-              },
-              child: Container(
-                  decoration: BoxDecoration(
-                      color: Colors.transparent,
+          child:
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Color(0xffDBDBDB).withOpacity(0.5),
                       borderRadius:
                           const BorderRadius.all(Radius.circular(5.0)),
-                      border: Border.all(color: Colors.black, width: 1)),
-                  padding: const EdgeInsets.all(5.0),
-                  child: isLoading
-                      ? Icon(Icons.more_horiz, color: Colors.black, size: 15)
-                      : Icon(Icons.download, color: Colors.black, size: 15))),
-        ]),
+                    ),
+                    padding: const EdgeInsets.all(12.0),
+                    child: Image.asset(
+                      'assets/images/file.png',
+                      width: 20,
+                      height: 20,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 15,
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${schedule['title']}",
+                          // Lecture title
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        SizedBox(
+                          height: 5,
+                        ),
+                        widget.firebaseCollection == 'academic'
+                            ? Text(
+                                "Session: ${schedule['session']}",
+                                style:
+                                    TextStyle(color: Colors.grey, fontSize: 12),
+                              )
+                            : Text(
+                                "${schedule['department']}  |  ${schedule['semester']}  |  ${schedule['level']}",
+                                style:
+                                    TextStyle(color: Colors.grey, fontSize: 10),
+                              ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // GestureDetector(
+            //     onTap: () async {
+            //       String? fileUrl = widget.firebaseCollection == 'academic'
+            //           ? schedule['document']
+            //           : schedule['image'];
+            //       if (fileUrl != null && fileUrl.isNotEmpty) {
+            //         await downloadFile(fileUrl, schedule['title']);
+            //       } else {
+            //         ScaffoldMessenger.of(context).showSnackBar(
+            //           SnackBar(
+            //             content: Text(
+            //               "❌ No file available to download.",
+            //               style: TextStyle(color: Colors.black),
+            //             ),
+            //             behavior: SnackBarBehavior.floating,
+            //             backgroundColor: Colors.white,
+            //             shape: RoundedRectangleBorder(
+            //               borderRadius: BorderRadius.circular(10),
+            //               side: BorderSide(color: Colors.black),
+            //             ),
+            //             margin: EdgeInsets.all(16),
+            //             elevation: 3,
+            //             duration: Duration(seconds: 3),
+            //           ),
+            //         );
+            //       }
+            //     },
+            //     child: Container(
+            //         decoration: BoxDecoration(
+            //             color: Colors.transparent,
+            //             borderRadius:
+            //                 const BorderRadius.all(Radius.circular(5.0)),
+            //             border: Border.all(color: Colors.black, width: 1)),
+            //         padding: const EdgeInsets.all(5.0),
+            //         child: isLoading
+            //             ? Icon(Icons.more_horiz, color: Colors.black, size: 15)
+            //             : Icon(Icons.download, color: Colors.black, size: 15))),
+          ]),
+        ),
       ),
     );
   }

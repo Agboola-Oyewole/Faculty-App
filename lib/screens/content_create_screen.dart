@@ -6,6 +6,7 @@ import 'package:faculty_app/bottom_nav_bar.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -41,10 +42,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   bool isLoading = false; // Track loading state
   List<String> selectedDepartments = [];
   File? _imagePost;
+  Uint8List? _imagePostWeb; // for Web
+  Uint8List? _imageLectureWeb; // for Web
+  Uint8List? _imageExamWeb; // for Web
   File? _imageLecture;
   File? _imageExam;
-  File? _document;
-  File? _documentAcademic;
+  dynamic _document;
+  dynamic _documentAcademic;
   String? selectedType;
   String? selectedSession;
   String? selectedDepartment;
@@ -138,32 +142,50 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   }
 
   Future<void> _pickImagePost() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _imagePost = File(pickedFile.path);
-      });
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      if (kIsWeb) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _imagePostWeb = bytes;
+        });
+      } else {
+        setState(() {
+          _imagePost = File(picked.path);
+        });
+      }
     }
   }
 
   Future<void> _pickImageExam() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _imageExam = File(pickedFile.path);
-      });
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      if (kIsWeb) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _imageExamWeb = bytes;
+        });
+      } else {
+        setState(() {
+          _imageExam = File(picked.path);
+        });
+      }
     }
   }
 
   Future<void> _pickImageLecture() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _imageLecture = File(pickedFile.path);
-      });
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      if (kIsWeb) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _imageLectureWeb = bytes;
+        });
+      } else {
+        setState(() {
+          _imageLecture = File(picked.path);
+        });
+      }
     }
   }
 
@@ -171,13 +193,28 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'txt'],
+      withData: kIsWeb,
     );
 
     if (result != null) {
-      File selectedFile = File(result.files.single.path!);
-      setState(() {
-        _document = selectedFile;
-      });
+      if (kIsWeb) {
+        setState(() {
+          _document = {
+            'bytes': result.files.single.bytes!,
+            'name': result.files.single.name,
+          };
+        });
+      } else {
+        final path = result.files.single.path;
+        if (path != null) {
+          setState(() {
+            _document = File(path);
+          });
+        } else {
+          print("⚠️ File path is null (non-web).");
+          _document = null;
+        }
+      }
     }
   }
 
@@ -185,13 +222,28 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'txt'],
+      withData: kIsWeb,
     );
 
     if (result != null) {
-      File selectedFile = File(result.files.single.path!);
-      setState(() {
-        _documentAcademic = selectedFile;
-      });
+      if (kIsWeb) {
+        setState(() {
+          _documentAcademic = {
+            'bytes': result.files.single.bytes!,
+            'name': result.files.single.name,
+          };
+        });
+      } else {
+        final path = result.files.single.path;
+        if (path != null) {
+          setState(() {
+            _documentAcademic = File(path);
+          });
+        } else {
+          print("⚠️ File path is null (non-web).");
+          _documentAcademic = null;
+        }
+      }
     }
   }
 
@@ -271,14 +323,62 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         return true; // All fields are valid
       }
 
+      String getMimeType(String filename) {
+        final extension = filename.split('.').last.toLowerCase();
+        switch (extension) {
+          case 'jpg':
+          case 'jpeg':
+            return 'image/jpeg';
+          case 'png':
+            return 'image/png';
+          case 'pdf':
+            return 'application/pdf';
+          case 'doc':
+            return 'application/msword';
+          case 'docx':
+            return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          case 'txt':
+            return 'text/plain';
+          default:
+            return 'application/octet-stream';
+        }
+      }
+
       // 🔹 File Upload Function
-      Future<String?> uploadFile(File? file, String folder) async {
+      Future<String?> uploadFile(dynamic file, String folder) async {
         if (file == null) return null;
+
         try {
           String fileName =
               "${userId}_${DateTime.now().millisecondsSinceEpoch}";
           Reference ref = FirebaseStorage.instance.ref("$folder/$fileName");
-          UploadTask uploadTask = ref.putFile(file);
+
+          UploadTask uploadTask;
+
+          if (kIsWeb) {
+            if (file is Map && file['bytes'] != null && file['name'] != null) {
+              // ✅ FilePicker documents
+              uploadTask = ref.putData(
+                file['bytes'],
+                SettableMetadata(
+                  contentType: getMimeType(file['name']),
+                ),
+              );
+            } else if (file is Uint8List) {
+              // ✅ Image from ImagePicker
+              uploadTask = ref.putData(
+                file,
+                SettableMetadata(
+                    contentType: 'image/jpeg'), // assume jpeg for simplicity
+              );
+            } else {
+              throw Exception("Invalid file format for web.");
+            }
+          } else {
+            // ✅ Mobile
+            uploadTask = ref.putFile(file);
+          }
+
           TaskSnapshot snapshot = await uploadTask;
           return await snapshot.ref.getDownloadURL();
         } catch (e) {
@@ -289,7 +389,12 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
       // 🔹 Handle uploads based on tab
       if (currentTabName == 'Posts') {
-        String? imageUrl = await uploadFile(_imagePost, "posts");
+        String? imageUrl;
+        if (kIsWeb) {
+          imageUrl = await uploadFile(_imagePostWeb, "posts"); // Uint8List
+        } else {
+          imageUrl = await uploadFile(_imagePost, "posts"); // File
+        }
         CollectionReference postsRef =
             FirebaseFirestore.instance.collection('posts');
 
@@ -379,7 +484,12 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
         await filesRef.doc(resourceId).set(formData);
       } else if (currentTabName == 'Exam') {
-        String? imageUrl = await uploadFile(_imageExam, "exams");
+        String? imageUrl;
+        if (kIsWeb) {
+          imageUrl = await uploadFile(_imageExamWeb, "exams"); // Uint8List
+        } else {
+          imageUrl = await uploadFile(_imageExam, "exams"); // File
+        }
 
         if (!validateFields(context, {
           "Title": title,
@@ -407,7 +517,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         };
         await examsRef.doc(examsId).set(formData);
       } else if (currentTabName == 'Lecture') {
-        String? imageUrl = await uploadFile(_imageLecture, "lectures");
+        String? imageUrl;
+        if (kIsWeb) {
+          imageUrl =
+              await uploadFile(_imageLectureWeb, "lectures"); // Uint8List
+        } else {
+          imageUrl = await uploadFile(_imageLecture, "lectures"); // File
+        }
 
         if (!validateFields(context, {
           "Title": title,
@@ -986,9 +1102,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               borderRadius: BorderRadius.circular(5),
               color: Colors.grey[200],
             ),
-            child: _imagePost != null
-                ? Image.file(_imagePost!, fit: BoxFit.cover)
-                : Icon(Icons.camera_alt, size: 50, color: Colors.grey),
+            child: kIsWeb
+                ? (_imagePostWeb != null
+                    ? Image.memory(_imagePostWeb!, fit: BoxFit.cover)
+                    : Icon(Icons.camera_alt, size: 50, color: Colors.grey))
+                : (_imagePost != null
+                    ? Image.file(_imagePost!, fit: BoxFit.cover)
+                    : Icon(Icons.camera_alt, size: 50, color: Colors.grey)),
           ),
         )
       ],
@@ -1011,9 +1131,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               borderRadius: BorderRadius.circular(5),
               color: Colors.grey[200],
             ),
-            child: _imageLecture != null
-                ? Image.file(_imageLecture!, fit: BoxFit.cover)
-                : Icon(Icons.camera_alt, size: 50, color: Colors.grey),
+            child: kIsWeb
+                ? (_imageLectureWeb != null
+                    ? Image.memory(_imageLectureWeb!, fit: BoxFit.cover)
+                    : Icon(Icons.camera_alt, size: 50, color: Colors.grey))
+                : (_imageLecture != null
+                    ? Image.file(_imageLecture!, fit: BoxFit.cover)
+                    : Icon(Icons.camera_alt, size: 50, color: Colors.grey)),
           ),
         ),
       ],
@@ -1036,9 +1160,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               borderRadius: BorderRadius.circular(5),
               color: Colors.grey[200],
             ),
-            child: _imageExam != null
-                ? Image.file(_imageExam!, fit: BoxFit.cover)
-                : Icon(Icons.camera_alt, size: 50, color: Colors.grey),
+            child: kIsWeb
+                ? (_imageExamWeb != null
+                    ? Image.memory(_imageExamWeb!, fit: BoxFit.cover)
+                    : Icon(Icons.camera_alt, size: 50, color: Colors.grey))
+                : (_imageExam != null
+                    ? Image.file(_imageExam!, fit: BoxFit.cover)
+                    : Icon(Icons.camera_alt, size: 50, color: Colors.grey)),
           ),
         ),
       ],
@@ -1054,20 +1182,17 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5), // Add border radius here
+              borderRadius: BorderRadius.circular(5),
             ),
           ),
           onPressed: _pickDocument,
-          icon: Icon(
-            Icons.upload_file,
-            color: Colors.black,
-          ),
-          label: Text(
-            "Choose File",
-            style: TextStyle(color: Colors.black),
-          ),
+          icon: Icon(Icons.upload_file, color: Colors.black),
+          label: Text("Choose File", style: TextStyle(color: Colors.black)),
         ),
-        if (_document != null) Text("File selected: ${_document!.path}"),
+        if (_document != null)
+          Text(
+            "File selected: ${kIsWeb ? _document['name'] : (_document as File).path.split('/').last}",
+          ),
       ],
     );
   }
@@ -1081,21 +1206,17 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5), // Add border radius here
+              borderRadius: BorderRadius.circular(5),
             ),
           ),
           onPressed: _pickAcademicDocument,
-          icon: Icon(
-            Icons.upload_file,
-            color: Colors.black,
-          ),
-          label: Text(
-            "Choose File",
-            style: TextStyle(color: Colors.black),
-          ),
+          icon: Icon(Icons.upload_file, color: Colors.black),
+          label: Text("Choose File", style: TextStyle(color: Colors.black)),
         ),
         if (_documentAcademic != null)
-          Text("File selected: ${_documentAcademic!.path}"),
+          Text(
+            "File selected: ${kIsWeb ? _documentAcademic['name'] : (_documentAcademic as File).path.split('/').last}",
+          ),
       ],
     );
   }

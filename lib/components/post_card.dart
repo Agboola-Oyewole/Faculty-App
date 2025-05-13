@@ -125,7 +125,10 @@ class _PostsState extends State<Posts> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Padding(
                   padding: EdgeInsets.all(20),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(
+                      child: CircularProgressIndicator(
+                    color: Colors.black,
+                  )),
                 );
               }
 
@@ -182,7 +185,7 @@ class _PostsState extends State<Posts> {
                               ),
                               SizedBox(width: 8),
                               Text(
-                                  "Liked by ${user['first_name'] ?? 'Unknown'}")
+                                  "Liked by ${user['username'] ?? user['first_name'] ?? 'Unknown'}")
                             ],
                           ),
                         );
@@ -464,7 +467,7 @@ class _PostsState extends State<Posts> {
                           widget.image,
                           width: double.infinity,
                           // ✅ Ensure it takes full width
-                          height: widget.imageAspect,
+                          height: double.parse(widget.imageAspect.toString()),
 
                           // Adjust height
                           fit: BoxFit.contain,

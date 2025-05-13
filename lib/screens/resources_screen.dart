@@ -4,9 +4,7 @@ import 'package:faculty_app/components/filter_modal.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 
 import '../bottom_nav_bar.dart';
 
@@ -436,13 +434,13 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                           };
 
                           return GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    DocumentViewer(url: resource['document']),
-                              ),
-                            ),
+                            // onTap: () => Navigator.push(
+                            //   context,
+                            //   MaterialPageRoute(
+                            //     builder: (context) =>
+                            //         DocumentViewer(url: resource['document']),
+                            //   ),
+                            // ),
                             // Call function on tap
                             onLongPress: () => resource['userId'] ==
                                     FirebaseAuth.instance.currentUser?.uid
@@ -475,77 +473,77 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
   }
 }
 
-class DocumentViewer extends StatefulWidget {
-  final String url;
-
-  const DocumentViewer({super.key, required this.url});
-
-  @override
-  State<DocumentViewer> createState() => _DocumentViewerState();
-}
-
-class _DocumentViewerState extends State<DocumentViewer> {
-  double progress = 0;
-  InAppWebViewController? webViewController;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Document Viewer"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              webViewController?.reload();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.open_in_browser),
-            onPressed: () => _openInBrowser(widget.url),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          InAppWebView(
-            initialUrlRequest: URLRequest(url: WebUri("${widget.url}/")),
-            // Using direct Firebase URL
-            initialSettings: InAppWebViewSettings(
-              javaScriptEnabled: true,
-              domStorageEnabled: true,
-              useHybridComposition: true,
-              allowsInlineMediaPlayback: true,
-              // transparentBackground: true
-            ),
-            onWebViewCreated: (controller) {
-              webViewController = controller;
-            },
-            onProgressChanged: (controller, progress) {
-              setState(() {
-                this.progress = progress / 100;
-              });
-            },
-            onReceivedError: (controller, request, error) {
-              _openInBrowser("${widget.url}/");
-            },
-            onReceivedHttpError: (controller, request, errorResponse) {
-              _openInBrowser("${widget.url}/");
-            },
-          ),
-          if (progress < 1.0) LinearProgressIndicator(value: progress),
-        ],
-      ),
-    );
-  }
-
-  void _openInBrowser(String url) async {
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Could not open document")),
-      );
-    }
-  }
-}
+// class DocumentViewer extends StatefulWidget {
+//   final String url;
+//
+//   const DocumentViewer({super.key, required this.url});
+//
+//   @override
+//   State<DocumentViewer> createState() => _DocumentViewerState();
+// }
+//
+// class _DocumentViewerState extends State<DocumentViewer> {
+//   double progress = 0;
+//   InAppWebViewController? webViewController;
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text("Document Viewer"),
+//         actions: [
+//           IconButton(
+//             icon: const Icon(Icons.refresh),
+//             onPressed: () {
+//               webViewController?.reload();
+//             },
+//           ),
+//           IconButton(
+//             icon: const Icon(Icons.open_in_browser),
+//             onPressed: () => _openInBrowser(widget.url),
+//           ),
+//         ],
+//       ),
+//       body: Stack(
+//         children: [
+//           InAppWebView(
+//             initialUrlRequest: URLRequest(url: WebUri("${widget.url}/")),
+//             // Using direct Firebase URL
+//             initialSettings: InAppWebViewSettings(
+//               javaScriptEnabled: true,
+//               domStorageEnabled: true,
+//               useHybridComposition: true,
+//               allowsInlineMediaPlayback: true,
+//               // transparentBackground: true
+//             ),
+//             onWebViewCreated: (controller) {
+//               webViewController = controller;
+//             },
+//             onProgressChanged: (controller, progress) {
+//               setState(() {
+//                 this.progress = progress / 100;
+//               });
+//             },
+//             onReceivedError: (controller, request, error) {
+//               _openInBrowser("${widget.url}/");
+//             },
+//             onReceivedHttpError: (controller, request, errorResponse) {
+//               _openInBrowser("${widget.url}/");
+//             },
+//           ),
+//           if (progress < 1.0) LinearProgressIndicator(value: progress),
+//         ],
+//       ),
+//     );
+//   }
+//
+//   void _openInBrowser(String url) async {
+//     if (await canLaunchUrl(Uri.parse(url))) {
+//       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+//     } else {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         const SnackBar(content: Text("Could not open document")),
+//       );
+//     }
+//   }
+// }

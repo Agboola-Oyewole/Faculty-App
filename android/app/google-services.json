@@ -37,6 +37,13 @@
             {
               "client_id": "807516873313-0va5l713nljcus4lt9c21j2sokodbmu9.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "807516873313-7th3bph1ogud5itah3qs6kvtl0nsemb1.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.facultyApp"
+              }
             }
           ]
         }

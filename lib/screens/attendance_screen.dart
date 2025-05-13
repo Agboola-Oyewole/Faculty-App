@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -478,7 +479,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   void initState() {
     super.initState();
     getUserDetails();
-    _getCurrentLocation();
     // fetchDeviceId();
     // Wait for 3 seconds before showing "no data" message
     Future.delayed(Duration(seconds: 3), () {
@@ -560,31 +560,44 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
-  // ✅ Function to get a unique Device ID
   Future<String> getUniqueDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedId = prefs.getString('device_id');
+    if (storedId != null) return storedId;
+
     final deviceInfo = DeviceInfoPlugin();
-    final androidInfo = await deviceInfo.androidInfo;
+    String rawId;
 
-    // Use androidInfo.id which is a unique identifier for the device
-    final rawId = '${androidInfo.id}${androidInfo.model}${androidInfo.device}';
-
-    // Create a SHA-256 hash of the raw ID
-    final bytes = utf8.encode(rawId);
-    final digest = sha256.convert(bytes);
-
-    // Save the unique ID to SharedPreferences to ensure it's persistent across app restarts
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String deviceId = prefs.getString('device_id') ?? digest.toString();
-
-    if (prefs.getString('device_id') == null) {
-      // Save the generated unique ID the first time
-      await prefs.setString('device_id', deviceId);
+    if (kIsWeb) {
+      final webInfo = await deviceInfo.webBrowserInfo;
+      rawId =
+          '${webInfo.vendor}${webInfo.userAgent}${webInfo.hardwareConcurrency}';
+    } else {
+      try {
+        if (defaultTargetPlatform == TargetPlatform.android) {
+          final androidInfo = await deviceInfo.androidInfo;
+          rawId = '${androidInfo.id}${androidInfo.model}${androidInfo.device}';
+        } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+          final iosInfo = await deviceInfo.iosInfo;
+          rawId =
+              '${iosInfo.identifierForVendor}${iosInfo.name}${iosInfo.systemVersion}';
+        } else {
+          rawId = DateTime.now().toIso8601String(); // fallback
+        }
+      } catch (e) {
+        rawId = DateTime.now().toIso8601String(); // fallback on error
+      }
     }
 
-    return deviceId;
+    final bytes = utf8.encode(rawId);
+    final digest = sha256.convert(bytes).toString();
+
+    await prefs.setString('device_id', digest);
+    return digest;
   }
 
   Future<void> checkIn(String classId, Map<String, dynamic> venue) async {
+    _getCurrentLocation();
     setState(() {
       isLoading = true;
     });
@@ -653,7 +666,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
       // ✅ Define limits
       const double maxAllowedDistance = 70.0; // meters
-      const double maxAllowedAccuracy = 100.0; // meters
+      const double webAccuracyThreshold = 50000.0; // meters
+      const double mobileAccuracyThreshold = 100.0; // meters
 
       print({
         "📍 DEBUG INFO": {
@@ -664,6 +678,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           "Accuracy": position.accuracy,
         }
       });
+      final maxAllowedAccuracy =
+          kIsWeb ? webAccuracyThreshold : mobileAccuracyThreshold; // meters
       //
       // ✅ Check GPS accuracy first
       if (position.accuracy > maxAllowedAccuracy) {
