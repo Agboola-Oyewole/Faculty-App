@@ -6,19 +6,22 @@ import 'package:flutter/material.dart';
 
 import '../bottom_nav_bar.dart';
 
-class PersonalInfoScreen extends StatefulWidget {
-  const PersonalInfoScreen({super.key});
+class PersonalInfoScreenLecturer extends StatefulWidget {
+  const PersonalInfoScreenLecturer({super.key});
 
   @override
-  State<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
+  State<PersonalInfoScreenLecturer> createState() =>
+      _PersonalInfoScreenLecturerState();
 }
 
-class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
+class _PersonalInfoScreenLecturerState
+    extends State<PersonalInfoScreenLecturer> {
   final _formKey = GlobalKey<FormState>(); // Form key for validation
   // final TextEditingController dobController = TextEditingController();
   final String? displayName = FirebaseAuth.instance.currentUser?.email;
   bool isLoading = false; // Track loading state
-  bool isTokenLoading = true; // Track loading state
+  bool isTokenLoading = true; // Track loading state.
+  List<String> courseCodes = [];
 
   @override
   void initState() {
@@ -80,14 +83,54 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     }
   }
 
+  Future<void> fetchUserCourseCodes() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!userDoc.exists) return;
+
+      final usersData = userDoc.data()!;
+      final userDepartment = usersData['department'];
+
+      final coursesSnapshot =
+          await FirebaseFirestore.instance.collection('resources').get();
+
+      Set<String> filteredCourseCodes = {};
+
+      for (var doc in coursesSnapshot.docs) {
+        final courseData = doc.data();
+
+        final courseDepartments = List<String>.from(courseData['department']);
+
+        final departmentMatch = courseDepartments.contains("All") ||
+            (userDepartment is List
+                ? userDepartment.any((dept) => courseDepartments.contains(dept))
+                : courseDepartments.contains(userDepartment));
+
+        if (departmentMatch) {
+          filteredCourseCodes.add(doc.id); // doc.id is courseCode
+        }
+      }
+
+      setState(() {
+        courseCodes = filteredCourseCodes.toList();
+      });
+    } catch (e) {
+      print('❌ Error fetching course codes: $e');
+    }
+  }
+
   Future<void> updateUserDetails({
-    required String department,
-    required String level,
+    required List<dynamic> department,
     required String username,
     required String faculty,
     required String gender,
-    required int matricNo,
-    required String semester,
   }) async {
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -103,46 +146,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     });
 
     try {
-      // 🔍 Check if another user already has this matricNo
-      final existing = await FirebaseFirestore.instance
-          .collection('users')
-          .where('matricNo', isEqualTo: matricNo)
-          .where(FieldPath.documentId, isNotEqualTo: user.uid) // Exclude self
-          .limit(1)
-          .get();
-
-      if (existing.docs.isNotEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "❌ Matric number already exists.",
-                style: TextStyle(color: Colors.black),
-              ),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: Colors.black),
-              ),
-              margin: EdgeInsets.all(16),
-              elevation: 3,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-        return;
-      }
-
       // ✅ Safe to update
       await userRef.update({
         'department': department,
-        'level': level,
-        'matricNo': matricNo,
         'username': username,
-        'semester': semester,
         'faculty': faculty,
         'gender': gender,
+        'courses': selectedCourses,
         'updated_at': FieldValue.serverTimestamp(),
       });
 
@@ -158,10 +168,44 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     }
   }
 
-  String? _selectedDepartment;
-  String? _selectedSemester;
-  String? _selectedLevel;
+  Future<void> updateUserDetailsDept({
+    required dynamic department,
+  }) async {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      print("⚠️ No user is signed in.");
+      return;
+    }
+
+    final userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      await userRef.update({
+        'department': department,
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+
+      print("✅ User details updated successfully!");
+    } catch (e) {
+      print("❌ Error updating user details: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
   String? _selectedGender;
+
+  List<dynamic> selectedDepartments = [];
+  List<dynamic> selectedCourses = [];
 
   final List<String> departments = [
     "Architecture",
@@ -185,7 +229,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   ];
 
   final List<String> genders = ["Male", "Female"];
-  String matricNo = "";
   String username = "";
 
   // // Function to show date picker
@@ -263,31 +306,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           style: TextStyle(color: Colors.black54, fontSize: 14),
                         ),
                         const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.info,
-                              color: Colors.black,
-                            ),
-                            SizedBox(
-                              width: 8,
-                            ),
-                            Expanded(
-                              child: const Text(
-                                "Be sure to input the correct matric number, it can't be changed again.",
-                                style: TextStyle(
-                                    color: Colors.black, fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
 
                         TextField(
                           onChanged: (val) => username = val,
                           cursorColor: Colors.black,
                           decoration: InputDecoration(
-                            labelText: "Username",
+                            labelText: "Username e.g Mr Lawal",
                             border: OutlineInputBorder(),
                             labelStyle: TextStyle(color: Colors.black),
                             focusedBorder: OutlineInputBorder(
@@ -295,54 +319,32 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             ),
                           ),
                         ),
-                        SizedBox(
-                          height: 12,
-                        ),
-                        TextField(
-                          onChanged: (val) => matricNo = val,
-                          cursorColor: Colors.black,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: "Matric Number",
-                            border: OutlineInputBorder(),
-                            labelStyle: TextStyle(color: Colors.black),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.black),
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          height: 12,
-                        ),
-
-                        // // Date of Birth
-                        // _buildDatePickerField("Date of Birth", dobController),
-                        // const SizedBox(height: 20),
-
-                        // Department Dropdown
-                        _buildDropdown(
-                            "Department", departments, _selectedDepartment,
-                            (newValue) {
-                          setState(() => _selectedDepartment = newValue);
-                        }),
                         const SizedBox(height: 12),
 
-                        // Level Dropdown
-                        _buildDropdown("Level", levels, _selectedLevel,
-                            (newValue) {
-                          setState(() => _selectedLevel = newValue);
-                        }),
-                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: buildMultiSelectDropdown(
+                              'Departments', departments, selectedDepartments,
+                              (val) async {
+                            setState(() => selectedDepartments = val);
+                            await updateUserDetailsDept(
+                                department: selectedDepartments);
+                            await fetchUserCourseCodes();
+                          }),
+                        ),
+
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: buildMultiSelectDropdown(
+                              'Courses', courseCodes, selectedCourses, (val) {
+                            setState(() => selectedCourses = val);
+                          }),
+                        ),
 
                         // Gender Dropdown
                         _buildDropdown("Gender", genders, _selectedGender,
                             (newValue) {
                           setState(() => _selectedGender = newValue);
-                        }),
-                        const SizedBox(height: 12),
-                        _buildDropdown("Semester", semester, _selectedSemester,
-                            (newValue) {
-                          setState(() => _selectedSemester = newValue);
                         }),
 
                         const SizedBox(height: 30),
@@ -351,19 +353,14 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                         ElevatedButton(
                           onPressed: () async {
                             if (_formKey.currentState!.validate() &&
-                                _selectedDepartment != null &&
-                                _selectedSemester != null &&
-                                _selectedLevel != null &&
+                                selectedDepartments.isNotEmpty &&
                                 _selectedGender != null &&
-                                matricNo.isNotEmpty &&
                                 username.isNotEmpty) {
                               // Proceed if all required fields are present
                               await updateUserDetails(
-                                department: _selectedDepartment!,
-                                matricNo: int.parse(matricNo),
+                                // Await the function if it's async
+                                department: selectedDepartments,
                                 username: username,
-                                semester: _selectedSemester!,
-                                level: _selectedLevel!,
                                 faculty: 'Environmental Sciences',
                                 gender: _selectedGender!,
                               );
@@ -376,6 +373,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 );
                               }
                             } else {
+                              print({
+                                username,
+                                selectedCourses,
+                                selectedDepartments,
+                                _selectedGender
+                              });
                               // Show error if any required field is null or empty
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -426,35 +429,112 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
-  // Widget _buildDatePickerField(String hint, TextEditingController controller) {
-  //   return TextFormField(
-  //     controller: controller,
-  //     readOnly: true,
-  //     // Prevent manual input
-  //     decoration: InputDecoration(
-  //       focusedBorder: OutlineInputBorder(
-  //         borderRadius: BorderRadius.circular(5),
-  //         borderSide: BorderSide(
-  //           color: Colors.black,
-  //           width: 1.5,
-  //         ),
-  //       ),
-  //       hintText: hint,
-  //       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-  //       contentPadding:
-  //           const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-  //       suffixIcon: const Icon(Icons.calendar_today), // Calendar icon
-  //     ),
-  //     onTap: () => _selectDate(context),
-  //     // Show date picker
-  //     validator: (value) {
-  //       if (value == null || value.isEmpty) {
-  //         return "$hint is required"; // Show validation message
-  //       }
-  //       return null;
-  //     },
-  //   );
-  // }
+  Widget buildMultiSelectDropdown(String label, List<String> options,
+      List<dynamic> selectedItems, ValueChanged<List<dynamic>> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label),
+        SizedBox(height: 5),
+        Container(
+          width: double.infinity, // Set to full width
+          child: GestureDetector(
+            onTap: () async {
+              final result = await showDialog<List<String>>(
+                context: context,
+                builder: (context) {
+                  List<String> tempSelected = [...selectedItems];
+                  return StatefulBuilder(
+                    builder: (context, setState) {
+                      return AlertDialog(
+                        title: Center(
+                          child: Text(
+                            "Select $label",
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        content: SingleChildScrollView(
+                          child: Column(
+                            children: options.map((dept) {
+                              return CheckboxListTile(
+                                checkColor: Colors.white,
+                                activeColor: Colors.black,
+                                value: tempSelected.contains(dept),
+                                title: Text(
+                                  dept,
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                onChanged: (isChecked) {
+                                  setState(() {
+                                    if (isChecked == true &&
+                                        !tempSelected.contains(dept)) {
+                                      tempSelected.add(dept);
+                                    } else {
+                                      tempSelected.remove(dept);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, null),
+                            child: Text("Cancel",
+                                style: TextStyle(color: Colors.black)),
+                          ),
+                          ElevatedButton(
+                            onPressed: () =>
+                                Navigator.pop(context, tempSelected),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                            child: Text("OK",
+                                style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              );
+
+              if (result != null) {
+                onChanged(result);
+              }
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    selectedItems.isEmpty
+                        ? "Select $label"
+                        : selectedItems.join(', '),
+                    overflow:
+                        TextOverflow.ellipsis, // Ensures text doesn't overflow
+                  ),
+                  Icon(Icons.arrow_drop_down)
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildDropdown(String hint, List<String> items, String? selectedValue,
       Function(String?) onChanged) {

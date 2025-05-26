@@ -398,22 +398,8 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
       // Download file
       await Dio().download(url, filePath);
 
-      // Check if it's an image
-      if (fileName.endsWith('.png') ||
-          fileName.endsWith('.jpg') ||
-          fileName.endsWith('.jpeg') ||
-          fileName.endsWith('.gif') ||
-          fileName.endsWith('.webp')) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ImageViewerScreen(imagePath: filePath),
-          ),
-        );
-      } else {
-        // Open document using installed apps
-        await OpenFilex.open(filePath);
-      }
+      // Open document using installed apps
+      await OpenFilex.open(filePath);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -493,6 +479,7 @@ class _ExamAndLectureCardState extends State<ExamAndLectureCard> {
                 itemCount: schedules.length,
                 itemBuilder: (context, index) {
                   var schedule = schedules[index];
+
                   return GestureDetector(
                       onTap: () {
                         final url = widget.firebaseCollection == 'academic'

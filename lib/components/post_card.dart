@@ -427,7 +427,7 @@ class _PostsState extends State<Posts> {
                                     onTap: () => showDeleteBottomSheet(context),
                                     child: Icon(
                                       Icons.more_vert,
-                                      size: 13,
+                                      size: 16,
                                     ))
                                 : Container()
                           ],
@@ -440,27 +440,54 @@ class _PostsState extends State<Posts> {
                       ? GestureDetector(
                           onTap: () =>
                               setState(() => _isExpanded = !_isExpanded),
-                          child: Text(
-                            _isExpanded
-                                ? widget.caption
-                                : widget.caption.length > 70
-                                    ? '${widget.caption.substring(0, 70)}... more'
-                                    : widget.caption,
-                            style: TextStyle(color: Colors.black, fontSize: 12),
+                          child: Text.rich(
+                            TextSpan(
+                              text: _isExpanded
+                                  ? widget.caption
+                                  : widget.caption.length > 70
+                                      ? widget.caption.substring(0, 70)
+                                      : widget.caption,
+                              style:
+                                  TextStyle(color: Colors.black, fontSize: 12),
+                              children: [
+                                if (!_isExpanded && widget.caption.length > 70)
+                                  TextSpan(
+                                      text: '...show more',
+                                      style: TextStyle(color: Colors.blue)),
+                                if (_isExpanded && widget.caption.length > 70)
+                                  TextSpan(
+                                      text: '  show less',
+                                      style: TextStyle(color: Colors.blue)),
+                              ],
+                            ),
                           ),
                         )
                       : GestureDetector(
                           onTap: () =>
                               setState(() => _isExpanded = !_isExpanded),
-                          child: Text(
-                            _isExpanded
-                                ? widget.caption
-                                : widget.caption.length > 250
-                                    ? '${widget.caption.substring(0, 250)}... more'
-                                    : widget.caption,
-                            style: TextStyle(color: Colors.black, fontSize: 12),
+                          child: Text.rich(
+                            TextSpan(
+                              text: _isExpanded
+                                  ? widget.caption
+                                  : widget.caption.length > 250
+                                      ? widget.caption.substring(0, 250)
+                                      : widget.caption,
+                              style:
+                                  TextStyle(color: Colors.black, fontSize: 12),
+                              children: [
+                                if (!_isExpanded && widget.caption.length > 250)
+                                  TextSpan(
+                                      text: '...show more',
+                                      style: TextStyle(color: Colors.blue)),
+                                if (_isExpanded && widget.caption.length > 250)
+                                  TextSpan(
+                                      text: '  show less',
+                                      style: TextStyle(color: Colors.blue)),
+                              ],
+                            ),
                           ),
                         ),
+
                   SizedBox(height: 10),
                   widget.image != null && widget.image.isNotEmpty
                       ? Image.network(

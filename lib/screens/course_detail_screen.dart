@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:faculty_app/screens/course_file_assignments.dart';
 import 'package:faculty_app/screens/course_material_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,71 +8,84 @@ import '../bottom_nav_bar.dart';
 
 class CourseDetailScreen extends StatefulWidget {
   final String courseId;
+  final String name;
+  final List<dynamic> department;
+  final String link1;
+  final int unit;
+  final String link2;
 
-  const CourseDetailScreen({super.key, required this.courseId});
+  const CourseDetailScreen({
+    super.key,
+    required this.courseId,
+    required this.name,
+    required this.department,
+    required this.unit,
+    required this.link1,
+    required this.link2,
+  });
 
   @override
   State<CourseDetailScreen> createState() => _CourseDetailScreenState();
 }
 
 class _CourseDetailScreenState extends State<CourseDetailScreen> {
-  Map<String, dynamic> courseDetails = {};
-  bool isLoading = false;
-
-  Future<Map<String, dynamic>?> getCourseDetails(String courseId) async {
-    if (mounted) {
-      setState(() {
-        isLoading = true;
-      });
-    }
-    final doc = await FirebaseFirestore.instance
-        .collection("resources")
-        .doc(courseId)
-        .get();
-
-    if (doc.exists) {
-      final data = doc.data(); // This already returns a Map<String, dynamic>?
-      setState(() {
-        isLoading = false;
-      });
-      return data;
-    } else {
-      print('Document does not exist');
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-      return null;
-    }
-  }
-
-  List<Map<String, String>> items = [
-    {"title": "Course Material", "description": "View course materials."},
-    {"title": "Past Question", "description": "View course past questions."},
-  ];
-
-  List<Icon> icons = [
-    Icon(Icons.menu_book_outlined, color: Colors.black, size: 15),
-    Icon(Icons.question_answer_outlined, color: Colors.black, size: 15)
-  ];
+  List<String> lecturerNames = [];
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    showCourseDetails(widget.courseId);
+    getLecturersForCourse(widget.courseId);
   }
 
-  Future<void> showCourseDetails(String courseId) async {
-    final course = await getCourseDetails(courseId);
-    if (course != null) {
+  bool isLoading = false;
+  List<Map<String, String>> items = [
+    {"title": "Course Material", "description": "View course materials."},
+    {"title": "Past Question", "description": "View course past questions."},
+    {
+      "title": "Announcements",
+      "description": "View announcements uploaded by lecturers."
+    },
+    {"title": "Assignments", "description": "View course assignments."},
+  ];
+
+  List<Icon> icons = [
+    Icon(Icons.menu_book_outlined, color: Colors.black, size: 15),
+    Icon(Icons.question_answer_outlined, color: Colors.black, size: 15),
+    Icon(Icons.campaign, color: Colors.black, size: 15),
+    Icon(Icons.assignment, color: Colors.black, size: 15)
+  ];
+
+  Future<void> getLecturersForCourse(String courseId) async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'lecturer')
+          .get();
+
+      List<String> matchedLecturers = [];
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final courses = List<String>.from(data['courses'] ?? []);
+
+        if (courses.contains(courseId)) {
+          matchedLecturers.add(data['username']);
+        }
+      }
       setState(() {
-        courseDetails = course;
+        lecturerNames = matchedLecturers;
+        isLoading = false;
       });
-      print('THIS IS THE COURSE: $courseDetails');
-    } else {
-      print('No course found for ID: $courseId');
+    } catch (e) {
+      print("❌ Error getting lecturers for course: $e");
+      setState(() {
+        isLoading = false;
+      });
+      return;
     }
   }
 
@@ -116,12 +130,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 children: [
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
                         height: 20,
                       ),
                       Text(
-                        courseDetails['full_name'],
+                        widget.name,
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
@@ -163,13 +179,41 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                               SizedBox(
                                 width: 5,
                               ),
-                              Text('${courseDetails['unit']} Units',
+                              Text('${widget.unit} Units',
                                   style: TextStyle(
                                       color: Colors.white, fontSize: 12)),
                             ],
                           ),
                         ],
-                      )
+                      ),
+                      SizedBox(
+                        height: 12,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                            SizedBox(width: 5),
+                            Flexible(
+                              child: Text(
+                                'Lecturer: ${lecturerNames.isEmpty ? 'No assigned lecturer currently.' : lecturerNames.join(", ")}',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(
@@ -210,23 +254,38 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) =>
-                                              CourseMaterialScreen(
+                                          builder: (context) => items[index]
+                                                      ['title'] ==
+                                                  'Announcements'
+                                              ? CourseAssignmentFileScreen(
                                                   courseId: widget.courseId,
-                                                  courseUnit:
-                                                      courseDetails['unit'],
-                                                  courseDept: courseDetails[
-                                                      'department'],
-                                                  link: courseDetails[
-                                                          'drive_link'] ??
-                                                      'null',
-                                                  link2: courseDetails[
-                                                          'drive_link_2'] ??
-                                                      'null',
+                                                  courseUnit: widget.unit,
                                                   type: items[index]['title'] ==
-                                                          'Course Material'
-                                                      ? 'Lecture Notes'
-                                                      : 'Past Questions'),
+                                                          'Announcements'
+                                                      ? 'Announcements'
+                                                      : 'Assignments')
+                                              : items[index]['title'] ==
+                                                      'Assignments'
+                                                  ? CourseAssignmentFileScreen(
+                                                      courseId: widget.courseId,
+                                                      courseUnit: widget.unit,
+                                                      type: items[index]
+                                                                  ['title'] ==
+                                                              'Assignments'
+                                                          ? 'Assignments'
+                                                          : 'Announcements')
+                                                  : CourseMaterialScreen(
+                                                      courseId: widget.courseId,
+                                                      courseUnit: widget.unit,
+                                                      courseDept:
+                                                          widget.department,
+                                                      link: widget.link1,
+                                                      link2: widget.link2,
+                                                      type: items[index]
+                                                                  ['title'] ==
+                                                              'Course Material'
+                                                          ? 'Lecture Notes'
+                                                          : 'Past Questions'),
                                         ),
                                       );
                                     },
@@ -254,12 +313,12 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
       padding: const EdgeInsets.only(bottom: 10.0),
       child: Material(
         elevation: 2,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(5),
         child: Container(
           padding: EdgeInsets.all(20),
           decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.all(Radius.circular(10)),
+              borderRadius: BorderRadius.all(Radius.circular(5)),
               border: Border.all(color: Colors.black, width: .5)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -271,7 +330,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                       borderRadius:
                           const BorderRadius.all(Radius.circular(5.0)),
                       border: Border.all(color: Colors.black, width: 1)),
-                  padding: const EdgeInsets.all(5.0),
+                  padding: const EdgeInsets.all(8.0),
                   child: icon),
               SizedBox(height: 10),
               Flexible(

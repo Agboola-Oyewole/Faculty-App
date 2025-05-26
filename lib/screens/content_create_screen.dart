@@ -41,15 +41,19 @@ class _CreateContentScreenState extends State<CreateContentScreen>
   final TextEditingController courseCodeController = TextEditingController();
   bool isLoading = false; // Track loading state
   List<String> selectedDepartments = [];
+  List<PlatformFile> attachedFiles = [];
   File? _imagePost;
   Uint8List? _imagePostWeb; // for Web
   Uint8List? _imageLectureWeb; // for Web
   Uint8List? _imageExamWeb; // for Web
   File? _imageLecture;
   File? _imageExam;
-  dynamic _document;
   dynamic _documentAcademic;
   String? selectedType;
+  String? examFileName;
+  String? postFileName;
+  String? lectureFileName;
+  String? academicFileName;
   String? selectedSession;
   String? selectedDepartment;
   String? selectedUnit;
@@ -129,7 +133,6 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       _imagePost = null;
       _imageLecture = null;
       _imageExam = null;
-      _document = null;
       _documentAcademic = null;
       selectedType = null;
       selectedDepartment = null;
@@ -148,10 +151,12 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         final bytes = await picked.readAsBytes();
         setState(() {
           _imagePostWeb = bytes;
+          postFileName = picked.name;
         });
       } else {
         setState(() {
           _imagePost = File(picked.path);
+          postFileName = picked.path.split('/').last;
         });
       }
     }
@@ -164,10 +169,13 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         final bytes = await picked.readAsBytes();
         setState(() {
           _imageExamWeb = bytes;
+          examFileName = picked.name;
         });
       } else {
         setState(() {
           _imageExam = File(picked.path);
+          examFileName = picked.path.split('/').last;
+          print('THIS IS THE EXAM FILE: $examFileName');
         });
       }
     }
@@ -180,41 +188,27 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         final bytes = await picked.readAsBytes();
         setState(() {
           _imageLectureWeb = bytes;
+          lectureFileName = picked.name;
         });
       } else {
         setState(() {
           _imageLecture = File(picked.path);
+          lectureFileName = picked.path.split('/').last; // Safe on mobile
         });
       }
     }
   }
 
-  Future<void> _pickDocument() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'doc', 'docx', 'txt'],
-      withData: kIsWeb,
-    );
-
+  Future<void> pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'txt'],
+        withData: kIsWeb);
     if (result != null) {
-      if (kIsWeb) {
-        setState(() {
-          _document = {
-            'bytes': result.files.single.bytes!,
-            'name': result.files.single.name,
-          };
-        });
-      } else {
-        final path = result.files.single.path;
-        if (path != null) {
-          setState(() {
-            _document = File(path);
-          });
-        } else {
-          print("⚠️ File path is null (non-web).");
-          _document = null;
-        }
-      }
+      setState(() {
+        attachedFiles.addAll(result.files);
+      });
     }
   }
 
@@ -232,12 +226,14 @@ class _CreateContentScreenState extends State<CreateContentScreen>
             'bytes': result.files.single.bytes!,
             'name': result.files.single.name,
           };
+          academicFileName = result.files.single.name; // Works on web
         });
       } else {
         final path = result.files.single.path;
         if (path != null) {
           setState(() {
             _documentAcademic = File(path);
+            academicFileName = path.split('/').last; // Correct for mobile
           });
         } else {
           print("⚠️ File path is null (non-web).");
@@ -345,41 +341,36 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       }
 
       // 🔹 File Upload Function
-      Future<String?> uploadFile(dynamic file, String folder) async {
-        if (file == null) return null;
-
+      Future<String?> uploadFile(
+          dynamic file, String folder, String fileName) async {
         try {
-          String fileName =
-              "${userId}_${DateTime.now().millisecondsSinceEpoch}";
-          Reference ref = FirebaseStorage.instance.ref("$folder/$fileName");
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) throw Exception("User not logged in");
+
+          final finalFileName =
+              "${user.uid}_${DateTime.now().millisecondsSinceEpoch}_$fileName";
+          final ref = FirebaseStorage.instance.ref("$folder/$finalFileName");
 
           UploadTask uploadTask;
 
           if (kIsWeb) {
-            if (file is Map && file['bytes'] != null && file['name'] != null) {
-              // ✅ FilePicker documents
-              uploadTask = ref.putData(
-                file['bytes'],
-                SettableMetadata(
-                  contentType: getMimeType(file['name']),
-                ),
-              );
-            } else if (file is Uint8List) {
-              // ✅ Image from ImagePicker
-              uploadTask = ref.putData(
-                file,
-                SettableMetadata(
-                    contentType: 'image/jpeg'), // assume jpeg for simplicity
-              );
-            } else {
-              throw Exception("Invalid file format for web.");
+            if (file.bytes == null) {
+              throw Exception("File bytes are null on web platform.");
             }
+
+            uploadTask = ref.putData(
+              file.bytes!,
+              SettableMetadata(contentType: getMimeType(fileName)),
+            );
           } else {
-            // ✅ Mobile
-            uploadTask = ref.putFile(file);
+            final fileToUpload = file as File;
+            uploadTask = ref.putFile(
+              fileToUpload,
+              SettableMetadata(contentType: getMimeType(fileName)),
+            );
           }
 
-          TaskSnapshot snapshot = await uploadTask;
+          final snapshot = await uploadTask;
           return await snapshot.ref.getDownloadURL();
         } catch (e) {
           print("❌ Error uploading file: $e");
@@ -391,9 +382,11 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       if (currentTabName == 'Posts') {
         String? imageUrl;
         if (kIsWeb) {
-          imageUrl = await uploadFile(_imagePostWeb, "posts"); // Uint8List
+          imageUrl = await uploadFile(
+              _imagePostWeb, "posts", postFileName!); // Uint8List
         } else {
-          imageUrl = await uploadFile(_imagePost, "posts"); // File
+          imageUrl =
+              await uploadFile(_imagePost, "posts", postFileName!); // File
         }
         CollectionReference postsRef =
             FirebaseFirestore.instance.collection('posts');
@@ -444,11 +437,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
 
         await postsRef.doc(postId).set(formData);
       } else if (currentTabName == 'Resources') {
-        String? documentUrl = await uploadFile(_document, "resources");
-
         if (!validateFields(context, {
-          "Title": title,
-          "Document": documentUrl,
           "Department": selectedDepartment,
           "Level": selectedLevel,
           "Semester": selectedSemester,
@@ -458,41 +447,50 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           return;
         }
 
-        // Get Firestore reference
+        List<Map<String, dynamic>> uploadedFiles = [];
+
         String courseCode = courseCodeController.text;
         CollectionReference filesRef = FirebaseFirestore.instance
             .collection('resources')
-            .doc(courseCode) // Store resources inside course documents
+            .doc(courseCode)
             .collection('files');
 
-        // Generate a unique resource ID
-        String resourceId = filesRef.doc().id;
+        for (int i = 0; i < attachedFiles.length; i++) {
+          var file = attachedFiles[i];
+          String? url = await uploadFile(file, 'resources', file.name);
+          String resourceId = filesRef.doc().id;
 
-        Map<String, dynamic> formData = {
-          "userId": userId,
-          "title": title,
-          "document": documentUrl ?? "",
-          "department": selectedDepartment,
-          "title_lower": title.toLowerCase(), // Lowercase title for search
-          "resource_id": resourceId,
-          "level": selectedLevel,
-          "semester": selectedSemester,
-          "course_code": courseCode,
-          "document_type": selectedType,
-          "date": FieldValue.serverTimestamp()
-        };
+          if (url != null) {
+            Map<String, dynamic> fileData = {
+              'title': file.name,
+              'document': url,
+              'department': selectedDepartment,
+              'title_lower': title.toLowerCase(),
+              'resource_id': resourceId,
+              'level': selectedLevel,
+              'semester': selectedSemester,
+              'course_code': courseCode,
+              'document_type': selectedType,
+              'date': FieldValue.serverTimestamp(),
+            };
 
-        await filesRef.doc(resourceId).set(formData);
+            uploadedFiles.add(fileData);
+            await filesRef
+                .doc(resourceId)
+                .set(fileData); // ← No undefined index here
+          }
+        }
       } else if (currentTabName == 'Exam') {
         String? imageUrl;
         if (kIsWeb) {
-          imageUrl = await uploadFile(_imageExamWeb, "exams"); // Uint8List
+          imageUrl = await uploadFile(
+              _imageExamWeb, "exams", examFileName!); // Uint8List
         } else {
-          imageUrl = await uploadFile(_imageExam, "exams"); // File
+          imageUrl =
+              await uploadFile(_imageExam, "exams", examFileName!); // File
         }
 
         if (!validateFields(context, {
-          "Title": title,
           "Image": imageUrl,
           "Department": selectedDepartment,
           "Level": selectedLevel,
@@ -508,7 +506,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         String examsId = examsRef.doc().id;
         formData = {
           "userId": userId,
-          "title": title,
+          "title": examFileName,
           "image": imageUrl ?? "",
           "examId": examsId,
           "department": selectedDepartment,
@@ -519,14 +517,14 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       } else if (currentTabName == 'Lecture') {
         String? imageUrl;
         if (kIsWeb) {
-          imageUrl =
-              await uploadFile(_imageLectureWeb, "lectures"); // Uint8List
+          imageUrl = await uploadFile(
+              _imageLectureWeb, "lectures", lectureFileName!); // Uint8List
         } else {
-          imageUrl = await uploadFile(_imageLecture, "lectures"); // File
+          imageUrl = await uploadFile(
+              _imageLecture, "lectures", lectureFileName!); // File
         }
 
         if (!validateFields(context, {
-          "Title": title,
           "Image": imageUrl,
           "Department": selectedDepartment,
           "Level": selectedLevel,
@@ -542,7 +540,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         String lecturesId = lecturesRef.doc().id;
         formData = {
           "userId": userId,
-          "title": title,
+          "title": lectureFileName,
           "lecturesId": lecturesId,
           "image": imageUrl ?? "",
           "department": selectedDepartment,
@@ -551,9 +549,9 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         };
         await lecturesRef.doc(lecturesId).set(formData);
       } else if (currentTabName == 'Academic') {
-        String? documentUrl = await uploadFile(_documentAcademic, "academic");
+        String? documentUrl =
+            await uploadFile(_documentAcademic, "academic", academicFileName!);
         if (!validateFields(context, {
-          "Title": title,
           "Document": documentUrl,
           "Session": selectedSession,
         })) {
@@ -566,7 +564,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         String academicId = academicRef.doc().id;
         formData = {
           "userId": userId,
-          "title": title,
+          "title": academicFileName,
           "lecturesId": academicId,
           "document": documentUrl ?? "",
           "session": selectedSession,
@@ -772,8 +770,11 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         key: _formKeys[index], // Unique key for each tab
         child: ListView(
           children: [
-            buildTextFormField(_titleControllers[index], true,
-                titleHint == 'Post Title' ? 'Caption' : titleHint),
+            if (titleHint ==
+                    "Course Description (e.g General African Studies)" ||
+                titleHint == "Post Title")
+              buildTextFormField(_titleControllers[index], true,
+                  titleHint == 'Post Title' ? 'Caption' : titleHint),
             SizedBox(height: 10),
             if (allowImage && titleHint == 'Post Title')
               _buildImagePostUpload(),
@@ -1181,18 +1182,23 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         SizedBox(height: 5),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black,
+            elevation: 3,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(5),
             ),
           ),
-          onPressed: _pickDocument,
-          icon: Icon(Icons.upload_file, color: Colors.black),
-          label: Text("Choose File", style: TextStyle(color: Colors.black)),
+          onPressed: pickFiles,
+          icon: Icon(Icons.upload_file, color: Colors.white),
+          label: Text("Choose File", style: TextStyle(color: Colors.white)),
         ),
-        if (_document != null)
-          Text(
-            "File selected: ${kIsWeb ? _document['name'] : (_document as File).path.split('/').last}",
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0, bottom: 10),
+          child: Text(
+            "${attachedFiles.length} file(s) selected",
+            overflow: TextOverflow.ellipsis,
           ),
+        ),
       ],
     );
   }
@@ -1205,13 +1211,15 @@ class _CreateContentScreenState extends State<CreateContentScreen>
         SizedBox(height: 5),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black,
+            elevation: 3,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(5),
             ),
           ),
           onPressed: _pickAcademicDocument,
-          icon: Icon(Icons.upload_file, color: Colors.black),
-          label: Text("Choose File", style: TextStyle(color: Colors.black)),
+          icon: Icon(Icons.upload_file, color: Colors.white),
+          label: Text("Choose File", style: TextStyle(color: Colors.white)),
         ),
         if (_documentAcademic != null)
           Text(

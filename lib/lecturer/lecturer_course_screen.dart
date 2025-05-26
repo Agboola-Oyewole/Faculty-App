@@ -1,33 +1,32 @@
-import 'package:faculty_app/components/folder_card.dart';
-import 'package:faculty_app/screens/course_detail_screen.dart';
+import 'package:faculty_app/lecturer/lecturer_course_details.dart';
 import 'package:flutter/material.dart';
 
 import '../bottom_nav_bar.dart';
+import '../components/folder_card.dart';
 import '../utilities/utils.dart';
 
-class CourseScreen extends StatefulWidget {
-  const CourseScreen({super.key});
+class LecturerCoursesScreen extends StatefulWidget {
+  const LecturerCoursesScreen({super.key});
 
   @override
-  State<CourseScreen> createState() => _CourseScreenState();
+  State<LecturerCoursesScreen> createState() => _LecturerCoursesScreenState();
 }
 
-class _CourseScreenState extends State<CourseScreen> {
-  Map<String, dynamic>? userData;
-  Map<String, Map<String, dynamic>>? courseData;
-  bool isLoading = false;
+class _LecturerCoursesScreenState extends State<LecturerCoursesScreen> {
+  List<String> _courses = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     initCourseData();
-    getUserDetails();
   }
+
+  Map<String, dynamic>? courseData;
 
   Future<void> initCourseData() async {
     setState(() {
-      isLoading = true;
+      _isLoading = true;
     });
     Map<String, Map<String, dynamic>>? data = await loadCourseDataFromPrefs();
 
@@ -35,24 +34,14 @@ class _CourseScreenState extends State<CourseScreen> {
       if (data != null) {
         setState(() {
           courseData = data;
+          print(courseData);
         });
         print(courseData);
       } else {
         print("No cached data");
       }
-    }
-  }
-
-  Future<void> getUserDetails() async {
-    Map<String, dynamic>? fetchedData = await fetchCurrentUserDetails();
-    if (mounted && fetchedData != null) {
       setState(() {
-        userData = fetchedData;
-      });
-    }
-    if (mounted) {
-      setState(() {
-        isLoading = false;
+        _isLoading = false;
       });
     }
   }
@@ -85,56 +74,10 @@ class _CourseScreenState extends State<CourseScreen> {
             SizedBox(
               height: 10,
             ),
-            isLoading
-                ? Container()
-                : Material(
-                    borderRadius: BorderRadius.circular(5),
-                    elevation: 2,
-                    child: Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: .5)),
-                      child: Row(children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Color(0xffDBDBDB).withOpacity(0.5),
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(5.0)),
-                                ),
-                                padding: const EdgeInsets.all(8.0),
-                                child: Icon(
-                                  Icons.info_outlined,
-                                  size: 17,
-                                ),
-                              ),
-                              SizedBox(
-                                width: 15,
-                              ),
-                              Expanded(
-                                child: Text(
-                                  "${userData!['level'] ?? 'Loading data....'}  ${userData!['semester'] ?? ''}",
-                                  // Lecture title
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ]),
-                    ),
-                  ),
             SizedBox(
               height: 20,
             ),
-            isLoading
+            _isLoading
                 ? Expanded(
                     child: Center(
                         child: Column(
@@ -165,23 +108,16 @@ class _CourseScreenState extends State<CourseScreen> {
                             String semester =
                                 courseData![courseCode]!['semester'];
                             String name = courseData![courseCode]!['full_name'];
-                            String link1 =
-                                courseData![courseCode]!['drive_link'];
-                            String link2 =
-                                courseData![courseCode]!['drive_link_2'];
 
                             return GestureDetector(
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => CourseDetailScreen(
+                                    builder: (context) => LecturerCourseDetails(
                                       courseId: courseCode,
                                       name: name,
                                       unit: unit,
-                                      link1: link1,
-                                      link2: link2,
-                                      department: department,
                                     ),
                                   ),
                                 );

@@ -76,6 +76,66 @@ Future<void> refreshResources() async {
   }
 }
 
+Future<void> refreshLecturerCourseResources() async {
+  final uid = FirebaseAuth.instance.currentUser!.uid;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  Map<String, dynamic> courseData = {};
+
+  try {
+    // Step 1: Get lecturer document
+    DocumentSnapshot lecturerDoc =
+    await _firestore.collection('users').doc(uid).get();
+
+    if (!lecturerDoc.exists || lecturerDoc.data() == null) {
+      print("❌ Lecturer document not found.");
+      return;
+    }
+
+    final List<dynamic> courses = lecturerDoc.get('courses') ?? [];
+
+    // Step 2: Fetch each course document from 'resources'
+    for (String courseCode in courses) {
+      DocumentSnapshot resourceDoc =
+      await _firestore.collection('resources').doc(courseCode).get();
+
+      if (resourceDoc.exists && resourceDoc.data() != null) {
+        courseData[courseCode] = resourceDoc.data();
+      }
+    }
+
+     ;
+    Map<String, dynamic> filteredCourses = courseData;
+
+// Convert Firestore Timestamps to strings
+    Map<String, dynamic> sanitizedCourses = {};
+
+    filteredCourses.forEach((courseCode, courseData) {
+      Map<String, dynamic> newCourseData = {};
+      courseData.forEach((key, value) {
+        if (value is Timestamp) {
+          newCourseData[key] = value
+              .toDate()
+              .toIso8601String(); // or value.millisecondsSinceEpoch
+        } else {
+          newCourseData[key] = value;
+        }
+      });
+      sanitizedCourses[courseCode] = newCourseData;
+    });
+
+    // Save to SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        "courseData_$uid", jsonEncode(sanitizedCourses));
+    print('✅ Resources saved to local storage: $sanitizedCourses');
+
+    print('✅ Resources saved to local storage: $filteredCourses');
+  } catch (e) {
+    print('🔥 Error fetching course resources: $e');
+    return;
+  }
+}
+
 Future<Map<String, dynamic>?> fetchCurrentUserDetails() async {
   try {
     User? user = FirebaseAuth.instance.currentUser;

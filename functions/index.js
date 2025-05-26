@@ -1,6 +1,9 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onRequest } = require("firebase-functions/v2/https");
+const axios = require("axios");
 const { DateTime } = require("luxon");
+const cors = require("cors")({ origin: true });
 const admin = require("firebase-admin");
 const { google } = require("googleapis");
 
@@ -14,6 +17,51 @@ const auth = new google.auth.GoogleAuth({
 });
 const sheets = google.sheets({ version: "v4", auth });
 const drive = google.drive({ version: "v3", auth });
+
+const MAPS_API_KEY = "AIzaSyCpcBJ_1OO9sfSg8zjNzyp7WASjN_xLIIU";
+
+exports.getRoute = onRequest((req, res) => {
+  cors(req, res, async () => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing or invalid token" });
+    }
+
+    const idToken = authHeader.split("Bearer ")[1];
+
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      console.log("✅ User authenticated:", decodedToken.uid);
+    } catch (error) {
+      console.error("❌ Token verification failed:", error);
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const { startLat, startLng, endLat, endLng } = req.query;
+
+    if (!startLat || !startLng || !endLat || !endLng) {
+      return res.status(400).json({ error: "Missing required coordinates" });
+    }
+
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${startLat},${startLng}&destination=${endLat},${endLng}&key=${MAPS_API_KEY}`;
+
+    try {
+      const response = await axios.get(url);
+      const data = response.data;
+
+      if (data.status !== "OK") {
+        return res.status(400).json({ error: data.status });
+      }
+
+      const encodedPolyline = data.routes[0].overview_polyline.points;
+      res.json({ polyline: encodedPolyline });
+    } catch (error) {
+      console.error("❌ Error fetching directions:", error.message);
+      res.status(500).json({ error: "Failed to fetch directions" });
+    }
+  });
+});
 
 // ✅ FIXED PUSH NOTIFICATIONS
 exports.sendScheduledNotifications = onSchedule("every 5 minutes", async () => {

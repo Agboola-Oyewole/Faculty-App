@@ -5,6 +5,7 @@ class FolderCard extends StatelessWidget {
   final String level;
   final List<dynamic> department;
   final String semester;
+  final String name;
   final int unit;
 
   const FolderCard({
@@ -14,6 +15,7 @@ class FolderCard extends StatelessWidget {
     required this.level,
     required this.department,
     required this.semester,
+    required this.name,
   });
 
   @override
@@ -33,16 +35,23 @@ class FolderCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Image.asset(
-                width: 30,
-                height: 30,
-                'assets/images/folder-removebg-preview.png',
-              ),
-              SizedBox(height: 10),
+              // Image.asset(
+              //   width: 30,
+              //   height: 30,
+              //   'assets/images/folder-removebg-preview.png',
+              // ),
+              // SizedBox(height: 10),
               Flexible(
                 child: Text(
-                  '$courseCode Folder',
+                  '$courseCode',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+              SizedBox(height: 5),
+              Flexible(
+                child: Text(
+                  '$name',
+                  style: TextStyle(fontWeight: FontWeight.w400, fontSize: 11),
                 ),
               ),
               SizedBox(height: 5),

@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:faculty_app/lecturer/personal_details.dart';
+import 'package:faculty_app/lecturer/splash_screen.dart';
 import 'package:faculty_app/screens/attendance_screen.dart';
 import 'package:faculty_app/screens/personal_details.dart';
 import 'package:faculty_app/screens/splash_screen.dart';
@@ -67,23 +69,35 @@ class MyApp extends StatelessWidget {
   }
 }
 
+void initFCMTokenListener() {
+  FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      await FirebaseFirestore.instance.collection("users").doc(userId).update({
+        "fcmToken": newToken,
+      });
+      print("🔁 FCM Token refreshed and updated in Firestore.");
+    } else {
+      print("⚠️ Tried to update token but no user is signed in.");
+    }
+  });
+}
+
 class AuthCheck extends StatelessWidget {
   const AuthCheck({super.key});
 
   Future<Map<String, dynamic>?> fetchUserDetails(String uid) async {
     try {
-      DocumentSnapshot<Map<String, dynamic>> doc =
+      var doc =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
-      if (doc.exists) {
-        return doc.data();
-      } else {
-        print("❌ User document not found in Firestore.");
-        return null;
-      }
+      if (doc.exists) return doc.data();
+
+      print("⚠️ User document not found, new user assumed.");
+      return {}; // new user
     } catch (e) {
       print("❌ Error fetching user details: $e");
-      return null;
+      return null; // error case
     }
   }
 
@@ -107,30 +121,36 @@ class AuthCheck extends StatelessWidget {
                       child: CircularProgressIndicator(color: Colors.black)),
                 );
               } else if (userSnapshot.hasData && userSnapshot.data != null) {
-                bool hasMissingFields = [
-                  'department',
-                  'level',
-                  'faculty',
-                  'gender'
-                ].any((field) => (userSnapshot.data![field] == null ||
-                    (userSnapshot.data![field] as String).isEmpty));
+                bool hasMissingFields = userSnapshot.data!['role'] == 'lecturer'
+                    ? ['department', 'faculty', 'gender'].any((field) =>
+                        (userSnapshot.data![field] == null ||
+                            (userSnapshot.data![field] as dynamic).isEmpty))
+                    : ['department', 'level', 'faculty', 'gender'].any(
+                        (field) => (userSnapshot.data![field] == null ||
+                            (userSnapshot.data![field] as String).isEmpty));
 
                 if (hasMissingFields) {
                   print('⚠️ Redirecting to Personal Info (incomplete details)');
-                  return PersonalInfoScreen();
+                  initFCMTokenListener();
+                  return userSnapshot.data!['role'] == 'lecturer'
+                      ? PersonalInfoScreenLecturer()
+                      : PersonalInfoScreen();
                 } else {
                   print('✅ Redirecting to BottomNavBar (complete details)');
                   return BottomNavBar();
                 }
               } else {
                 print(
-                    "❌ Error retrieving user data, defaulting to Personal Info.");
+                    "❌ Error retrieving user data, defaulting to Sign In Page.");
                 FirebaseAuth.instance.signOut();
-                return OnboardingPage1(); // force them to log in again
+                return userSnapshot.data!['role'] == 'lecturer'
+                    ? OnboardingPage1Lecturer()
+                    : OnboardingPage1(); // force them to log in again
               }
             },
           );
         } else {
+          print("No signed in person");
           return OnboardingPage1();
         }
       },

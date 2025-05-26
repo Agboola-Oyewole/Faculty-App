@@ -1,13 +1,17 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:faculty_app/lecturer/lecturer_course_screen.dart';
+import 'package:faculty_app/lecturer/profile_screen.dart';
 import 'package:faculty_app/screens/content_create_screen.dart';
 import 'package:faculty_app/screens/course_screen.dart';
 import 'package:faculty_app/screens/hub_screen.dart';
 import 'package:faculty_app/screens/profile_screen.dart';
 import 'package:faculty_app/utilities/utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -44,8 +48,50 @@ class _BottomNavBarState extends State<BottomNavBar> {
     super.initState();
     _currentIndex =
         widget.initialIndex; // Set the initial index to the optional parameter
+    checkAndAddFCMToken();
     getUserDetails();
     initCourseData(); // loads from cache or fetches
+  }
+
+  Future<void> checkAndAddFCMToken() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final docRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final userDoc = await docRef.get();
+      final existingToken = userDoc.data()?['fcmToken'];
+
+      if (kIsWeb) {
+        await FirebaseMessaging.instance.requestPermission();
+      }
+
+      if (existingToken == null || existingToken.toString().isEmpty) {
+        String? token;
+
+        if (kIsWeb) {
+          token = await FirebaseMessaging.instance.getToken(
+            vapidKey:
+                'BA4nxj2rLUAyqLe9CdvClHfpVVfWLWoH1mCpNtZyIVREFrm_FHlDbV1Bke5PZixujthOIvhG7XYInHAwalmaWzA',
+          );
+        } else {
+          token = await FirebaseMessaging.instance.getToken();
+        }
+
+        if (token != null) {
+          await docRef.update({'fcmToken': token});
+          print("✅ FCM Token added for user.");
+        } else {
+          print("❌ Failed to get FCM token.");
+        }
+      } else {
+        print("ℹ️ FCM token already exists.");
+      }
+    } catch (e, stack) {
+      print("🚨 Error in checkAndAddFCMToken: $e");
+      print(stack); // optional: helps with debugging in dev builds
+    }
   }
 
   Future<void> fetchResources() async {
@@ -68,40 +114,71 @@ class _BottomNavBarState extends State<BottomNavBar> {
       final userLevel = userData['level'];
       final userDepartment = userData['department'];
       final userSemester = userData['semester'];
+      final userRole = userData['role'];
 
-      final coursesSnapshot =
-          await FirebaseFirestore.instance.collection('resources').get();
+      if (userRole != 'lecturer') {
+        final coursesSnapshot =
+            await FirebaseFirestore.instance.collection('resources').get();
 
-      Map<String, dynamic> filteredCourses = {};
+        Map<String, dynamic> filteredCourses = {};
 
-      for (var doc in coursesSnapshot.docs) {
-        final courseData = doc.data();
-        final courseCode = doc.id;
+        for (var doc in coursesSnapshot.docs) {
+          final courseData = doc.data();
+          final courseCode = doc.id;
 
-        final courseLevel = courseData['level'];
-        final courseDepartments = List<String>.from(courseData['department']);
-        final courseSemester = courseData['semester'];
+          final courseLevel = courseData['level'];
+          final courseDepartments = List<String>.from(courseData['department']);
+          final courseSemester = courseData['semester'];
 
-        final levelMatch = courseLevel == userLevel;
-        final semesterMatch = courseSemester == userSemester;
-        final departmentMatch = courseDepartments.contains("All") ||
-            courseDepartments.contains(userDepartment);
+          final levelMatch = courseLevel == userLevel;
+          final semesterMatch = courseSemester == userSemester;
+          final departmentMatch = courseDepartments.contains("All") ||
+              courseDepartments.contains(userDepartment);
 
-        if (levelMatch && departmentMatch && semesterMatch) {
-          final modifiedData = Map<String, dynamic>.from(courseData);
-          modifiedData.updateAll((key, value) {
-            if (value is Timestamp) return value.toDate().toIso8601String();
-            return value;
-          });
+          if (levelMatch && departmentMatch && semesterMatch) {
+            final modifiedData = Map<String, dynamic>.from(courseData);
+            modifiedData.updateAll((key, value) {
+              if (value is Timestamp) return value.toDate().toIso8601String();
+              return value;
+            });
 
-          filteredCourses[courseCode] = modifiedData;
+            filteredCourses[courseCode] = modifiedData;
+          }
         }
-      }
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-          "courseData_${user.uid}", jsonEncode(filteredCourses));
-      print('✅ Resources saved to local storage: $filteredCourses');
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+            "courseData_${user.uid}", jsonEncode(filteredCourses));
+        print('✅ Resources saved to local storage: $filteredCourses');
+      } else {
+        Map<String, dynamic> filteredCourses =
+            await fetchLecturerCourseResources();
+
+// Convert Firestore Timestamps to strings
+        Map<String, dynamic> sanitizedCourses = {};
+
+        filteredCourses.forEach((courseCode, courseData) {
+          Map<String, dynamic> newCourseData = {};
+          courseData.forEach((key, value) {
+            if (value is Timestamp) {
+              newCourseData[key] = value
+                  .toDate()
+                  .toIso8601String(); // or value.millisecondsSinceEpoch
+            } else {
+              newCourseData[key] = value;
+            }
+          });
+          sanitizedCourses[courseCode] = newCourseData;
+        });
+
+        // Save to SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+            "courseData_${user.uid}", jsonEncode(sanitizedCourses));
+        print('✅ Resources saved to local storage: $sanitizedCourses');
+
+        print('✅ Resources saved to local storage: $filteredCourses');
+      }
 
       if (mounted) {
         setState(() {
@@ -115,6 +192,40 @@ class _BottomNavBarState extends State<BottomNavBar> {
           isLoading = false;
         });
       }
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchLecturerCourseResources() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    Map<String, dynamic> courseData = {};
+
+    try {
+      // Step 1: Get lecturer document
+      DocumentSnapshot lecturerDoc =
+          await _firestore.collection('users').doc(uid).get();
+
+      if (!lecturerDoc.exists || lecturerDoc.data() == null) {
+        print("❌ Lecturer document not found.");
+        return {};
+      }
+
+      final List<dynamic> courses = lecturerDoc.get('courses') ?? [];
+
+      // Step 2: Fetch each course document from 'resources'
+      for (String courseCode in courses) {
+        DocumentSnapshot resourceDoc =
+            await _firestore.collection('resources').doc(courseCode).get();
+
+        if (resourceDoc.exists && resourceDoc.data() != null) {
+          courseData[courseCode] = resourceDoc.data();
+        }
+      }
+
+      return courseData;
+    } catch (e) {
+      print('🔥 Error fetching course resources: $e');
+      return {};
     }
   }
 
@@ -167,10 +278,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
   Widget build(BuildContext context) {
     _screens.clear();
     _screens.addAll([
-      const HomeScreen(),
-      CourseScreen(),
-      HubScreen(),
-      const ProfileScreen(),
+      userData?['role'] == 'lecturer' ? Placeholder() : HomeScreen(),
+      userData?['role'] == 'lecturer'
+          ? LecturerCoursesScreen()
+          : CourseScreen(),
+      userData?['role'] == 'lecturer' ? Placeholder() : HubScreen(),
+      userData?['role'] == 'lecturer'
+          ? ProfileScreenLecturer()
+          : ProfileScreen(),
     ]);
     return PopScope(
       canPop: false, // Prevent default back button behavior
@@ -190,10 +305,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   if (scrollNotification is UserScrollNotification) {
                     if (scrollNotification.direction ==
                         ScrollDirection.reverse) {
-                      if (_currentIndex == 2) {
-                      } else {
-                        isVisible.value = false;
-                      }
+                      // if (_currentIndex == 2) {
+                      // } else {
+                      //   isVisible.value = false;
+                      // }
+                      isVisible.value = false;
                     } else if (scrollNotification.direction ==
                         ScrollDirection.forward) {
                       isVisible.value = true;

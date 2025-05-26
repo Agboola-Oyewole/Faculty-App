@@ -1,5 +1,4 @@
 import 'dart:io' as io;
-import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
@@ -7,12 +6,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
-import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:photo_view/photo_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../bottom_nav_bar.dart';
@@ -288,46 +284,6 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
     );
   }
 
-  Future<String> getFileType(String url) async {
-    try {
-      final uri = Uri.parse(url);
-      final response = await http.head(uri);
-
-      String? contentType = response.headers['content-type'];
-      if (contentType != null) {
-        if (contentType.contains("pdf")) return "PDF";
-        if (contentType.contains("msword") ||
-            contentType.contains("wordprocessingml")) return "Word";
-        if (contentType.contains("presentation")) return "PowerPoint";
-        if (contentType.contains("spreadsheet")) return "Excel";
-
-        if (contentType.contains("image")) {
-          if (contentType.contains("jpeg")) return "JPG";
-          if (contentType.contains("png")) return "PNG";
-          if (contentType.contains("webp")) return "WEBP";
-          if (contentType.contains("gif")) return "GIF";
-          return "Image"; // fallback
-        }
-      }
-
-      // Fallback: check extension in URL
-      String ext = path.extension(uri.path).toLowerCase();
-      if (ext == ".pdf") return "PDF";
-      if ([".doc", ".docx"].contains(ext)) return "Word";
-      if ([".ppt", ".pptx"].contains(ext)) return "PowerPoint";
-      if ([".xls", ".xlsx"].contains(ext)) return "Excel";
-
-      if (ext == ".jpg" || ext == ".jpeg") return "JPG";
-      if (ext == ".png") return "PNG";
-      if (ext == ".webp") return "WEBP";
-      if (ext == ".gif") return "GIF";
-
-      return "Unknown";
-    } catch (e) {
-      return "Unknown";
-    }
-  }
-
   Future<void> downloadFile(String url, String fileName) async {
     try {
       if (kIsWeb) {
@@ -367,19 +323,7 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
             return;
           }
 
-          String fileType = await getFileType(url);
-          Map<String, String> fileExtensions = {
-            "PDF": ".pdf",
-            "Word": ".docx",
-            "PowerPoint": ".pptx",
-            "Excel": ".xlsx",
-            "JPG": ".jpg",
-            "PNG": ".png",
-            "WEBP": ".webp",
-            "GIF": ".gif",
-          };
-
-          String fullFileName = "$fileName${fileExtensions[fileType] ?? ''}";
+          String fullFileName = fileName ?? '';
           String savePath = "${downloadsDir.path}/$fullFileName";
 
           await Dio().download(url, savePath);
@@ -453,22 +397,8 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
       // Download file
       await Dio().download(url, filePath);
 
-      // Check if it's an image
-      if (fileName.endsWith('.png') ||
-          fileName.endsWith('.jpg') ||
-          fileName.endsWith('.jpeg') ||
-          fileName.endsWith('.gif') ||
-          fileName.endsWith('.webp')) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ImageViewerScreen(imagePath: filePath),
-          ),
-        );
-      } else {
-        // Open document using installed apps
-        await OpenFilex.open(filePath);
-      }
+      // Open document using installed apps
+      await OpenFilex.open(filePath);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1177,22 +1107,6 @@ class _CourseMaterialScreenState extends State<CourseMaterialScreen> {
           labelStyle: TextStyle(color: Colors.black),
           border: OutlineInputBorder(),
         ),
-      ),
-    );
-  }
-}
-
-class ImageViewerScreen extends StatelessWidget {
-  final String imagePath;
-
-  const ImageViewerScreen({super.key, required this.imagePath});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Image Preview")),
-      body: Center(
-        child: PhotoView(imageProvider: FileImage(File(imagePath))),
       ),
     );
   }

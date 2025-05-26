@@ -1,6 +1,7 @@
 import 'package:faculty_app/components/hub_container.dart';
 import 'package:faculty_app/screens/attendance_screen.dart';
 import 'package:faculty_app/screens/cgpa_screen.dart';
+import 'package:faculty_app/screens/map_navigation_screen.dart';
 import 'package:faculty_app/screens/schedule_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -18,37 +19,95 @@ class HubScreen extends StatefulWidget {
 
 class _HubScreenState extends State<HubScreen> {
   Map<String, dynamic>? userData;
-  List<Map<String, String>> items = [
-    {
-      "title": "Current Lecture Timetable",
-      "image": "timetable-icon.png",
-      "description": "Check your latest lecture times."
-    },
-    {
-      "title": "Current Academic Calendar",
-      "image": "calendar.png",
-      "description": "View key academic dates."
-    },
-    {
-      "title": "Current Exam Schedule",
-      "image": "exam-time.png",
-      "description": "See your upcoming exams."
-    },
-    {
-      "title": "Attendance Taking (Beta)",
-      "image": "team.png",
-      "description": "Mark and track attendance."
-    },
-    {
-      "title": "Lecture Schedule (Beta)",
-      "image": "project.png",
-      "description": "Get weekly lecture details."
-    },
-    {
-      "title": "CGPA Calculator",
-      "image": "calculator.png",
-      "description": "Easily calculate your GPA."
-    }
+  List<Map<String, String>> items = kIsWeb
+      ? [
+          {
+            "title": "Current Lecture Timetable",
+            "image": "timetable-icon.png",
+            "description": "Check your latest lecture times."
+          },
+          {
+            "title": "Current Academic Calendar",
+            "image": "calendar.png",
+            "description": "View key academic dates."
+          },
+          {
+            "title": "Current Exam Schedule",
+            "image": "exam-time.png",
+            "description": "See your upcoming exams."
+          },
+          {
+            "title": "Attendance Taking (Beta)",
+            "image": "team.png",
+            "description": "Mark and track attendance."
+          },
+          {
+            "title": "Lecture Schedule (Beta)",
+            "image": "project.png",
+            "description": "Get weekly lecture details."
+          },
+          {
+            "title": "CGPA Calculator",
+            "image": "calculator.png",
+            "description": "Easily calculate your GPA."
+          },
+        ]
+      : [
+          {
+            "title": "Current Lecture Timetable",
+            "image": "timetable-icon.png",
+            "description": "Check your latest lecture times."
+          },
+          {
+            "title": "Current Academic Calendar",
+            "image": "calendar.png",
+            "description": "View key academic dates."
+          },
+          {
+            "title": "Current Exam Schedule",
+            "image": "exam-time.png",
+            "description": "See your upcoming exams."
+          },
+          {
+            "title": "Attendance Taking (Beta)",
+            "image": "team.png",
+            "description": "Mark and track attendance."
+          },
+          {
+            "title": "Lecture Schedule (Beta)",
+            "image": "project.png",
+            "description": "Get weekly lecture details."
+          },
+          {
+            "title": "CGPA Calculator",
+            "image": "calculator.png",
+            "description": "Easily calculate your GPA."
+          },
+          {
+            "title": "Campus Navigation",
+            "image": "map.png", // Replace with your actual asset name
+            "description": "Get walking directions to any faculty building."
+          },
+        ];
+
+  final List<IconData> icons = [
+    Icons.schedule, // Current Lecture Timetable
+    Icons.calendar_today, // Current Academic Calendar
+    Icons.assignment, // Current Exam Schedule
+    Icons.check_circle_outline, // Attendance Taking (Beta)
+    Icons.view_week, // Lecture Schedule (Beta)
+    Icons.calculate, // CGPA Calculator
+    Icons.map, // Campus Navigation
+  ];
+
+  List<IconData> featureIcons = [
+    Icons.schedule, // Current Lecture Timetable
+    Icons.calendar_today, // Current Academic Calendar
+    Icons.event_note, // Current Exam Schedule
+    Icons.group, // Attendance Taking (Beta)
+    Icons.view_week, // Lecture Schedule (Beta)
+    Icons.calculate, // CGPA Calculator
+    Icons.map, // Campus Navigation
   ];
 
   @override
@@ -133,19 +192,25 @@ class _HubScreenState extends State<HubScreen> {
                                               firebaseCollection: 'exams',
                                             )
                                           : items[index]['title'] ==
-                                                  "CGPA Calculator"
-                                              ? CgpaCalculator()
+                                                  'Campus Navigation'
+                                              ? CampusMapScreen()
                                               : items[index]['title'] ==
-                                                      "Lecture Schedule (Beta)"
-                                                  ? WeeklyScheduleScreen()
-                                                  : userData?['role'] ==
-                                                          'student'
-                                                      ? AttendanceScreen()
-                                                      : AddClassScreen()));
+                                                      "CGPA Calculator"
+                                                  ? CgpaCalculator()
+                                                  : items[index]['title'] ==
+                                                          "Lecture Schedule (Beta)"
+                                                      ? WeeklyScheduleScreen()
+                                                      : userData?['role'] ==
+                                                              'student'
+                                                          ? AttendanceScreen()
+                                                          : AddClassScreen()));
                     },
                     child: HubContainer(
                       title: items[index]['title']!,
-                      image: items[index]['image']!,
+                      icon: Icon(
+                        featureIcons[index],
+                        size: 18,
+                      ),
                       description: items[index]['description']!,
                     ),
                   );

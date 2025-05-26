@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:faculty_app/lecturer/splash_screen.dart';
 import 'package:faculty_app/screens/personal_details.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -124,39 +126,35 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
     }
   }
 
-// Function to check if the user exists in Firestore
   Future<bool> checkAndCreateUser(User user) async {
     final userRef =
         FirebaseFirestore.instance.collection('users').doc(user.uid);
     final docSnapshot = await userRef.get();
 
     if (!docSnapshot.exists) {
-      // User does not exist, create a new record
+      // Create new user
       await userRef.set({
         'first_name': user.displayName?.split(" ").first ?? "",
         'last_name': user.displayName?.split(" ").last ?? "",
         'profile_pic': user.photoURL ?? "",
         'email': user.email,
-        'department': "", // Ask user to provide this
-        'level': "", // Ask user to provide this
-        'faculty': "", // Ask user to provide this
-        'gender': "", // Ask user to provide this
+        'department': "",
+        'level': "",
+        'faculty': "",
+        'gender': "",
         'matricNo': "",
         'username': "",
-        'role': "student", // Default role
+        'role': "student",
         'created_at': FieldValue.serverTimestamp(),
       });
 
-      final userId = user.uid;
+      // Create schedule
       final docRef =
-          FirebaseFirestore.instance.collection('schedules').doc(userId);
-
-      final docSnapshot = await docRef.get();
-
-      if (!docSnapshot.exists) {
-        // Create the default schedule document
+          FirebaseFirestore.instance.collection('schedules').doc(user.uid);
+      final scheduleDoc = await docRef.get();
+      if (!scheduleDoc.exists) {
         await docRef.set({
-          "userId": userId,
+          "userId": user.uid,
           "schedule": {
             "Monday": [],
             "Tuesday": [],
@@ -170,21 +168,32 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
       }
       print("✅ User Schedule Data Created: ${user.displayName}");
 
-      FirebaseMessaging messaging = FirebaseMessaging.instance;
-      String? token = await messaging.getToken();
+      // 🔐 Request permission and fetch token
+      await FirebaseMessaging.instance.requestPermission();
+
+      String? token;
+
+      if (kIsWeb) {
+        token = await FirebaseMessaging.instance.getToken(
+          vapidKey:
+              'BA4nxj2rLUAyqLe9CdvClHfpVVfWLWoH1mCpNtZyIVREFrm_FHlDbV1Bke5PZixujthOIvhG7XYInHAwalmaWzA',
+        );
+      } else {
+        token = await FirebaseMessaging.instance.getToken();
+      }
 
       if (token != null) {
-        await FirebaseFirestore.instance.collection("users").doc(userId).set({
-          "fcmToken": token,
-        }, SetOptions(merge: true));
+        await userRef.set({"fcmToken": token}, SetOptions(merge: true));
+        print("✅ FCM Token saved: $token");
+      } else {
+        print("❌ Failed to get FCM token.");
       }
 
       print("✅ New user created in Firestore.");
-      print('Returning true now');
-      return true; // New user
+      return true;
     } else {
       print("ℹ️ User already exists in Firestore.");
-      return false; // Existing user
+      return false;
     }
   }
 
@@ -374,52 +383,78 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                         ),
                       ),
                     )
-                  : Padding(
-                      padding: const EdgeInsets.only(bottom: 40, top: 80),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(5),
-                        // Adjust the radius as needed
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            backgroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 12, horizontal: 20),
-                          ),
-                          onPressed: isLoading ? null : signInWithGoogle,
-                          // Disable button when loading
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Image.asset(
-                                "assets/images/search.png",
-                                // Use a Google logo asset
-                                height: 24,
+                  : Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10, top: 60),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(5),
+                            // Adjust the radius as needed
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                backgroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 12, horizontal: 20),
                               ),
-                              isLoading
-                                  ? const SizedBox(
-                                      width: 50,
-                                    )
-                                  : const SizedBox(width: 15),
-                              isLoading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.black, // Customize color
-                                        strokeWidth: 4,
-                                      ),
-                                    )
-                                  : const Text(
-                                      "Sign in with Google",
-                                      style: TextStyle(color: Colors.black),
-                                    ),
-                            ],
+                              onPressed: isLoading ? null : signInWithGoogle,
+                              // Disable button when loading
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Image.asset(
+                                    "assets/images/search.png",
+                                    // Use a Google logo asset
+                                    height: 24,
+                                  ),
+                                  isLoading
+                                      ? const SizedBox(
+                                          width: 50,
+                                        )
+                                      : const SizedBox(width: 15),
+                                  isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            color:
+                                                Colors.black, // Customize color
+                                            strokeWidth: 4,
+                                          ),
+                                        )
+                                      : const Text(
+                                          "Sign in with Google",
+                                          style: TextStyle(color: Colors.black),
+                                        ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        OnboardingPage1Lecturer()));
+                          },
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.only(bottom: 30.0, top: 25),
+                            child: Text(
+                              'Not a student?',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
             ],
           ),

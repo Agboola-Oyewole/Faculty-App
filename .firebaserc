@@ -1,15 +1,5 @@
 {
   "projects": {
     "default": "fes-connect-x"
-  },
-  "targets": {
-    "fes-connect-x": {
-      "hosting": {
-        "web": [
-          "fes-connect-x"
-        ]
-      }
-    }
-  },
-  "etags": {}
+  }
 }
