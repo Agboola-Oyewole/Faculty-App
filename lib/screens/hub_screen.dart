@@ -1,5 +1,4 @@
 import 'package:faculty_app/components/hub_container.dart';
-import 'package:faculty_app/screens/attendance_screen.dart';
 import 'package:faculty_app/screens/cgpa_screen.dart';
 import 'package:faculty_app/screens/map_navigation_screen.dart';
 import 'package:faculty_app/screens/schedule_screen.dart';
@@ -68,11 +67,11 @@ class _HubScreenState extends State<HubScreen> {
             "image": "exam-time.png",
             "description": "See your upcoming exams."
           },
-          {
-            "title": "Attendance Taking (Beta)",
-            "image": "team.png",
-            "description": "Mark and track attendance."
-          },
+          // {
+          //   "title": "Attendance Taking (Beta)",
+          //   "image": "team.png",
+          //   "description": "Mark and track attendance."
+          // },
           {
             "title": "Lecture Schedule (Beta)",
             "image": "project.png",
@@ -197,13 +196,15 @@ class _HubScreenState extends State<HubScreen> {
                                               : items[index]['title'] ==
                                                       "CGPA Calculator"
                                                   ? CgpaCalculator()
-                                                  : items[index]['title'] ==
-                                                          "Lecture Schedule (Beta)"
-                                                      ? WeeklyScheduleScreen()
-                                                      : userData?['role'] ==
-                                                              'student'
-                                                          ? AttendanceScreen()
-                                                          : AddClassScreen()));
+                                                  : WeeklyScheduleScreen()
+                              // items[index]['title'] ==
+                              //                             "Lecture Schedule (Beta)"
+                              //                         ? WeeklyScheduleScreen()
+                              //                         : userData?['role'] ==
+                              //                                 'student'
+                              //                             ? AttendanceScreen()
+                              //                             : AddClassScreen()
+                              ));
                     },
                     child: HubContainer(
                       title: items[index]['title']!,

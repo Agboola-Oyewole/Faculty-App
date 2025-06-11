@@ -245,7 +245,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                               1.9)
                                       : MediaQuery.of(context).size.width /
                                           (MediaQuery.of(context).size.height /
-                                              2.3),
+                                              2.0),
                                 ),
                                 itemCount: items.length,
                                 itemBuilder: (context, index) {

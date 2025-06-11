@@ -305,11 +305,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   if (scrollNotification is UserScrollNotification) {
                     if (scrollNotification.direction ==
                         ScrollDirection.reverse) {
-                      // if (_currentIndex == 2) {
-                      // } else {
-                      //   isVisible.value = false;
-                      // }
-                      isVisible.value = false;
+                      if (_currentIndex == 2) {
+                      } else {
+                        isVisible.value = false;
+                      }
+                      // isVisible.value = false;
                     } else if (scrollNotification.direction ==
                         ScrollDirection.forward) {
                       isVisible.value = true;

@@ -18,7 +18,7 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: "v4", auth });
 const drive = google.drive({ version: "v3", auth });
 
-const MAPS_API_KEY = "AIzaSyCpcBJ_1OO9sfSg8zjNzyp7WASjN_xLIIU";
+const MAPS_API_KEY = "API_KEY";
 
 exports.getRoute = onRequest((req, res) => {
   cors(req, res, async () => {

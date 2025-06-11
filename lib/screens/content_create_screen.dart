@@ -24,8 +24,6 @@ class CreateContentScreen extends StatefulWidget {
 
 class _CreateContentScreenState extends State<CreateContentScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
   // Separate GlobalKey for each tab to prevent duplicate errors
   final List<GlobalKey<FormState>> _formKeys =
       List.generate(6, (index) => GlobalKey<FormState>());
@@ -111,11 +109,23 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     "Courses"
   ];
 
+  late TabController _tabController;
+  late Widget tabItem;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
     _tabController.index = widget.tabIndex;
+
+    tabItem = _buildTabByIndex(widget.tabIndex);
+
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) return;
+      setState(() {
+        tabItem = _buildTabByIndex(_tabController.index);
+      });
+    });
   }
 
   void _clearForm() {
@@ -144,56 +154,19 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     print("✅ Form cleared successfully!");
   }
 
-  Future<void> _pickImagePost() async {
+  Future<void> _pickImage(webFile, appFile, fileName) async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
       if (kIsWeb) {
         final bytes = await picked.readAsBytes();
         setState(() {
-          _imagePostWeb = bytes;
-          postFileName = picked.name;
+          webFile = bytes;
+          fileName = picked.name;
         });
       } else {
         setState(() {
-          _imagePost = File(picked.path);
-          postFileName = picked.path.split('/').last;
-        });
-      }
-    }
-  }
-
-  Future<void> _pickImageExam() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      if (kIsWeb) {
-        final bytes = await picked.readAsBytes();
-        setState(() {
-          _imageExamWeb = bytes;
-          examFileName = picked.name;
-        });
-      } else {
-        setState(() {
-          _imageExam = File(picked.path);
-          examFileName = picked.path.split('/').last;
-          print('THIS IS THE EXAM FILE: $examFileName');
-        });
-      }
-    }
-  }
-
-  Future<void> _pickImageLecture() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      if (kIsWeb) {
-        final bytes = await picked.readAsBytes();
-        setState(() {
-          _imageLectureWeb = bytes;
-          lectureFileName = picked.name;
-        });
-      } else {
-        setState(() {
-          _imageLecture = File(picked.path);
-          lectureFileName = picked.path.split('/').last; // Safe on mobile
+          appFile = File(picked.path);
+          fileName = picked.path.split('/').last;
         });
       }
     }
@@ -381,13 +354,16 @@ class _CreateContentScreenState extends State<CreateContentScreen>
       // 🔹 Handle uploads based on tab
       if (currentTabName == 'Posts') {
         String? imageUrl;
-        if (kIsWeb) {
-          imageUrl = await uploadFile(
-              _imagePostWeb, "posts", postFileName!); // Uint8List
-        } else {
-          imageUrl =
-              await uploadFile(_imagePost, "posts", postFileName!); // File
+        if (postFileName != null) {
+          if (kIsWeb) {
+            imageUrl = await uploadFile(
+                _imagePostWeb, "posts", postFileName!); // Uint8List
+          } else {
+            imageUrl =
+                await uploadFile(_imagePost, "posts", postFileName!); // File
+          }
         }
+
         CollectionReference postsRef =
             FirebaseFirestore.instance.collection('posts');
 
@@ -685,6 +661,115 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     }
   }
 
+  Widget _buildTabByIndex(int index) {
+    switch (index) {
+      case 0:
+        return _buildForm(
+          0,
+          "Post Title",
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+        );
+      case 1:
+        return _buildForm(
+          1,
+          "Resource Title",
+          false,
+          true,
+          true,
+          false,
+          false,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+        );
+      case 2:
+        return _buildForm(
+          2,
+          "Exam Schedule Title",
+          true,
+          false,
+          false,
+          false,
+          false,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+        );
+      case 3:
+        return _buildForm(
+          3,
+          "Lecture Schedule Title",
+          true,
+          false,
+          false,
+          false,
+          false,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+        );
+      case 4:
+        return _buildForm(
+          4,
+          "Academic Calender Title",
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+        );
+      case 5:
+        return _buildForm(
+          5,
+          "Course Description (e.g General African Studies)",
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+        );
+      default:
+        return const Center(child: Text("Invalid tab index"));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -716,36 +801,7 @@ class _CreateContentScreenState extends State<CreateContentScreen>
           labelStyle: TextStyle(color: Colors.black),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildForm(0, "Post Title", true, false, false, false, false, false,
-              false, false, false, false, false, false),
-          _buildForm(1, "Resource Title", false, true, true, false, false, true,
-              true, true, true, false, false, false),
-          _buildForm(2, "Exam Schedule Title", true, false, false, false, false,
-              true, true, true, false, false, false, false),
-          _buildForm(3, "Lecture Schedule Title", true, false, false, false,
-              false, true, true, true, false, false, false, false),
-          _buildForm(4, "Academic Calender Title", false, true, false, false,
-              false, false, false, false, false, true, false, false),
-          _buildForm(
-              5,
-              "Course Description (e.g General African Studies)",
-              false,
-              true,
-              false,
-              false,
-              true,
-              false,
-              true,
-              true,
-              true,
-              false,
-              true,
-              true),
-        ],
-      ),
+      body: tabItem,
     );
   }
 
@@ -777,11 +833,17 @@ class _CreateContentScreenState extends State<CreateContentScreen>
                   titleHint == 'Post Title' ? 'Caption' : titleHint),
             SizedBox(height: 10),
             if (allowImage && titleHint == 'Post Title')
-              _buildImagePostUpload(),
+              _buildImageUpload(_imagePostWeb, _imagePost,
+                  () => _pickImage(_imagePostWeb, _imagePost, postFileName)),
             if (allowImage && titleHint == 'Exam Schedule Title')
-              _buildImageExamUpload(),
+              _buildImageUpload(_imageExamWeb, _imageExam,
+                  () => _pickImage(_imageExamWeb, _imageExam, examFileName)),
             if (allowImage && titleHint == 'Lecture Schedule Title')
-              _buildImageLectureUpload(),
+              _buildImageUpload(
+                  _imageLectureWeb,
+                  _imageLecture,
+                  () => _pickImage(
+                      _imageLectureWeb, _imageLecture, lectureFileName)),
             if (allowDocument && titleHint == 'Resource Title')
               _buildDocumentUpload(),
             if (allowDocument && titleHint == 'Academic Calender Title')
@@ -1087,14 +1149,16 @@ class _CreateContentScreenState extends State<CreateContentScreen>
     );
   }
 
-  Widget _buildImagePostUpload() {
+  Widget _buildImageUpload(imageWeb, imageApp, imageFunction) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Upload Image"),
         SizedBox(height: 8),
         GestureDetector(
-          onTap: _pickImagePost,
+          onTap: () {
+            imageFunction();
+          },
           child: Container(
             height: 150,
             width: double.infinity,
@@ -1104,69 +1168,11 @@ class _CreateContentScreenState extends State<CreateContentScreen>
               color: Colors.grey[200],
             ),
             child: kIsWeb
-                ? (_imagePostWeb != null
-                    ? Image.memory(_imagePostWeb!, fit: BoxFit.cover)
+                ? (imageWeb != null
+                    ? Image.memory(imageWeb!, fit: BoxFit.cover)
                     : Icon(Icons.camera_alt, size: 50, color: Colors.grey))
-                : (_imagePost != null
-                    ? Image.file(_imagePost!, fit: BoxFit.cover)
-                    : Icon(Icons.camera_alt, size: 50, color: Colors.grey)),
-          ),
-        )
-      ],
-    );
-  }
-
-  Widget _buildImageLectureUpload() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Upload Image"),
-        SizedBox(height: 8),
-        GestureDetector(
-          onTap: _pickImageLecture,
-          child: Container(
-            height: 150,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.grey[200],
-            ),
-            child: kIsWeb
-                ? (_imageLectureWeb != null
-                    ? Image.memory(_imageLectureWeb!, fit: BoxFit.cover)
-                    : Icon(Icons.camera_alt, size: 50, color: Colors.grey))
-                : (_imageLecture != null
-                    ? Image.file(_imageLecture!, fit: BoxFit.cover)
-                    : Icon(Icons.camera_alt, size: 50, color: Colors.grey)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildImageExamUpload() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Upload Image"),
-        SizedBox(height: 8),
-        GestureDetector(
-          onTap: _pickImageExam,
-          child: Container(
-            height: 150,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.grey[200],
-            ),
-            child: kIsWeb
-                ? (_imageExamWeb != null
-                    ? Image.memory(_imageExamWeb!, fit: BoxFit.cover)
-                    : Icon(Icons.camera_alt, size: 50, color: Colors.grey))
-                : (_imageExam != null
-                    ? Image.file(_imageExam!, fit: BoxFit.cover)
+                : (imageApp != null
+                    ? Image.file(imageApp!, fit: BoxFit.cover)
                     : Icon(Icons.camera_alt, size: 50, color: Colors.grey)),
           ),
         ),

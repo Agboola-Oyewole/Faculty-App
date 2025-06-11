@@ -547,6 +547,12 @@ class _CourseAssignmentFileScreenState
             ],
           ),
           SizedBox(height: 30),
+          Text(
+            'Attached Files',
+            style: TextStyle(
+                fontSize: 14, color: Colors.black, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 20),
           ...files.map((file) {
             return GestureDetector(
               onTap: () {

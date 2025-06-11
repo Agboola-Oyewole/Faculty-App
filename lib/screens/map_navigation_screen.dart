@@ -32,7 +32,7 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
     northeast: LatLng(6.524, 3.396),
   );
 
-  final String _apiKey = 'AIzaSyCpcBJ_1OO9sfSg8zjNzyp7WASjN_xLIIU';
+  final String _apiKey = 'API_KEY';
 
   @override
   void initState() {

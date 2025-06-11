@@ -143,8 +143,10 @@ class AuthCheck extends StatelessWidget {
                 print(
                     "❌ Error retrieving user data, defaulting to Sign In Page.");
                 FirebaseAuth.instance.signOut();
-                return userSnapshot.data!['role'] == 'lecturer'
-                    ? OnboardingPage1Lecturer()
+                return userSnapshot.data != null
+                    ? userSnapshot.data!['role'] == 'lecturer'
+                        ? OnboardingPage1Lecturer()
+                        : OnboardingPage1()
                     : OnboardingPage1(); // force them to log in again
               }
             },
